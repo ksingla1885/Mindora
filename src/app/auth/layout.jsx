@@ -10,8 +10,9 @@ export const metadata = {
 
 export default function AuthLayout({ children }) {
   return (
-    <main className={`min-h-screen bg-gray-50 ${inter.className}`}>
+    <main className={`min-h-screen bg-background text-foreground ${inter.className}`}>
       {children}
     </main>
   );
 }
+

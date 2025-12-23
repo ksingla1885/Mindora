@@ -5,7 +5,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider as HighContrastProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "react-hot-toast";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 function ThemeWrapper({ children }) {
     return (
