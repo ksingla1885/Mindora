@@ -1,11 +1,40 @@
 import { auth } from '@/auth';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { BookOpen, Clock, Award, BarChart, Calendar } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import prisma from '@/lib/prisma';
+import { cn } from '@/lib/cn';
+import {
+  AssignmentTurnedIn, // Material: assignment_turned_in 
+  TrendingUp, // Material: trending_up
+  Analytics, // Material: analytics
+  Target, // Material: target
+  EmojiEvents, // Material: emoji_events (Trophy)
+  PlayArrow, // Material: play_arrow
+  Notifications, // Material: notifications
+  Search, // Material: search
+  Menu, // Material: menu
+  CheckCircle,
+  BarChart2,
+  Trophy,
+  ArrowRight,
+  Clock,
+  Calendar,
+  MoreVertical,
+  Crown
+} from 'lucide-react';
+// Lucide doesn't have 1:1 matches for all Material names, so we map them:
+import {
+  CheckCircle2 as IconAssignmentTurnedIn,
+  TrendingUp as IconTrendingUp,
+  BarChart as IconAnalytics,
+  Crosshair as IconTarget,
+  Trophy as IconEmojiEvents,
+  Play as IconPlayArrow,
+  Bell as IconNotifications,
+  Search as IconSearch,
+  Menu as IconMenu,
+  MoreHorizontal
+} from 'lucide-react';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -16,7 +45,7 @@ export default async function DashboardPage() {
 
   const userId = session.user.id;
 
-  // 1. Fetch Enrolled Olympiads
+  // 1. Fetch Enrolled Olympiads / Subjects
   const enrolledOlympiadsData = await prisma.olympiadRegistration.findMany({
     where: { userId },
     include: {
@@ -24,13 +53,6 @@ export default async function DashboardPage() {
     },
     take: 5,
   });
-
-  const enrolledOlympiads = enrolledOlympiadsData.map(reg => ({
-    id: reg.olympiad.id,
-    name: reg.olympiad.name,
-    progress: 0, // TODO: Calculate real progress based on topic completion
-    testDate: reg.olympiad.startDate.toISOString(),
-  }));
 
   // 2. Fetch Upcoming Tests
   const upcomingTestsData = await prisma.test.findMany({
@@ -43,16 +65,15 @@ export default async function DashboardPage() {
     orderBy: {
       startTime: 'asc',
     },
-    take: 5,
+    take: 3,
   });
 
   const upcomingTests = upcomingTestsData.map(test => ({
     id: test.id,
     name: test.title,
-    subject: 'General', // Subject relation is on Olympiad or inferred, simplified for now
-    date: test.startTime ? test.startTime.toISOString() : new Date().toISOString(),
-    duration: test.durationMinutes,
-    type: test.isPaid ? 'premium' : 'free',
+    subject: 'General',
+    date: test.startTime ? new Date(test.startTime) : new Date(),
+    type: test.isPaid ? 'Paid' : 'Free',
   }));
 
   // 3. Fetch Recent Scores
@@ -73,259 +94,261 @@ export default async function DashboardPage() {
   const recentScores = recentAttempts.map(attempt => ({
     test: attempt.test.title,
     score: attempt.score || 0,
-    total: 100, // Assuming 100 for now, or fetch from test.maxScore if added to schema
+    total: 100, // Assuming 100 for now
+    rank: 12, // Placeholder
     date: attempt.submittedAt ? attempt.submittedAt.toISOString() : new Date().toISOString(),
   }));
 
-  // 4. Fetch a "Daily Question" (Random for now)
-  const randomQuestion = await prisma.question.findFirst({
-    include: { topic: { include: { subject: true } } },
-    take: 1,
-    skip: Math.floor(Math.random() * 10), // Simple randomization
-  });
-
-  const dppProgress = {
-    streak: 0, // Placeholder for streak logic
-    completed: 0,
-    total: 1,
-    todayCompleted: false,
-    todayQuestion: randomQuestion ? {
-      id: randomQuestion.id,
-      subject: randomQuestion.topic?.subject?.name || 'General',
-      topic: randomQuestion.topic?.name || 'Mixed',
-      difficulty: randomQuestion.difficulty || 'medium',
-    } : null,
+  // Stats Data
+  const stats = {
+    totalTests: recentAttempts.length,
+    averageScore: recentScores.length > 0 ? Math.round(recentScores.reduce((a, b) => a + b.score, 0) / recentScores.length) : 0,
+    accuracy: 0,
+    globalRank: 0
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Welcome back, {session.user?.name?.split(' ')[0] || 'Student'}!</h1>
-        <Button asChild>
-          <Link href="/practice">Start Practicing</Link>
-        </Button>
+    <div className="mx-auto max-w-6xl flex flex-col gap-8 p-6 lg:p-8">
+      {/* Welcome Section */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl font-bold text-[#111318] lg:text-3xl dark:text-white">Welcome back, {session.user?.name?.split(' ')[0] || 'Student'}! 👋</h1>
+        <p className="text-[#616f89] dark:text-gray-400">Your preparation journey starts here.</p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Enrolled Olympiads</CardTitle>
-            <Award className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{enrolledOlympiads.length}</div>
-            <p className="text-xs text-muted-foreground">Active enrollments</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">DPP Streak</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dppProgress.streak} days</div>
-            <p className="text-xs text-muted-foreground">Current streak</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Score</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {recentScores.length > 0
-                ? Math.round(recentScores.reduce((sum, test) => sum + (test.score / test.total * 100), 0) / recentScores.length)
-                : 0}%
+      {/* Stats Grid */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Total Tests */}
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Total Tests</p>
+            <div className="rounded-full bg-blue-50 p-2 text-primary dark:bg-blue-900/20">
+              <IconAssignmentTurnedIn className="h-5 w-5" />
             </div>
-            <p className="text-xs text-muted-foreground">Across all tests</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Tests</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{upcomingTests.length}</div>
-            <p className="text-xs text-muted-foreground">Scheduled</p>
-          </CardContent>
-        </Card>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.totalTests}</p>
+            <p className="text-xs font-medium text-[#07883b] flex items-center gap-1 mt-1">
+              <IconTrendingUp className="h-3.5 w-3.5" /> 0 this week
+            </p>
+          </div>
+        </div>
+
+        {/* Average Score */}
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Average Score</p>
+            <div className="rounded-full bg-purple-50 p-2 text-purple-600 dark:bg-purple-900/20">
+              <IconAnalytics className="h-5 w-5" />
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.averageScore}%</p>
+            <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
+              -
+            </p>
+          </div>
+        </div>
+
+        {/* Accuracy */}
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Accuracy</p>
+            <div className="rounded-full bg-orange-50 p-2 text-orange-600 dark:bg-orange-900/20">
+              <IconTarget className="h-5 w-5" />
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.accuracy}%</p>
+            <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
+              -
+            </p>
+          </div>
+        </div>
+
+        {/* Global Rank */}
+        <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Global Rank</p>
+            <div className="rounded-full bg-green-50 p-2 text-green-600 dark:bg-green-900/20">
+              <IconEmojiEvents className="h-5 w-5" />
+            </div>
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.globalRank > 0 ? `#${stats.globalRank}` : '-'}</p>
+            <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
+              Unranked
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Enrolled Olympiads */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Enrolled Olympiads</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/olympiads">View All</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {enrolledOlympiads.length > 0 ? (
-              enrolledOlympiads.map((olympiad) => (
-                <div key={olympiad.id} className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">{olympiad.name}</h3>
-                    <span className="text-sm text-muted-foreground">
-                      Test: {new Date(olympiad.testDate).toLocaleDateString()}
+      {/* Main Dashboard Area Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column (Content) */}
+        <div className="lg:col-span-2 flex flex-col gap-8">
+
+          {/* DPP Card */}
+          <div className="rounded-xl border border-[#e5e7eb] bg-white p-1 shadow-sm overflow-hidden dark:bg-[#1f2937] dark:border-[#333]">
+            <div className="flex flex-col md:flex-row">
+              <div className="flex-1 p-6 flex flex-col justify-center gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700 mb-3 dark:bg-gray-800 dark:text-gray-300">
+                    <span className="relative flex h-2 w-2 mr-1">
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
                     </span>
+                    Daily Practice (DPP)
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Progress</span>
-                      <span>{olympiad.progress}%</span>
+                  <h3 className="text-xl font-bold text-[#111318] dark:text-white">No Active Challenge</h3>
+                  <p className="mt-1 text-sm text-[#616f89] dark:text-gray-400">Check back later for new problems.</p>
+                </div>
+                <button disabled className="flex w-fit items-center gap-2 rounded-lg bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white cursor-not-allowed dark:bg-gray-700">
+                  <IconPlayArrow className="h-[18px] w-[18px]" />
+                  Start Practice
+                </button>
+              </div>
+              <div className="h-48 md:h-auto md:w-2/5 bg-cover bg-center bg-gray-100 relative dark:bg-gray-800">
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                  <Target className="h-12 w-12 opacity-20" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Upcoming Tests */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-[#111318] dark:text-white">Upcoming Tests</h3>
+              <Link href="/tests" className="text-sm font-medium text-primary hover:underline">View All</Link>
+            </div>
+            <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333] divide-y divide-[#e5e7eb] dark:divide-[#333]">
+              {upcomingTests.map((test) => (
+                <div key={test.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#252f3e] transition-colors">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 flex-col items-center justify-center rounded-lg bg-blue-50 text-blue-600 font-bold text-xs border border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30 overflow-hidden leading-tight">
+                      <span className="text-sm">{test.date.getDate()}</span>
+                      <span className="uppercase">{test.date.toLocaleDateString(undefined, { month: 'short' })}</span>
                     </div>
-                    <Progress value={olympiad.progress} className="h-2" />
+                    <div>
+                      <h4 className="font-semibold text-[#111318] dark:text-white">{test.name}</h4>
+                      <p className="text-sm text-[#616f89] dark:text-gray-400">
+                        {test.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {test.subject}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={cn(
+                      "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset",
+                      test.type === 'Free'
+                        ? "bg-green-50 text-green-700 ring-green-600/20 dark:bg-green-900/30 dark:text-green-300"
+                        : "bg-yellow-50 text-yellow-800 ring-yellow-600/20 dark:bg-yellow-900/30 dark:text-yellow-300"
+                    )}>
+                      {test.type}
+                    </span>
+                    <button className="rounded-lg bg-white border border-[#dbdfe6] px-4 py-2 text-sm font-semibold text-[#111318] hover:bg-gray-50 dark:bg-transparent dark:text-white dark:border-gray-600 dark:hover:bg-gray-800">
+                      Register
+                    </button>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>You haven't enrolled in any Olympiads yet.</p>
-                <Button variant="link" className="mt-2" asChild>
-                  <Link href="/olympiads">Browse Olympiads</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Daily Practice Problem */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Daily Practice</CardTitle>
-            <div className="text-sm text-muted-foreground">
-              {dppProgress.todayCompleted
-                ? 'You\'ve completed today\'s DPP! 🎉'
-                : 'Complete today\'s question to keep your streak!'}
+              ))}
+              {upcomingTests.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">No upcoming tests found.</div>
+              )}
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Current Streak</span>
-                <span className="font-medium">{dppProgress.streak} days</span>
-              </div>
-              <Progress value={(dppProgress.completed / dppProgress.total) * 100} className="h-2" />
-              <div className="text-right text-xs text-muted-foreground">
-                {dppProgress.completed} of {dppProgress.total} completed
+          </div>
+
+          {/* Recent Scores Table */}
+          <div className="flex flex-col gap-4">
+            <h3 className="text-lg font-bold text-[#111318] dark:text-white">Recent Performance</h3>
+            <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-[#f9fafb] text-[#616f89] border-b border-[#e5e7eb] dark:bg-[#1a2332] dark:border-[#333]">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">Test Name</th>
+                      <th className="px-6 py-3 font-medium">Score</th>
+                      <th className="px-6 py-3 font-medium">Rank</th>
+                      <th className="px-6 py-3 font-medium text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#333]">
+                    {recentScores.map((score, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#252f3e]">
+                        <td className="px-6 py-4 font-medium text-[#111318] dark:text-white">{score.test}</td>
+                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">
+                          <span className="font-bold">{score.score}</span>/{score.total}
+                        </td>
+                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">#{score.rank}</td>
+                        <td className="px-6 py-4 text-right">
+                          <a href="#" className="text-primary font-medium hover:underline">View Analysis</a>
+                        </td>
+                      </tr>
+                    ))}
+                    {recentScores.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                          No recent tests taken.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
+          </div>
+        </div>
 
-            {!dppProgress.todayCompleted && dppProgress.todayQuestion ? (
-              <div className="mt-4 space-y-2">
-                <h4 className="font-medium">Today's Question</h4>
-                <div className="text-sm text-muted-foreground">
-                  <span className="capitalize">{dppProgress.todayQuestion.difficulty}</span> • {dppProgress.todayQuestion.subject} - {dppProgress.todayQuestion.topic}
+        {/* Right Column (Leaderboard) */}
+        <div className="lg:col-span-1 flex flex-col gap-6">
+          {/* Leaderboard Widget */}
+          <div className="flex flex-col rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333] h-fit">
+            <div className="p-4 border-b border-[#e5e7eb] flex items-center justify-between dark:border-[#333]">
+              <div className="flex items-center gap-2">
+                <IconEmojiEvents className="text-yellow-500 h-5 w-5" />
+                <h3 className="font-bold text-[#111318] dark:text-white">Leaderboard</h3>
+              </div>
+              <div className="text-xs font-medium text-[#616f89] bg-[#f0f2f4] px-2 py-1 rounded dark:bg-[#2a3649] dark:text-gray-400">This Week</div>
+            </div>
+
+            <div className="flex flex-col p-6 items-center justify-center text-center gap-2">
+              <div className="h-12 w-12 rounded-full bg-yellow-50 flex items-center justify-center dark:bg-yellow-900/20 mb-2">
+                <IconEmojiEvents className="h-6 w-6 text-yellow-600" />
+              </div>
+              <p className="text-sm font-medium text-[#111318] dark:text-white">Leaderboard currently empty</p>
+              <p className="text-xs text-[#616f89]">Complete tests to get ranked!</p>
+            </div>
+
+            {/* Sticky User Rank */}
+            {stats.globalRank > 0 && (
+              <div className="mt-1 border-t border-[#e5e7eb] bg-[#f0f2f4] p-3 rounded-b-xl dark:bg-[#1a2332] dark:border-[#333]">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 text-center text-xs font-bold text-primary">#{stats.globalRank}</div>
+                    <div className="h-8 w-8 rounded-full bg-primary/20 ring-2 ring-white dark:ring-[#1a2332]" />
+                    <span className="text-sm font-bold text-[#111318] dark:text-white">You</span>
+                  </div>
+                  <span className="text-sm font-bold text-primary">0 pts</span>
                 </div>
-                <Button className="w-full mt-2" asChild>
-                  <Link href={`/practice/dpp/${dppProgress.todayQuestion.id}`}>
-                    Start Now
-                  </Link>
-                </Button>
-              </div>
-            ) : (
-              <div className="mt-4 text-center text-sm text-muted-foreground">
-                No practice questions available today.
               </div>
             )}
+          </div>
 
-            <div className="pt-4 border-t">
-              <Button variant="outline" className="w-full" asChild>
-                <Link href="/practice/history">
-                  <BookOpen className="mr-2 h-4 w-4" />
-                  View Practice History
-                </Link>
-              </Button>
+          {/* Promo / Upgrade */}
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#135bec] to-[#4f46e5] p-6 text-white shadow-lg">
+            <div className="relative z-10 flex flex-col gap-4">
+              <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                <Crown className="text-white h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">Unlock Premium</h3>
+                <p className="text-sm text-blue-100 mt-1">Get access to 50+ advanced mock tests and AI analysis.</p>
+              </div>
+              <button className="w-full rounded-lg bg-white py-2.5 text-sm font-bold text-black hover:bg-blue-50 transition-colors" suppressHydrationWarning>Upgrade Now</button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Upcoming Tests */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Upcoming Tests</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/tests">View All</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {upcomingTests.length > 0 ? (
-              <div className="space-y-4">
-                {upcomingTests.map((test) => (
-                  <div key={test.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="space-y-1">
-                      <h3 className="font-medium">{test.name}</h3>
-                      <div className="text-sm text-muted-foreground">
-                        {test.subject} • {test.duration} mins • {test.type === 'premium' ? 'Premium' : 'Free'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(test.date).toLocaleDateString()}
-                      </div>
-                    </div>
-                    <Button variant={test.type === 'premium' ? 'default' : 'outline'} asChild>
-                      <Link href={`/tests/${test.id}`}>
-                        {test.type === 'premium' ? 'Purchase' : 'View Details'}
-                      </Link>
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No upcoming tests scheduled.</p>
-                <Button variant="link" className="mt-2" asChild>
-                  <Link href="/practice">Start Practicing</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Recent Scores */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Recent Scores</CardTitle>
-              <Button variant="ghost" size="sm" asChild>
-                <Link href="/scores">View All</Link>
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {recentScores.length > 0 ? (
-              <div className="space-y-4">
-                {recentScores.map((test, index) => (
-                  <div key={index} className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{test.test}</h3>
-                      <span className="font-medium">{test.score}/{test.total}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>{new Date(test.date).toLocaleDateString()}</span>
-                      <span>{(test.score / test.total * 100).toFixed(0)}%</span>
-                    </div>
-                    <Progress value={(test.score / test.total) * 100} className="h-1.5" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-muted-foreground">
-                <p>No test attempts yet.</p>
-                <Button variant="link" className="mt-2" asChild>
-                  <Link href="/tests">Take a Test</Link>
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            {/* Decorative circles */}
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10"></div>
+            <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white/10"></div>
+          </div>
+        </div>
       </div>
     </div>
   );

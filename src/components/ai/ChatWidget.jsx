@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FiMessageSquare, FiX, FiSend, FiMinimize2, FiMaximize2 } from 'react-icons/fi';
+import { MessageCircle, X, Send, Minimize2, Maximize2, Brain } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
 export default function ChatWidget() {
@@ -66,101 +66,69 @@ export default function ChatWidget() {
     if (!session) return null;
 
     return (
-        <div className="fixed bottom-20 right-6 z-50 flex flex-col items-end">
-            {/* Chat Window */}
+        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+            {/* Chat Bubble (simulated open/minimized state based on isOpen) */}
             {isOpen && (
-                <div
-                    className={`
-            bg-white rounded-2xl shadow-2xl border border-indigo-100 overflow-hidden transition-all duration-300 ease-in-out mb-4
-            ${isMinimized ? 'w-72 h-14' : 'w-80 sm:w-96 h-[500px]'}
-          `}
-                >
-                    {/* Header */}
-                    <div
-                        className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 flex items-center justify-between cursor-pointer"
-                        onClick={() => setIsMinimized(!isMinimized)}
-                    >
-                        <div className="flex items-center gap-2 text-white">
-                            <div className="bg-white/20 p-1.5 rounded-lg">
-                                <FiMessageSquare className="w-4 h-4" />
-                            </div>
-                            <span className="font-semibold">Mindora AI</span>
+                <div className={`mb-2 flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5 dark:bg-[#1f2937] dark:ring-white/10 transition-all duration-300 ${isMinimized ? 'w-80 h-14' : 'w-80 h-[32rem]'}`}>
+                    <div className="flex items-center justify-between bg-[#135bec] px-4 py-3 text-white cursor-pointer" onClick={() => setIsMinimized(!isMinimized)}>
+                        <div className="flex items-center gap-2">
+                            <Brain className="h-5 w-5" />
+                            <span className="font-medium text-sm">Mindora AI</span>
                         </div>
-                        <div className="flex items-center gap-2 text-white/80">
+                        <div className="flex items-center gap-1">
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsMinimized(!isMinimized);
-                                }}
-                                className="hover:text-white transition-colors p-1"
+                                onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
+                                className="text-white/80 hover:text-white p-1 cursor-pointer"
+                                suppressHydrationWarning
                             >
-                                {isMinimized ? <FiMaximize2 className="w-4 h-4" /> : <FiMinimize2 className="w-4 h-4" />}
+                                {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                             </button>
                             <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsOpen(false);
-                                }}
-                                className="hover:text-white transition-colors p-1"
+                                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+                                className="text-white/80 hover:text-white p-1 cursor-pointer"
+                                suppressHydrationWarning
                             >
-                                <FiX className="w-5 h-5" />
+                                <X className="h-5 w-5" />
                             </button>
                         </div>
                     </div>
 
-                    {/* Chat Content */}
                     {!isMinimized && (
                         <>
-                            {/* Messages Area */}
-                            <div className="flex-1 h-[380px] overflow-y-auto p-4 bg-gray-50 space-y-4">
+                            <div className="flex flex-1 flex-col gap-3 p-4 overflow-y-auto bg-gray-50 dark:bg-[#111318]">
                                 {messages.map((msg, idx) => (
-                                    <div
-                                        key={idx}
-                                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                                    >
-                                        <div
-                                            className={`
-                        max-w-[80%] rounded-2xl px-4 py-2.5 text-sm shadow-sm
-                        ${msg.role === 'user'
-                                                    ? 'bg-indigo-600 text-white rounded-br-none'
-                                                    : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
-                                                }
-                      `}
-                                        >
-                                            {msg.content}
-                                        </div>
+                                    <div key={idx} className={`self-${msg.role === 'user' ? 'end' : 'start'} max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm ${msg.role === 'user'
+                                        ? 'bg-primary text-white rounded-br-none'
+                                        : 'bg-white text-[#111318] dark:bg-[#1f2937] dark:text-white rounded-tl-none border border-gray-100 dark:border-[#333]'
+                                        }`}>
+                                        {msg.content}
                                     </div>
                                 ))}
                                 {isLoading && (
-                                    <div className="flex justify-start">
-                                        <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-none px-4 py-3 shadow-sm">
-                                            <div className="flex gap-1">
-                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                                <div className="w-2 h-2 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                                            </div>
+                                    <div className="self-start rounded-2xl rounded-tl-none bg-white px-4 py-3 shadow-sm border border-gray-100 dark:bg-[#1f2937] dark:border-[#333]">
+                                        <div className="flex gap-1">
+                                            <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                            <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                            <div className="w-1.5 h-1.5 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                                         </div>
                                     </div>
                                 )}
                                 <div ref={messagesEndRef} />
                             </div>
 
-                            {/* Input Area */}
-                            <div className="p-4 bg-white border-t border-gray-100">
-                                <form onSubmit={handleSubmit} className="flex gap-2">
+                            <div className="border-t border-[#e5e7eb] p-3 dark:border-[#333] bg-white dark:bg-[#1f2937]">
+                                <form onSubmit={handleSubmit} className="flex items-center gap-2 rounded-full bg-[#f0f2f4] px-4 py-2 dark:bg-[#111318] border border-transparent focus-within:border-primary/50 transition-colors">
                                     <input
+                                        className="w-full bg-transparent text-sm focus:outline-none dark:text-white placeholder-gray-500"
+                                        placeholder="Ask a doubt..."
                                         type="text"
                                         value={input}
                                         onChange={(e) => setInput(e.target.value)}
-                                        placeholder="Ask a question..."
-                                        className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm"
+                                        disabled={isLoading}
+                                        suppressHydrationWarning
                                     />
-                                    <button
-                                        type="submit"
-                                        disabled={!input.trim() || isLoading}
-                                        className="bg-indigo-600 text-white p-2.5 rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-indigo-200"
-                                    >
-                                        <FiSend className="w-4 h-4" />
+                                    <button type="submit" disabled={!input.trim() || isLoading} className="text-primary hover:text-primary-hover disabled:opacity-50 cursor-pointer" suppressHydrationWarning>
+                                        <Send className="h-5 w-5" />
                                     </button>
                                 </form>
                             </div>
@@ -169,14 +137,18 @@ export default function ChatWidget() {
                 </div>
             )}
 
-            {/* Toggle Button */}
+            {/* Floating Button */}
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="group flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-3 rounded-full shadow-lg shadow-indigo-500/30 transition-all duration-300 hover:scale-105"
+                    className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-[#135bec] text-white shadow-lg shadow-blue-600/30 transition-all hover:scale-105 hover:bg-[#0f4bc4] focus:outline-none focus:ring-2 focus:ring-[#135bec] focus:ring-offset-2 cursor-pointer"
+                    suppressHydrationWarning
                 >
-                    <FiMessageSquare className="w-5 h-5" />
-                    <span className="font-medium pr-1">Ask AI</span>
+                    <MessageCircle className="h-7 w-7" />
+                    <span className="absolute right-0 top-0 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border-2 border-white"></span>
+                    </span>
                 </button>
             )}
         </div>

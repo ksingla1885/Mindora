@@ -8,16 +8,55 @@ module.exports = {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        "display": ["Inter", "sans-serif"],
+      },
       colors: {
-        // Your existing colors
+        "primary": "#135bec",
+        "primary-hover": "#0f4bc4",
+        "background-light": "#f6f6f8",
+        "background-dark": "#101622",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "#135bec", // Overriding default primary to match specified color
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
       },
     },
   },
   plugins: [
-    function({ addVariant, addUtilities }) {
+    function ({ addVariant, addUtilities }) {
       // Add high contrast variant
       addVariant('high-contrast', '&.high-contrast');
-      
+
       // High contrast utility classes
       const highContrastUtilities = {
         '.high-contrast': {
@@ -55,7 +94,7 @@ module.exports = {
           'outline-offset': '2px',
         },
       };
-      
+
       addUtilities(highContrastUtilities, ['responsive', 'hover']);
     },
   ],

@@ -13,8 +13,7 @@ export function MainNav() {
     { name: 'Dashboard', href: '/dashboard' },
     { name: 'Practice', href: '/practice' },
     { name: 'Tests', href: '/tests' },
-    { name: 'Leaderboard', href: '/leaderboard' },
-    { name: 'Admin', href: '/admin', adminOnly: true },
+    { name: 'Leaderboard', href: '/leaderboard' }
   ];
 
   return (
