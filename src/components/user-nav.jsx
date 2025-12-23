@@ -55,7 +55,7 @@ export function UserNav() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link href="/account" className="w-full cursor-pointer">
+                        <Link href="/profile" className="w-full cursor-pointer">
                             Profile
                         </Link>
                     </DropdownMenuItem>

@@ -111,7 +111,8 @@ export const authOptions = {
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    emailVerified: user.emailVerified
+                    emailVerified: user.emailVerified,
+                    class: user.class
                 }
             }
         }),
@@ -128,6 +129,7 @@ export const authOptions = {
                 session.user.id = token.sub || user?.id
                 session.user.role = token.role || user?.role
                 session.user.emailVerified = token.emailVerified || user?.emailVerified
+                session.user.class = token.class || user?.class
             }
             return session
         },
@@ -136,6 +138,7 @@ export const authOptions = {
                 token.role = user.role
                 token.id = user.id
                 token.emailVerified = user.emailVerified
+                token.class = user.class
             }
             return token
         }

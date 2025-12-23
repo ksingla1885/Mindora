@@ -12,6 +12,7 @@ export default function SignUp() {
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
+    studentClass: '',
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -35,6 +36,11 @@ export default function SignUp() {
       return;
     }
 
+    if (formData.role === 'STUDENT' && !formData.studentClass) {
+      setError('Please select your class');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -48,6 +54,7 @@ export default function SignUp() {
           email: formData.email,
           password: formData.password,
           role: formData.role,
+          class: formData.studentClass,
         }),
       });
 
@@ -198,6 +205,28 @@ export default function SignUp() {
                 <option value="TEACHER">Teacher</option>
               </select>
             </div>
+
+            {formData.role === 'STUDENT' && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <label htmlFor="studentClass" className="block text-sm font-medium text-foreground mb-1">
+                  Class
+                </label>
+                <select
+                  id="studentClass"
+                  name="studentClass"
+                  value={formData.studentClass}
+                  onChange={handleChange}
+                  className="block w-full px-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary sm:text-sm transition-all duration-200"
+                  suppressHydrationWarning
+                  required
+                >
+                  <option value="" disabled>Select your class</option>
+                  {[9, 10, 11, 12].map((cls) => (
+                    <option key={cls} value={cls}>Class {cls}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <button

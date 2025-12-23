@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }) {
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col h-full overflow-hidden">
                 {/* Top Header */}
-                <header className="flex h-16 items-center justify-between border-b border-[#e5e7eb] bg-white px-6 lg:px-8 dark:bg-[#111318] dark:border-[#222]">
+                <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 lg:px-8">
                     {/* Mobile Menu Button - Visible on small screens */}
                     <div className="lg:hidden flex items-center gap-3">
                         <Button variant="ghost" size="icon" className="text-[#616f89]">
@@ -63,7 +63,13 @@ export default function DashboardLayout({ children }) {
                                 <p className="text-sm font-semibold text-[#111318] dark:text-white">
                                     {session?.user?.name || "Student"}
                                 </p>
-                                <p className="text-xs text-[#616f89]">Class 10</p>
+                                <p className="text-xs text-[#616f89]">
+                                    {session?.user?.class
+                                        ? `Class ${session.user.class}`
+                                        : (session?.user?.role
+                                            ? session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1).toLowerCase()
+                                            : 'Student')}
+                                </p>
                             </div>
                             <div className="h-10 w-10 overflow-hidden rounded-full border border-[#e5e7eb]">
                                 <img

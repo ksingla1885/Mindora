@@ -38,8 +38,8 @@ export function AppSidebar({ className }) {
     const pathname = usePathname();
 
     return (
-        <div className={cn("relative flex flex-col h-full border-r bg-white dark:bg-[#111318] dark:border-[#222]", className)}>
-            <div className="flex h-16 items-center gap-3 px-6 border-b border-[#f0f2f4] dark:border-[#222]">
+        <div className={cn("relative flex flex-col h-full border-r bg-card border-border", className)}>
+            <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
                 <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2">
                     <BookOpen className="h-6 w-6 text-primary" />
                 </div>
@@ -58,7 +58,7 @@ export function AppSidebar({ className }) {
                                 "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
                                 pathname === item.href
                                     ? "bg-primary/10 text-primary font-medium"
-                                    : "text-[#616f89] hover:bg-[#f0f2f4] hover:text-[#111318] dark:hover:bg-[#1f2937] dark:text-gray-400 dark:hover:text-white"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                             )}
                         >
                             <item.icon className="h-5 w-5" />
@@ -78,7 +78,7 @@ export function AppSidebar({ className }) {
                                 "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
                                 pathname === item.href
                                     ? "bg-primary/10 text-primary font-medium"
-                                    : "text-[#616f89] hover:bg-[#f0f2f4] hover:text-[#111318] dark:hover:bg-[#1f2937] dark:text-gray-400 dark:hover:text-white"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                             )}
                         >
                             <item.icon className="h-5 w-5" />
@@ -91,7 +91,12 @@ export function AppSidebar({ className }) {
             <div className="border-t border-[#e5e7eb] p-4 dark:border-[#222] flex flex-col gap-1">
                 <Link
                     href="/profile"
-                    className="flex items-center gap-3 rounded-lg px-3 py-2 text-[#616f89] hover:bg-[#f0f2f4] hover:text-[#111318] transition-colors dark:hover:bg-[#1f2937] dark:text-gray-400 dark:hover:text-white"
+                    className={cn(
+                        "flex items-center gap-3 rounded-lg px-3 py-2 transition-colors",
+                        pathname === '/profile'
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    )}
                 >
                     <User className="h-5 w-5" />
                     Profile
