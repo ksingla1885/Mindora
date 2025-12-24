@@ -35,7 +35,7 @@ export default function DashboardLayout({ children }) {
                             <div className="flex items-center justify-center rounded-lg bg-primary/10 p-1.5">
                                 <BookOpen className="h-5 w-5 text-primary" />
                             </div>
-                            <span className="text-lg font-bold tracking-tight text-[#111318] dark:text-white">Mindora</span>
+                            <span className="text-lg font-bold tracking-tight text-foreground">Mindora</span>
                         </div>
                     </div>
 
@@ -60,10 +60,10 @@ export default function DashboardLayout({ children }) {
 
                         <div className="flex items-center gap-3 pl-4 border-l border-[#e5e7eb] dark:border-[#333]">
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-semibold text-[#111318] dark:text-white">
+                                <p className="text-sm font-semibold text-foreground">
                                     {session?.user?.name || "Student"}
                                 </p>
-                                <p className="text-xs text-[#616f89]">
+                                <p className="text-xs text-muted-foreground">
                                     {session?.user?.class
                                         ? `Class ${session.user.class}`
                                         : (session?.user?.role

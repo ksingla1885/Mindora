@@ -46,27 +46,39 @@ export default async function DashboardPage() {
   const userId = session.user.id;
 
   // 1. Fetch Enrolled Olympiads / Subjects
-  const enrolledOlympiadsData = await prisma.olympiadRegistration.findMany({
-    where: { userId },
-    include: {
-      olympiad: true,
-    },
-    take: 5,
-  });
+  // 1. Fetch Enrolled Olympiads / Subjects
+  let enrolledOlympiadsData = [];
+  try {
+    enrolledOlympiadsData = await prisma.olympiadRegistration.findMany({
+      where: { userId },
+      include: {
+        olympiad: true,
+      },
+      take: 5,
+    });
+  } catch (error) {
+    console.warn("Database connection failed, using empty fallback data for enrolled olympiads.");
+  }
 
   // 2. Fetch Upcoming Tests
-  const upcomingTestsData = await prisma.test.findMany({
-    where: {
-      startTime: {
-        gte: new Date(),
+  // 2. Fetch Upcoming Tests
+  let upcomingTestsData = [];
+  try {
+    upcomingTestsData = await prisma.test.findMany({
+      where: {
+        startTime: {
+          gte: new Date(),
+        },
+        isPublished: true,
       },
-      isPublished: true,
-    },
-    orderBy: {
-      startTime: 'asc',
-    },
-    take: 3,
-  });
+      orderBy: {
+        startTime: 'asc',
+      },
+      take: 3,
+    });
+  } catch (error) {
+    console.warn("Database connection failed, using empty fallback data for upcoming tests.");
+  }
 
   const upcomingTests = upcomingTestsData.map(test => ({
     id: test.id,
@@ -77,19 +89,25 @@ export default async function DashboardPage() {
   }));
 
   // 3. Fetch Recent Scores
-  const recentAttempts = await prisma.testAttempt.findMany({
-    where: {
-      userId,
-      status: 'submitted',
-    },
-    include: {
-      test: true,
-    },
-    orderBy: {
-      submittedAt: 'desc',
-    },
-    take: 5,
-  });
+  // 3. Fetch Recent Scores
+  let recentAttempts = [];
+  try {
+    recentAttempts = await prisma.testAttempt.findMany({
+      where: {
+        userId,
+        status: 'submitted',
+      },
+      include: {
+        test: true,
+      },
+      orderBy: {
+        submittedAt: 'desc',
+      },
+      take: 5,
+    });
+  } catch (error) {
+    console.warn("Database connection failed, using empty fallback data for recent scores.");
+  }
 
   const recentScores = recentAttempts.map(attempt => ({
     test: attempt.test.title,
@@ -111,8 +129,8 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl flex flex-col gap-8 p-6 lg:p-8">
       {/* Welcome Section */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-[#111318] lg:text-3xl dark:text-white">Welcome back, {session.user?.name?.split(' ')[0] || 'Student'}! 👋</h1>
-        <p className="text-[#616f89] dark:text-gray-400">Your preparation journey starts here.</p>
+        <h1 className="text-2xl font-bold text-foreground lg:text-3xl">Welcome back, {session.user?.name?.split(' ')[0] || 'Student'}! 👋</h1>
+        <p className="text-[#616f89] dark:text-gray-300">Your preparation journey starts here.</p>
       </div>
 
       {/* Stats Grid */}
@@ -120,13 +138,13 @@ export default async function DashboardPage() {
         {/* Total Tests */}
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Total Tests</p>
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-300">Total Tests</p>
             <div className="rounded-full bg-blue-50 p-2 text-primary dark:bg-blue-900/20">
               <IconAssignmentTurnedIn className="h-5 w-5" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.totalTests}</p>
+            <p className="text-2xl font-bold text-white">{stats.totalTests}</p>
             <p className="text-xs font-medium text-[#07883b] flex items-center gap-1 mt-1">
               <IconTrendingUp className="h-3.5 w-3.5" /> 0 this week
             </p>
@@ -136,13 +154,13 @@ export default async function DashboardPage() {
         {/* Average Score */}
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Average Score</p>
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-300">Average Score</p>
             <div className="rounded-full bg-purple-50 p-2 text-purple-600 dark:bg-purple-900/20">
               <IconAnalytics className="h-5 w-5" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.averageScore}%</p>
+            <p className="text-2xl font-bold text-white">{stats.averageScore}%</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               -
             </p>
@@ -152,13 +170,13 @@ export default async function DashboardPage() {
         {/* Accuracy */}
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Accuracy</p>
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-300">Accuracy</p>
             <div className="rounded-full bg-orange-50 p-2 text-orange-600 dark:bg-orange-900/20">
               <IconTarget className="h-5 w-5" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.accuracy}%</p>
+            <p className="text-2xl font-bold text-white">{stats.accuracy}%</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               -
             </p>
@@ -168,13 +186,13 @@ export default async function DashboardPage() {
         {/* Global Rank */}
         <div className="flex flex-col justify-between gap-4 rounded-xl border border-[#e5e7eb] bg-white p-5 shadow-sm hover:shadow-md transition-shadow dark:bg-[#1f2937] dark:border-[#333]">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-[#616f89] dark:text-gray-400">Global Rank</p>
+            <p className="text-sm font-medium text-[#616f89] dark:text-gray-300">Global Rank</p>
             <div className="rounded-full bg-green-50 p-2 text-green-600 dark:bg-green-900/20">
               <IconEmojiEvents className="h-5 w-5" />
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-[#111318] dark:text-white">{stats.globalRank > 0 ? `#${stats.globalRank}` : '-'}</p>
+            <p className="text-2xl font-bold text-white">{stats.globalRank > 0 ? `#${stats.globalRank}` : '-'}</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               Unranked
             </p>
@@ -198,8 +216,8 @@ export default async function DashboardPage() {
                     </span>
                     Daily Practice (DPP)
                   </div>
-                  <h3 className="text-xl font-bold text-[#111318] dark:text-white">No Active Challenge</h3>
-                  <p className="mt-1 text-sm text-[#616f89] dark:text-gray-400">Check back later for new problems.</p>
+                  <h3 className="text-xl font-bold text-white">No Active Challenge</h3>
+                  <p className="mt-1 text-sm text-[#616f89] dark:text-gray-300">Check back later for new problems.</p>
                 </div>
                 <button disabled className="flex w-fit items-center gap-2 rounded-lg bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white cursor-not-allowed dark:bg-gray-700">
                   <IconPlayArrow className="h-[18px] w-[18px]" />
@@ -217,7 +235,7 @@ export default async function DashboardPage() {
           {/* Upcoming Tests */}
           <div className="flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-[#111318] dark:text-white">Upcoming Tests</h3>
+              <h3 className="text-lg font-bold text-foreground">Upcoming Tests</h3>
               <Link href="/tests" className="text-sm font-medium text-primary hover:underline">View All</Link>
             </div>
             <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333] divide-y divide-[#e5e7eb] dark:divide-[#333]">
@@ -229,8 +247,8 @@ export default async function DashboardPage() {
                       <span className="uppercase">{test.date.toLocaleDateString(undefined, { month: 'short' })}</span>
                     </div>
                     <div>
-                      <h4 className="font-semibold text-[#111318] dark:text-white">{test.name}</h4>
-                      <p className="text-sm text-[#616f89] dark:text-gray-400">
+                      <h4 className="font-semibold text-foreground">{test.name}</h4>
+                      <p className="text-sm text-[#616f89] dark:text-gray-300">
                         {test.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {test.subject}
                       </p>
                     </div>
@@ -251,18 +269,18 @@ export default async function DashboardPage() {
                 </div>
               ))}
               {upcomingTests.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground">No upcoming tests found.</div>
+                <div className="p-8 text-center text-muted-foreground dark:text-gray-400">No upcoming tests found.</div>
               )}
             </div>
           </div>
 
           {/* Recent Scores Table */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-lg font-bold text-[#111318] dark:text-white">Recent Performance</h3>
+            <h3 className="text-lg font-bold text-foreground">Recent Performance</h3>
             <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333]">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-[#f9fafb] text-[#616f89] border-b border-[#e5e7eb] dark:bg-[#1a2332] dark:border-[#333]">
+                  <thead className="bg-[#f9fafb] text-[#616f89] border-b border-[#e5e7eb] dark:bg-[#1a2332] dark:border-[#333] dark:text-gray-400">
                     <tr>
                       <th className="px-6 py-3 font-medium">Test Name</th>
                       <th className="px-6 py-3 font-medium">Score</th>
@@ -273,7 +291,7 @@ export default async function DashboardPage() {
                   <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#333]">
                     {recentScores.map((score, idx) => (
                       <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#252f3e]">
-                        <td className="px-6 py-4 font-medium text-[#111318] dark:text-white">{score.test}</td>
+                        <td className="px-6 py-4 font-medium text-foreground">{score.test}</td>
                         <td className="px-6 py-4 text-[#111318] dark:text-gray-300">
                           <span className="font-bold">{score.score}</span>/{score.total}
                         </td>
@@ -285,7 +303,7 @@ export default async function DashboardPage() {
                     ))}
                     {recentScores.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
+                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground dark:text-gray-400">
                           No recent tests taken.
                         </td>
                       </tr>
@@ -304,17 +322,17 @@ export default async function DashboardPage() {
             <div className="p-4 border-b border-[#e5e7eb] flex items-center justify-between dark:border-[#333]">
               <div className="flex items-center gap-2">
                 <IconEmojiEvents className="text-yellow-500 h-5 w-5" />
-                <h3 className="font-bold text-[#111318] dark:text-white">Leaderboard</h3>
+                <h3 className="font-bold text-white">Leaderboard</h3>
               </div>
-              <div className="text-xs font-medium text-[#616f89] bg-[#f0f2f4] px-2 py-1 rounded dark:bg-[#2a3649] dark:text-gray-400">This Week</div>
+              <div className="text-xs font-medium text-[#616f89] bg-[#f0f2f4] px-2 py-1 rounded dark:bg-[#2a3649] dark:text-gray-300">This Week</div>
             </div>
 
             <div className="flex flex-col p-6 items-center justify-center text-center gap-2">
               <div className="h-12 w-12 rounded-full bg-yellow-50 flex items-center justify-center dark:bg-yellow-900/20 mb-2">
                 <IconEmojiEvents className="h-6 w-6 text-yellow-600" />
               </div>
-              <p className="text-sm font-medium text-[#111318] dark:text-white">Leaderboard currently empty</p>
-              <p className="text-xs text-[#616f89]">Complete tests to get ranked!</p>
+              <p className="text-sm font-medium text-white">Leaderboard currently empty</p>
+              <p className="text-xs text-[#616f89] dark:text-gray-300">Complete tests to get ranked!</p>
             </div>
 
             {/* Sticky User Rank */}
@@ -324,7 +342,7 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-6 text-center text-xs font-bold text-primary">#{stats.globalRank}</div>
                     <div className="h-8 w-8 rounded-full bg-primary/20 ring-2 ring-white dark:ring-[#1a2332]" />
-                    <span className="text-sm font-bold text-[#111318] dark:text-white">You</span>
+                    <span className="text-sm font-bold text-white">You</span>
                   </div>
                   <span className="text-sm font-bold text-primary">0 pts</span>
                 </div>

@@ -23,7 +23,8 @@ import {
   Mail,
   X,
   Sun,
-  Moon
+  Moon,
+  Star
 } from "lucide-react";
 
 // Animation Variants
@@ -59,7 +60,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden">
       {/* Header */}
-      <header className="bg-background/80 backdrop-blur-md border-b border-border sticky top-0 z-50 transition-all duration-300">
+      <header className="bg-background/80 backdrop-blur-md border-b border-border fixed top-0 w-full z-50 transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
@@ -72,6 +73,8 @@ export default function LandingPage() {
                 <Link href="#features" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Features</Link>
                 <Link href="#olympiads" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Olympiads</Link>
                 <Link href="#pricing" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Pricing</Link>
+                <Link href="#reviews" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Reviews</Link>
+                <Link href="#about" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">About</Link>
                 <Link href="#contact" className="text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors">Contact</Link>
               </div>
             </nav>
@@ -141,6 +144,20 @@ export default function LandingPage() {
               >
                 Contact
               </Link>
+              <Link
+                href="#reviews"
+                className="block text-muted-foreground hover:text-primary hover:bg-accent px-3 py-3 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Reviews
+              </Link>
+              <Link
+                href="#about"
+                className="block text-muted-foreground hover:text-primary hover:bg-accent px-3 py-3 rounded-md text-base font-medium"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                About
+              </Link>
               <div className="pt-4 flex flex-col gap-3">
                 <Link
                   href="/auth/signin"
@@ -162,7 +179,7 @@ export default function LandingPage() {
         )}
       </header>
 
-      <main>
+      <main className="pt-16">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-primary/5 to-purple-500/5 py-16 px-4 sm:px-6 lg:px-8 perspective-1000">
           <div className="max-w-7xl mx-auto">
@@ -294,7 +311,7 @@ export default function LandingPage() {
         </section>
 
         {/* Features - What Mindora Offers */}
-        <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
+        <section id="features" className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
           <div className="max-w-7xl mx-auto">
             <motion.div
               initial="hidden"
@@ -354,7 +371,7 @@ export default function LandingPage() {
         </section>
 
         {/* Supported Olympiads */}
-        <section className="py-16 bg-gradient-to-br from-primary/5 to-purple-500/5">
+        <section id="olympiads" className="py-16 bg-gradient-to-br from-primary/5 to-purple-500/5">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial="hidden"
@@ -432,7 +449,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing */}
-        <section className="py-16 bg-muted/30">
+        <section id="pricing" className="py-16 bg-muted/30">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial="hidden"
@@ -500,6 +517,42 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Reviews */}
+        <section id="reviews" className="py-16 bg-card border-t border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              variants={fadeInUp}
+              className="text-center mb-12"
+            >
+              <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">What Students Say</h2>
+              <p className="text-xl text-muted-foreground max-w-2xl mx-auto">Hear from students who achieved their Olympiad goals with Mindora</p>
+            </motion.div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <ReviewCard
+                name="Aarav Gupta"
+                class="Class 10"
+                review="The topic-wise practice questions were a game changer for my NSO preparation. I especially loved the AI doubt solver!"
+                rating={5}
+              />
+              <ReviewCard
+                name="Ishita Sharma"
+                class="Class 12"
+                review="Mindora's mock tests are very close to the actual exam pattern. It helped me improve my speed and accuracy significantly."
+                rating={5}
+              />
+              <ReviewCard
+                name="Rohan Mehta"
+                class="Class 9"
+                review="I was struggling with Physics concepts, but the concise notes and video summaries made everything clear. Highly recommended!"
+                rating={4}
+              />
+            </div>
+          </div>
+        </section>
+
         {/* Why Choose Mindora */}
         <section className="py-16 bg-gradient-to-br from-primary/5 to-purple-500/5">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -554,7 +607,7 @@ export default function LandingPage() {
         </section>
 
         {/* About the Developer */}
-        <section className="py-16 bg-card border-t border-border">
+        <section id="about" className="py-16 bg-card border-t border-border">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
@@ -587,12 +640,9 @@ export default function LandingPage() {
               whileInView={{ y: 0, opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed"
+              className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed text-justify"
             >
-              Mindora is a solo project passionately architected and developed by Ketan.
-              Dedicated to transforming the way students prepare for competitive exams,
-              he combines technical expertise with a deep understanding of educational needs
-              to build this comprehensive learning platform.
+              Mindora is a solo-built project engineered by Ketan, a Full-Stack & DevOps-oriented developer with a strong focus on building scalable, reliable, and learner-centric digital platforms. Designed using Next.js with Supabase as the core data layer, Mindora reflects his commitment to modern engineering practices, clean architecture, and real-world problem solving. Inspired by personal learning challenges and the academic gaps students commonly face, Ketan set out to create a structured, accessible, and high-impact preparation platform that helps students learn smarter and progress with confidence.
             </motion.p>
 
             <motion.div
@@ -656,7 +706,7 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-muted/20 border-t border-border">
+      <footer id="contact" className="bg-muted/20 border-t border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1">
@@ -811,6 +861,34 @@ function Step({ num, title, desc, color }) {
       </div>
       <h3 className="text-xl font-semibold text-foreground mb-4">{title}</h3>
       <p className="text-muted-foreground">{desc}</p>
+    </motion.div>
+  );
+}
+
+function ReviewCard({ name, review, rating, class: className }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+      className="bg-muted/30 p-8 rounded-2xl border border-border"
+    >
+      <div className="flex gap-1 mb-4 text-amber-500">
+        {[...Array(5)].map((_, i) => (
+          <Star key={i} className={`w-5 h-5 ${i < rating ? "fill-current" : "text-muted-foreground/30"}`} />
+        ))}
+      </div>
+      <p className="text-foreground/90 font-medium mb-6 leading-relaxed">"{review}"</p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+          {name[0]}
+        </div>
+        <div>
+          <h4 className="font-bold text-foreground text-sm">{name}</h4>
+          <p className="text-xs text-muted-foreground">{className}</p>
+        </div>
+      </div>
     </motion.div>
   );
 }

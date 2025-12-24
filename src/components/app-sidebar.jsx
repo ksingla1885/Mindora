@@ -11,6 +11,7 @@ import {
     Crown,
     BarChart2,
     Medal,
+    Trophy,
     Brain,
     User,
     Settings,
@@ -22,7 +23,8 @@ import { signOut } from 'next-auth/react';
 
 const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Subjects', href: '/olympiads', icon: BookOpen },
+    { name: 'Subjects', href: '/subjects', icon: BookOpen },
+    { name: 'Olympiads', href: '/olympiads', icon: Trophy },
     { name: 'Daily Practice (DPP)', href: '/practice', icon: FileText },
     { name: 'Weekly Tests', href: '/tests', icon: ClipboardList },
     { name: 'Paid Tests', href: '/tests/premium', icon: Crown },
@@ -43,7 +45,7 @@ export function AppSidebar({ className }) {
                 <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2">
                     <BookOpen className="h-6 w-6 text-primary" />
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-[#111318] dark:text-white">Mindora</h2>
+                <h2 className="text-xl font-bold tracking-tight text-foreground">Mindora</h2>
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-6 gap-6 flex flex-col">
@@ -102,7 +104,7 @@ export function AppSidebar({ className }) {
                     Profile
                 </Link>
                 <button
-                    onClick={() => signOut()}
+                    onClick={() => signOut({ callbackUrl: '/' })}
                     className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[#616f89] hover:bg-red-50 hover:text-red-600 transition-colors dark:hover:bg-red-900/10 dark:text-gray-400 dark:hover:text-red-400 cursor-pointer"
                     suppressHydrationWarning
                 >
