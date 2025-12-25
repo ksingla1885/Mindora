@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -21,7 +21,7 @@ import {
   Flag, FlagOff, Save, AlertTriangle, ChevronLeft,
   ChevronRight, List, X, Check, CheckSquare, Square
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from '@/lib/cn';
 import {
   Dialog,
   DialogContent,
@@ -75,6 +75,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const [performanceAnalysis, setPerformanceAnalysis] = useState(null);
   const [studyPlan, setStudyPlan] = useState(null);
   const [personalizedTips, setPersonalizedTips] = useState([]);
+  const { toast } = useToast();
   const { data: session } = useSession();
   const router = useRouter();
 

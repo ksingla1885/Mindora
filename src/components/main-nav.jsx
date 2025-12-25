@@ -11,7 +11,7 @@ export function MainNav() {
 
   const items = [
     { name: 'Dashboard', href: '/dashboard' },
-    { name: 'Practice', href: '/practice' },
+    { name: 'Practice', href: '/dpp' },
     { name: 'Tests', href: '/tests' },
     { name: 'Leaderboard', href: '/leaderboard' }
   ];

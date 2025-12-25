@@ -25,7 +25,7 @@ const menuItems = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Subjects', href: '/subjects', icon: BookOpen },
     { name: 'Olympiads', href: '/olympiads', icon: Trophy },
-    { name: 'Daily Practice (DPP)', href: '/practice', icon: FileText },
+    { name: 'Daily Practice (DPP)', href: '/dpp', icon: FileText },
     { name: 'Weekly Tests', href: '/tests', icon: ClipboardList },
     { name: 'Paid Tests', href: '/tests/premium', icon: Crown },
 ];

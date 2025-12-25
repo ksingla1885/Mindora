@@ -144,7 +144,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{stats.totalTests}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.totalTests}</p>
             <p className="text-xs font-medium text-[#07883b] flex items-center gap-1 mt-1">
               <IconTrendingUp className="h-3.5 w-3.5" /> 0 this week
             </p>
@@ -160,7 +160,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{stats.averageScore}%</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.averageScore}%</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               -
             </p>
@@ -176,7 +176,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{stats.accuracy}%</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.accuracy}%</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               -
             </p>
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
             </div>
           </div>
           <div>
-            <p className="text-2xl font-bold text-white">{stats.globalRank > 0 ? `#${stats.globalRank}` : '-'}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.globalRank > 0 ? `#${stats.globalRank}` : '-'}</p>
             <p className="text-xs font-medium text-[#616f89] flex items-center gap-1 mt-1">
               Unranked
             </p>
@@ -216,7 +216,7 @@ export default async function DashboardPage() {
                     </span>
                     Daily Practice (DPP)
                   </div>
-                  <h3 className="text-xl font-bold text-white">No Active Challenge</h3>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white">No Active Challenge</h3>
                   <p className="mt-1 text-sm text-[#616f89] dark:text-gray-300">Check back later for new problems.</p>
                 </div>
                 <button disabled className="flex w-fit items-center gap-2 rounded-lg bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white cursor-not-allowed dark:bg-gray-700">
@@ -238,7 +238,7 @@ export default async function DashboardPage() {
               <h3 className="text-lg font-bold text-foreground">Upcoming Tests</h3>
               <Link href="/tests" className="text-sm font-medium text-primary hover:underline">View All</Link>
             </div>
-            <div className="rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333] divide-y divide-[#e5e7eb] dark:divide-[#333]">
+            <div className="rounded-xl border bg-card text-card-foreground shadow-sm divide-y divide-border">
               {upcomingTests.map((test) => (
                 <div key={test.id} className="flex flex-wrap items-center justify-between gap-4 p-4 hover:bg-gray-50 dark:hover:bg-[#252f3e] transition-colors">
                   <div className="flex items-center gap-4">
@@ -269,7 +269,7 @@ export default async function DashboardPage() {
                 </div>
               ))}
               {upcomingTests.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground dark:text-gray-400">No upcoming tests found.</div>
+                <div className="p-8 text-center text-muted-foreground">No upcoming tests found.</div>
               )}
             </div>
           </div>
@@ -277,10 +277,10 @@ export default async function DashboardPage() {
           {/* Recent Scores Table */}
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-bold text-foreground">Recent Performance</h3>
-            <div className="overflow-hidden rounded-xl border border-[#e5e7eb] bg-white shadow-sm dark:bg-[#1f2937] dark:border-[#333]">
+            <div className="overflow-hidden rounded-xl border bg-card text-card-foreground shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-[#f9fafb] text-[#616f89] border-b border-[#e5e7eb] dark:bg-[#1a2332] dark:border-[#333] dark:text-gray-400">
+                  <thead className="bg-muted/50 text-muted-foreground border-b">
                     <tr>
                       <th className="px-6 py-3 font-medium">Test Name</th>
                       <th className="px-6 py-3 font-medium">Score</th>
@@ -288,7 +288,7 @@ export default async function DashboardPage() {
                       <th className="px-6 py-3 font-medium text-right">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#e5e7eb] dark:divide-[#333]">
+                  <tbody className="divide-y divide-border">
                     {recentScores.map((score, idx) => (
                       <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#252f3e]">
                         <td className="px-6 py-4 font-medium text-foreground">{score.test}</td>
@@ -303,7 +303,7 @@ export default async function DashboardPage() {
                     ))}
                     {recentScores.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground dark:text-gray-400">
+                        <td colSpan={4} className="px-6 py-8 text-center text-muted-foreground">
                           No recent tests taken.
                         </td>
                       </tr>
@@ -322,7 +322,7 @@ export default async function DashboardPage() {
             <div className="p-4 border-b border-[#e5e7eb] flex items-center justify-between dark:border-[#333]">
               <div className="flex items-center gap-2">
                 <IconEmojiEvents className="text-yellow-500 h-5 w-5" />
-                <h3 className="font-bold text-white">Leaderboard</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">Leaderboard</h3>
               </div>
               <div className="text-xs font-medium text-[#616f89] bg-[#f0f2f4] px-2 py-1 rounded dark:bg-[#2a3649] dark:text-gray-300">This Week</div>
             </div>
@@ -331,7 +331,7 @@ export default async function DashboardPage() {
               <div className="h-12 w-12 rounded-full bg-yellow-50 flex items-center justify-center dark:bg-yellow-900/20 mb-2">
                 <IconEmojiEvents className="h-6 w-6 text-yellow-600" />
               </div>
-              <p className="text-sm font-medium text-white">Leaderboard currently empty</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Leaderboard currently empty</p>
               <p className="text-xs text-[#616f89] dark:text-gray-300">Complete tests to get ranked!</p>
             </div>
 
@@ -342,7 +342,7 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-3">
                     <div className="w-6 text-center text-xs font-bold text-primary">#{stats.globalRank}</div>
                     <div className="h-8 w-8 rounded-full bg-primary/20 ring-2 ring-white dark:ring-[#1a2332]" />
-                    <span className="text-sm font-bold text-white">You</span>
+                    <span className="text-sm font-bold text-gray-900 dark:text-white">You</span>
                   </div>
                   <span className="text-sm font-bold text-primary">0 pts</span>
                 </div>
