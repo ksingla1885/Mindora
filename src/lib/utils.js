@@ -1,3 +1,10 @@
+import { clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
+
+export function cn(...inputs) {
+  return twMerge(clsx(inputs))
+}
+
 /**
  * Load a script dynamically
  * @param {string} src - Script source URL
@@ -90,8 +97,8 @@ export const truncate = (text, maxLength = 100) => {
  * @returns {string} Unique ID
  */
 export const generateId = () => {
-  return Math.random().toString(36).substring(2, 15) + 
-         Math.random().toString(36).substring(2, 15);
+  return Math.random().toString(36).substring(2, 15) +
+    Math.random().toString(36).substring(2, 15);
 };
 
 export default {

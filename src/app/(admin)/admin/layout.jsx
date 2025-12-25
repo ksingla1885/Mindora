@@ -1,6 +1,6 @@
 'use client';
 
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
+import AdminSidebar from '@/components/admin/AdminSidebar';
 import { useSession } from 'next-auth/react';
 import { redirect } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -12,22 +12,23 @@ export default function AdminLayout({ children }) {
 
   useEffect(() => {
     if (status === 'loading') return;
-    
+
     // Redirect to login if not authenticated
     if (!session) {
       redirect('/auth/signin');
       return;
     }
-    
-    // Redirect to dashboard if not admin
-    if (session.user.role !== 'admin') {
+
+    // Redirect to dashboard if not admin or teacher
+    const userRole = session?.user?.role?.toLowerCase();
+    if (userRole !== 'admin' && userRole !== 'teacher') {
       redirect('/dashboard');
       return;
     }
-    
+
     setIsLoading(false);
   }, [session, status]);
-  
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -35,7 +36,7 @@ export default function AdminLayout({ children }) {
       </div>
     );
   }
-  
+
   return (
     <WebSocketProvider>
       <div className="flex h-screen bg-background overflow-hidden">

@@ -154,8 +154,9 @@ export async function middleware(request) {
 
   // Check role-based access
   if (token) {
-    // Admin has access to everything
-    if (token.role === 'ADMIN') {
+    // Admin and Teacher have access to admin paths
+    const userRole = token.role?.toUpperCase();
+    if ((userRole === 'ADMIN' || userRole === 'TEACHER') && (isAdminPath || requiresAuth)) {
       return NextResponse.next({
         request: {
           headers: requestHeaders,
@@ -163,8 +164,17 @@ export async function middleware(request) {
       });
     }
 
-    // Teacher access
-    if (token.role === 'TEACHER' && (isTeacherPath || isStudentPath || requiresAuth)) {
+    // Admin has access to everything else
+    if (userRole === 'ADMIN') {
+      return NextResponse.next({
+        request: {
+          headers: requestHeaders,
+        },
+      });
+    }
+
+    // Teacher access specific logic (if not captured above)
+    if (userRole === 'TEACHER' && (isTeacherPath || isStudentPath || requiresAuth)) {
       return NextResponse.next({
         request: {
           headers: requestHeaders,
@@ -173,7 +183,7 @@ export async function middleware(request) {
     }
 
     // Student access
-    if (token.role === 'STUDENT' && (isStudentPath || requiresAuth)) {
+    if (userRole === 'STUDENT' && (isStudentPath || requiresAuth)) {
       return NextResponse.next({
         request: {
           headers: requestHeaders,

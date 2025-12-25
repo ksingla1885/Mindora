@@ -3,18 +3,25 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { MainNav } from "@/components/main-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { usePathname } from "next/navigation";
+
+import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Search, Bell, Menu, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({ children }) {
-    const pathname = usePathname();
-    const { data: session } = useSession();
+    const { data: session, status } = useSession();
 
-    // Don't show layout on admin pages if they have their own
-    if (pathname?.startsWith('/admin')) {
-        return <>{children}</>;
+    if (status === "loading") {
+        return null;
+    }
+
+
+
+    // Redirect admins and teachers to admin dashboard
+    const userRole = session?.user?.role?.toLowerCase();
+    if (userRole === 'admin' || userRole === 'teacher') {
+        redirect('/admin');
     }
 
     return (

@@ -1,18 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Users, 
-  BookOpen, 
-  FileText, 
-  BarChart3, 
-  Clock, 
-  Award, 
-  CheckCircle, 
-  DollarSign, 
-  Calendar, 
-  Bookmark, 
-  MessageSquare, 
-  FileVideo, 
-  Plus, 
+import {
+  Users,
+  BookOpen,
+  FileText,
+  BarChart3,
+  Clock,
+  Award,
+  CheckCircle,
+  DollarSign,
+  Calendar,
+  Bookmark,
+  MessageSquare,
+  FileVideo,
+  Plus,
   Pencil,
   Activity,
   Book,
@@ -38,6 +38,7 @@ import { format, subDays, formatDistanceToNow } from 'date-fns';
 import { DataTable } from '@/components/ui/data-table';
 import { columns as userColumns } from './_components/users-columns';
 import { columns as testColumns } from './_components/tests-columns';
+import { cn } from '@/lib/utils';
 
 // Mock data - replace with actual API calls
 const stats = {
@@ -56,42 +57,42 @@ const stats = {
 };
 
 const recentActivity = [
-  { 
-    id: 1, 
-    user: { name: 'John Doe', email: 'john@example.com', avatar: '/avatars/01.png' }, 
-    action: 'completed', 
+  {
+    id: 1,
+    user: { name: 'John Doe', email: 'john@example.com', avatar: '/avatars/01.png' },
+    action: 'completed',
     item: { type: 'test', title: 'Physics Weekly Test', id: 'test-123' },
     time: new Date(Date.now() - 2 * 60 * 1000), // 2 minutes ago
     read: false
   },
-  { 
-    id: 2, 
-    user: { name: 'Jane Smith', email: 'jane@example.com', avatar: '/avatars/02.png' }, 
-    action: 'started', 
+  {
+    id: 2,
+    user: { name: 'Jane Smith', email: 'jane@example.com', avatar: '/avatars/02.png' },
+    action: 'started',
     item: { type: 'course', title: 'Chemistry Practice', id: 'course-456' },
     time: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
     read: true
   },
-  { 
-    id: 3, 
-    user: { name: 'Admin', email: 'admin@mindora.com', avatar: '/avatars/admin.png' }, 
-    action: 'created', 
+  {
+    id: 3,
+    user: { name: 'Admin', email: 'admin@mindora.com', avatar: '/avatars/admin.png' },
+    action: 'created',
     item: { type: 'test', title: 'Mathematics Quiz', id: 'test-124' },
     time: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
     read: true
   },
-  { 
-    id: 4, 
-    user: { name: 'Alex Johnson', email: 'alex@example.com', avatar: '/avatars/03.png' }, 
-    action: 'signed up', 
+  {
+    id: 4,
+    user: { name: 'Alex Johnson', email: 'alex@example.com', avatar: '/avatars/03.png' },
+    action: 'signed up',
     item: null,
     time: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
     read: true
   },
-  { 
-    id: 5, 
-    user: { name: 'Sarah Williams', email: 'sarah@example.com', avatar: '/avatars/04.png' }, 
-    action: 'completed', 
+  {
+    id: 5,
+    user: { name: 'Sarah Williams', email: 'sarah@example.com', avatar: '/avatars/04.png' },
+    action: 'completed',
     item: { type: 'dpp', title: 'DPP #24', id: 'dpp-24' },
     time: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
     read: true
@@ -99,22 +100,22 @@ const recentActivity = [
 ];
 
 const upcomingTests = [
-  { 
-    id: 1, 
-    name: 'Physics Weekly Test', 
-    date: '2023-11-15T10:00:00Z', 
-    participants: 124, 
+  {
+    id: 1,
+    name: 'Physics Weekly Test',
+    date: '2023-11-15T10:00:00Z',
+    participants: 124,
     type: 'free',
     subject: 'Physics',
     duration: 90,
     questions: 30,
     status: 'upcoming'
   },
-  { 
-    id: 2, 
-    name: 'Chemistry Olympiad Qualifier', 
-    date: '2023-11-18T14:00:00Z', 
-    participants: 89, 
+  {
+    id: 2,
+    name: 'Chemistry Olympiad Qualifier',
+    date: '2023-11-18T14:00:00Z',
+    participants: 89,
     type: 'premium',
     subject: 'Chemistry',
     duration: 120,
@@ -122,11 +123,11 @@ const upcomingTests = [
     status: 'upcoming',
     price: 299
   },
-  { 
-    id: 3, 
-    name: 'Mathematics Challenge', 
-    date: '2023-11-20T09:30:00Z', 
-    participants: 156, 
+  {
+    id: 3,
+    name: 'Mathematics Challenge',
+    date: '2023-11-20T09:30:00Z',
+    participants: 156,
     type: 'free',
     subject: 'Mathematics',
     duration: 90,
@@ -213,7 +214,7 @@ function ActivityItem({ activity }) {
       </div>
       <div className="flex-1">
         <p className="text-sm">
-          <span className="font-medium">{activity.user}</span> {activity.action}
+          <span className="font-medium">{activity.user.name}</span> {activity.action}
         </p>
         <p className="text-xs text-muted-foreground">
           {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
@@ -234,7 +235,7 @@ export default function AdminDashboard() {
     {
       id: 1,
       type: 'test_completed',
-      user: 'John Doe',
+      user: { name: 'John Doe', avatar: '' },
       action: 'completed the Physics Weekly Test',
       timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
       link: '/admin/tests/1/results'
@@ -242,7 +243,7 @@ export default function AdminDashboard() {
     {
       id: 2,
       type: 'user_registered',
-      user: 'Jane Smith',
+      user: { name: 'Jane Smith', avatar: '' },
       action: 'signed up for an account',
       timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
       link: '/admin/users/2'
@@ -250,7 +251,7 @@ export default function AdminDashboard() {
     {
       id: 3,
       type: 'test_created',
-      user: 'Admin',
+      user: { name: 'Admin', avatar: '' },
       action: 'created a new Mathematics Quiz',
       timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
       link: '/admin/tests/3'
@@ -314,7 +315,7 @@ export default function AdminDashboard() {
           description={`${stats.activeUsers} active today`}
           progress={stats.userRetention}
         />
-        
+
         <StatCard
           title="Total Tests"
           value={stats.totalTests}
@@ -323,7 +324,7 @@ export default function AdminDashboard() {
           description={`${stats.activeTests} active now`}
           progress={75}
         />
-        
+
         <StatCard
           title="Total Questions"
           value={stats.totalQuestions}
@@ -332,7 +333,7 @@ export default function AdminDashboard() {
           description="In question bank"
           progress={60}
         />
-        
+
         <StatCard
           title="Total Revenue"
           value={`₹${stats.totalRevenue.toLocaleString()}`}
@@ -357,7 +358,7 @@ export default function AdminDashboard() {
             <Progress value={stats.userRetention} className="h-2 mt-2" />
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Tests & Content</CardTitle>
@@ -383,7 +384,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
@@ -403,7 +404,7 @@ export default function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Performance</CardTitle>
@@ -464,7 +465,7 @@ export default function AdminDashboard() {
                         day: 'numeric',
                       })}
                     </p>
-                    <Badge 
+                    <Badge
                       variant={test.status === 'upcoming' ? 'default' : 'outline'}
                       className="mt-1 capitalize"
                     >
@@ -503,7 +504,7 @@ export default function AdminDashboard() {
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
           <TabsTrigger value="recent">Recent Activity</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
             <Card className="col-span-4">
@@ -543,7 +544,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-          
+
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -572,7 +573,7 @@ export default function AdminDashboard() {
                         <p className="text-xs text-muted-foreground">
                           {formatDistanceToNow(new Date(user.lastActive), { addSuffix: true })}
                         </p>
-                        <Badge 
+                        <Badge
                           variant={user.status === 'active' ? 'outline' : 'secondary'}
                           className={user.status === 'active' ? 'text-green-600' : ''}
                         >
@@ -584,7 +585,7 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-center">
@@ -613,7 +614,7 @@ export default function AdminDashboard() {
                             })}
                           </p>
                         </div>
-                        <Badge 
+                        <Badge
                           variant={test.status === 'upcoming' ? 'default' : 'outline'}
                           className="capitalize"
                         >
@@ -648,7 +649,7 @@ export default function AdminDashboard() {
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="analytics" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
@@ -682,7 +683,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </div>
-          
+
           <Card>
             <CardHeader>
               <CardTitle>Test Performance</CardTitle>
@@ -694,7 +695,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="recent" className="space-y-4">
           <Card>
             <CardHeader>
@@ -717,7 +718,7 @@ export default function AdminDashboard() {
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium">{activity.user.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(activity.time, { addSuffix: true })}
+                          {formatDistanceToNow(activity.timestamp, { addSuffix: true })}
                         </p>
                       </div>
                       <p className="text-sm">
