@@ -1,21 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
+
     // Get all certificates for the current user
     const certificates = await prisma.certificate.findMany({
       where: {
@@ -38,7 +35,7 @@ export async function GET() {
         issuedAt: 'desc',
       },
     });
-    
+
     // Format the response
     const formattedCertificates = certificates.map(cert => ({
       id: cert.id,
@@ -50,9 +47,9 @@ export async function GET() {
       issuedAt: cert.issuedAt,
       metadata: cert.metadata,
     }));
-    
+
     return NextResponse.json(formattedCertificates);
-    
+
   } catch (error) {
     console.error('Error fetching certificates:', error);
     return NextResponse.json(

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
@@ -12,7 +11,7 @@ export async function GET(request) {
     const offset = parseInt(searchParams.get('offset')) || 0;
 
     // Get current user for personal ranking
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const currentUserId = session?.user?.id;
 
     // Base query conditions
@@ -54,7 +53,7 @@ export async function GET(request) {
     // Get current user's rank if logged in
     let userRank = null;
     let userEntry = null;
-    
+
     if (currentUserId) {
       // Get user's entry
       userEntry = await prisma.leaderboardEntry.findFirst({
@@ -87,7 +86,7 @@ export async function GET(request) {
             ...where,
             OR: [
               { totalScore: { gt: userEntry.totalScore } },
-              { 
+              {
                 AND: [
                   { totalScore: userEntry.totalScore },
                   { lastUpdated: { lt: userEntry.lastUpdated } }
@@ -96,7 +95,7 @@ export async function GET(request) {
             ]
           }
         });
-        
+
         userRank = higherScorers + 1;
       }
     }

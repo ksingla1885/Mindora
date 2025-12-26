@@ -600,70 +600,218 @@ const FinalCta = () => {
   );
 };
 
+const WhyChooseSection = () => {
+  const benefits = [
+    {
+      title: "Structured, Outcome-Driven Learning",
+      desc: "Content is organized by class, subject, and topic, ensuring students always know what to study next and why it matters.",
+      icon: <BookOpen className="w-6 h-6 text-blue-500" />,
+      class: "md:col-span-1 lg:col-span-1 bg-blue-500/5 border-blue-500/20 hover:border-blue-500/50"
+    },
+    {
+      title: "Smart Practice & Real Exam Simulation",
+      desc: "Daily Practice Problems (DPPs) and weekly timed tests replicate real exam pressure, helping students build consistency, speed, and confidence.",
+      icon: <Timer className="w-6 h-6 text-orange-500" />,
+      class: "md:col-span-1 lg:col-span-1 bg-orange-500/5 border-orange-500/20 hover:border-orange-500/50"
+    },
+    {
+      title: "Actionable Progress Insights",
+      desc: "Clear analytics highlight strengths, weaknesses, and improvement areas—so students can study strategically, not blindly.",
+      icon: <Zap className="w-6 h-6 text-yellow-500" />,
+      class: "md:col-span-1 lg:col-span-1 bg-yellow-500/5 border-yellow-500/20 hover:border-yellow-500/50"
+    },
+    {
+      title: "AI-Assisted Learning Support",
+      desc: "An integrated AI assistant helps resolve doubts, explain concepts, and guide revision—available whenever students need help.",
+      icon: <Brain className="w-6 h-6 text-purple-500" />,
+      class: "md:col-span-2 lg:col-span-2 bg-purple-500/5 border-purple-500/20 hover:border-purple-500/50"
+    },
+    {
+      title: "Motivation Through Gamification",
+      desc: "Leaderboards, points, and achievement badges encourage healthy competition and sustained engagement.",
+      icon: <Trophy className="w-6 h-6 text-emerald-500" />,
+      class: "md:col-span-1 lg:col-span-1 bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/50"
+    },
+    {
+      title: "Engineered for Reliability & Scale",
+      desc: "Built using Next.js and Supabase, Mindora follows clean architecture and performance-first design principles—ensuring fast load times, secure data handling, and long-term scalability.",
+      icon: <Layers className="w-6 h-6 text-cyan-500" />,
+      class: "md:col-span-1 lg:col-span-1 bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/50"
+    },
+    {
+      title: "Designed by a Learner, Built by an Engineer",
+      desc: "Mindora is crafted by someone who understands both the student struggle and modern engineering, resulting in a platform that’s practical, intuitive, and dependable.",
+      icon: <User className="w-6 h-6 text-rose-500" />,
+      class: "md:col-span-2 lg:col-span-2 bg-rose-500/5 border-rose-500/20 hover:border-rose-500/50"
+    }
+  ];
+
+  return (
+    <section className="py-32 bg-background border-t border-border">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="mb-20 text-center max-w-3xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="inline-block border border-primary/30 rounded-full px-4 py-1 mb-6 bg-primary/5 backdrop-blur-sm"
+          >
+            <span className="text-xs font-mono text-primary tracking-widest uppercase">Why Choose Mindora</span>
+          </motion.div>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-4xl md:text-5xl font-light mb-6 tracking-tight"
+          >
+            Built for how students actually learn.
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.2 }}
+            className="text-xl text-muted-foreground font-light"
+          >
+            Mindora removes clutter and guesswork from exam preparation by offering structured content, daily practice, and focused assessments—all in one place.
+          </motion.p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {benefits.map((item, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }}
+              className={`p-8 rounded-3xl border backdrop-blur-sm transition-all duration-500 group hover:shadow-2xl ${item.class}`}
+            >
+              <div className="mb-6 p-3 bg-background rounded-2xl w-fit shadow-sm group-hover:scale-110 transition-transform duration-500">
+                {item.icon}
+              </div>
+              <h3 className="text-xl font-medium mb-4">{item.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {item.desc}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
 const Footer = () => {
   return (
     <footer className="bg-background border-t border-border pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 mb-16">
+
+          {/* Brand & Contact */}
+          <div className="lg:col-span-1 space-y-6">
             <Link href="/" className="flex items-center gap-2 group">
               <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center border border-primary/50 group-hover:bg-primary/30 transition-colors">
                 <Brain className="w-5 h-5 text-primary" />
               </div>
               <span className="text-xl font-bold tracking-tight">Mindora</span>
             </Link>
-            <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
+            <p className="text-muted-foreground text-sm leading-relaxed">
               Empowering students with AI-driven insights and structured learning paths for Olympiad excellence.
             </p>
+            <div className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground group">
+                <div className="p-2 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                  <Mail className="w-4 h-4 text-primary" />
+                </div>
+                <span>support@mindora.com</span>
+              </div>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground group">
+                <div className="p-2 rounded-full bg-muted group-hover:bg-primary/10 transition-colors">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+                <span>123 Education Lane, Tech City</span>
+              </div>
+            </div>
             <div className="flex gap-4 pt-2">
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Github className="w-5 h-5" /></Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Twitter className="w-5 h-5" /></Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary transition-colors"><Linkedin className="w-5 h-5" /></Link>
+              <Link href="#" className="p-2 rounded-full bg-muted hover:bg-primary/10 hover:text-primary transition-all"><Github className="w-4 h-4" /></Link>
+              <Link href="#" className="p-2 rounded-full bg-muted hover:bg-primary/10 hover:text-primary transition-all"><Twitter className="w-4 h-4" /></Link>
+              <Link href="#" className="p-2 rounded-full bg-muted hover:bg-primary/10 hover:text-primary transition-all"><Linkedin className="w-4 h-4" /></Link>
             </div>
           </div>
 
-          <div>
-            <h4 className="font-semibold mb-6">Product</h4>
+          {/* Product */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold mb-6 flex items-center gap-2">
+              Product
+              <span className="text-[10px] font-mono bg-primary/10 text-primary px-2 py-0.5 rounded-full">BETA</span>
+            </h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li><Link href="#" className="hover:text-primary transition-colors">Features</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Pricing</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Olympiad Prep</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">AI Mentor</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Features</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Pricing Plans</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Live Classes</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Mock Tests</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> AI Mentor</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors flex items-center gap-2"><ChevronRight className="w-3 h-3" /> Success Stories</Link></li>
             </ul>
           </div>
 
-          <div>
+          {/* Company */}
+          <div className="lg:col-span-1">
+            <h4 className="font-semibold mb-6">Company</h4>
+            <ul className="space-y-3 text-sm text-muted-foreground">
+              <li><Link href="#" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Press & Media</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Partners</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Contact Us</Link></li>
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div className="lg:col-span-1">
             <h4 className="font-semibold mb-6">Resources</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
               <li><Link href="#" className="hover:text-primary transition-colors">Blog</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Study Guides</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Community</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Olympiad Syllabus</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Community Forum</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Parent's Guide</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Help Center</Link></li>
             </ul>
           </div>
 
-          <div>
+          {/* Newsletter */}
+          <div className="lg:col-span-1">
             <h4 className="font-semibold mb-6">Stay Updated</h4>
-            <p className="text-sm text-muted-foreground mb-4">Join our newsletter for the latest study tips and updates.</p>
-            <div className="flex gap-2">
+            <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+              Join 10,000+ students. Get the latest exam tips and study hacks directly to your inbox.
+            </p>
+            <div className="flex flex-col gap-3">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm w-full focus:outline-none focus:border-primary transition-colors"
+                className="bg-muted/50 border border-border rounded-lg px-4 py-2.5 text-sm w-full focus:outline-none focus:border-primary transition-colors"
               />
-              <button className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-2 rounded-lg transition-colors">
-                <ArrowRight className="w-4 h-4" />
+              <button className="bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium px-4 py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 group">
+                Subscribe <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
             </div>
+            <p className="text-[10px] text-muted-foreground mt-4">
+              By subscribing, you agree to our Privacy Policy and provide consent to receive updates.
+            </p>
           </div>
         </div>
 
+        {/* Bottom Bar */}
         <div className="border-t border-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-muted-foreground">
           <p>© {new Date().getFullYear()} Mindora Education. All rights reserved.</p>
-          <div className="flex gap-6">
+          <div className="flex flex-wrap justify-center gap-6">
             <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link href="#" className="hover:text-primary transition-colors">Terms of Service</Link>
             <Link href="#" className="hover:text-primary transition-colors">Cookie Settings</Link>
+            <Link href="#" className="hover:text-primary transition-colors">Sitemap</Link>
           </div>
         </div>
       </div>
@@ -689,6 +837,7 @@ export default function LandingPage() {
         <StickyNarrative />
         <ZLayerOlympiads />
         <ParallaxCards />
+        <WhyChooseSection />
         <ReviewsSection />
         <MetricsSection />
         <DeveloperSection />
