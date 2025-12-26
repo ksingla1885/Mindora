@@ -12,17 +12,19 @@ module.exports = {
         "display": ["Inter", "sans-serif"],
       },
       colors: {
-        "primary": "#135bec",
-        "primary-hover": "#0f4bc4",
+        "primary": "#2b6cee",
+        "primary-hover": "#2563eb",
         "background-light": "#f6f6f8",
         "background-dark": "#101622",
+        "surface-dark": "#1e293b",
+        "border-dark": "#334155",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#135bec", // Overriding default primary to match specified color
+          DEFAULT: "#2b6cee", // Updated to Mindora Admin blue
           foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {

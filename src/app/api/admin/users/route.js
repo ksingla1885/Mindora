@@ -1,15 +1,17 @@
+// MINDORA USER API - UPDATED
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await auth();
+    console.log('GET /api/admin/users - Session:', !!session);
+    const userRole = session?.user?.role?.toLowerCase();
+
+    if (!session || (userRole !== 'admin' && userRole !== 'teacher')) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', role: session?.user?.role },
         { status: 401 }
       );
     }
@@ -22,7 +24,6 @@ export async function GET(request) {
     const status = searchParams.get('status');
     const sort = searchParams.get('sort') || 'newest';
 
-    // Build the where clause
     const where = {
       AND: [
         {
@@ -34,12 +35,10 @@ export async function GET(request) {
       ],
     };
 
-    // Add role filter if specified
     if (role && role !== 'all') {
       where.role = role;
     }
 
-    // Add status filter if specified
     if (status === 'active') {
       where.emailVerified = { not: null };
     } else if (status === 'pending') {
@@ -48,22 +47,14 @@ export async function GET(request) {
       where.isActive = false;
     }
 
-    // Build the orderBy clause
     let orderBy = {};
-    if (sort === 'newest') {
-      orderBy = { createdAt: 'desc' };
-    } else if (sort === 'oldest') {
-      orderBy = { createdAt: 'asc' };
-    } else if (sort === 'name-asc') {
-      orderBy = { name: 'asc' };
-    } else if (sort === 'name-desc') {
-      orderBy = { name: 'desc' };
-    }
+    if (sort === 'newest') orderBy = { createdAt: 'desc' };
+    else if (sort === 'oldest') orderBy = { createdAt: 'asc' };
+    else if (sort === 'name-asc') orderBy = { name: 'asc' };
+    else if (sort === 'name-desc') orderBy = { name: 'desc' };
 
-    // Get total count for pagination
     const total = await prisma.user.count({ where });
 
-    // Get paginated users
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -107,18 +98,18 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await auth();
+    const userRole = session?.user?.role?.toLowerCase();
+
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Admin required' },
         { status: 401 }
       );
     }
 
     const { email, name, role, sendInvite = true } = await request.json();
 
-    // Check if user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
@@ -130,33 +121,22 @@ export async function POST(request) {
       );
     }
 
-    // Create user (without password, they'll set it via invite)
     const user = await prisma.user.create({
       data: {
         email,
         name,
         role,
-        emailVerified: null, // Will be set when they verify
+        emailVerified: null,
       },
     });
 
-    // TODO: Send invitation email with setup link
     if (sendInvite) {
-      // Implement email sending logic here
       console.log(`Send invitation email to ${email}`);
     }
 
     return NextResponse.json({ data: user }, { status: 201 });
   } catch (error) {
     console.error('Error creating user:', error);
-    
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { error: 'Email already in use' },
-        { status: 400 }
-      );
-    }
-    
     return NextResponse.json(
       { error: 'Failed to create user' },
       { status: 500 }

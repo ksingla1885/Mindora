@@ -96,18 +96,18 @@ export function ProfileForm({ user }) {
   const onSubmit = async (data) => {
     try {
       setIsLoading(true);
-      
+
       // Prepare form data for file upload
       const formData = new FormData();
-      
+
       // Add avatar if changed
       if (avatarFile) {
         formData.append('avatar', avatarFile);
       }
-      
+
       // Add other profile data
       const { currentPassword, newPassword, confirmPassword, ...profileData } = data;
-      
+
       // Only include password fields if current password is provided
       if (currentPassword) {
         formData.append('currentPassword', currentPassword);
@@ -115,30 +115,30 @@ export function ProfileForm({ user }) {
           formData.append('newPassword', newPassword);
         }
       }
-      
+
       // Add profile data as JSON string
       formData.append('profile', JSON.stringify(profileData));
-      
+
       // Send request to update profile
       const response = await fetch('/api/profile', {
         method: 'PATCH',
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to update profile');
       }
-      
+
       // Update session
       const updatedUser = await response.json();
       await update(updatedUser);
-      
+
       toast({
         title: 'Success',
         description: 'Profile updated successfully',
       });
-      
+
       // Reset password fields
       if (newPassword) {
         form.reset({
@@ -148,7 +148,7 @@ export function ProfileForm({ user }) {
           confirmPassword: '',
         });
       }
-      
+
     } catch (error) {
       console.error('Error updating profile:', error);
       toast({
@@ -179,7 +179,7 @@ export function ProfileForm({ user }) {
 
       // Sign out and redirect to home
       await signOut({ callbackUrl: '/' });
-      
+
     } catch (error) {
       console.error('Error deleting account:', error);
       toast({
@@ -472,7 +472,7 @@ export function ProfileForm({ user }) {
                         type="button"
                         variant="outline"
                         onClick={async () => {
-                          await signOut({ callbackUrl: '/login' });
+                          await signOut({ callbackUrl: '/' });
                         }}
                         disabled={isLoading}
                       >

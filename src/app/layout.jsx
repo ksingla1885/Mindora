@@ -17,7 +17,6 @@ export const metadata = {
     },
     description: "AI-powered preparation platform for NSO, IMO, and competitive exams.",
     themeColor: [
-        { media: '(prefers-color-scheme: light)', color: 'white' },
         { media: '(prefers-color-scheme: dark)', color: 'black' },
     ],
 };

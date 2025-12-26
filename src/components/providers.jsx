@@ -20,8 +20,9 @@ export function Providers({ children, session }) {
             <AuthProvider>
                 <NextThemesProvider
                     attribute="class"
-                    defaultTheme="system"
-                    enableSystem
+                    defaultTheme="dark"
+                    forcedTheme="dark"
+                    enableSystem={false}
                     disableTransitionOnChange
                 >
                     <ThemeWrapper>

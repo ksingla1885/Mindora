@@ -120,29 +120,8 @@ const AiGuide = () => {
   )
 }
 
-// Icons for Theme Toggle
-const SunIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <circle cx="12" cy="12" r="5" />
-    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-  </svg>
-);
-
-const MoonIcon = ({ className }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-  </svg>
-);
-
 // Theme Toggle Navbar Component
 const ThemeNav = () => {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
-  if (!mounted) return null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -155,17 +134,6 @@ const ThemeNav = () => {
           Sign In
         </button>
       </Link>
-
-      <button
-        onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-        className="p-3 rounded-full bg-background/50 backdrop-blur-md border border-border hover:bg-background transition-colors shadow-sm group"
-        aria-label="Toggle theme"
-      >
-        <div className="relative w-5 h-5 text-foreground">
-          <SunIcon className="absolute inset-0 rotate-0 scale-100 dark:-rotate-90 dark:scale-0 transition-transform duration-500" />
-          <MoonIcon className="absolute inset-0 rotate-90 scale-0 dark:rotate-0 dark:scale-100 transition-transform duration-500" />
-        </div>
-      </button>
     </motion.div>
   );
 };

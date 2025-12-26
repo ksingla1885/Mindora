@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await auth();
+    const userRole = session?.user?.role?.toLowerCase();
+
+    if (!session || (userRole !== 'admin' && userRole !== 'teacher')) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized', role: session?.user?.role },
         { status: 401 }
       );
     }
@@ -57,11 +57,12 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await auth();
+    const userRole = session?.user?.role?.toLowerCase();
+
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Admin required' },
         { status: 401 }
       );
     }
@@ -93,14 +94,14 @@ export async function PUT(request, { params }) {
     return NextResponse.json({ data: updatedUser });
   } catch (error) {
     console.error('Error updating user:', error);
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Email already in use' },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to update user' },
       { status: 500 }
@@ -110,11 +111,12 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await auth();
+    const userRole = session?.user?.role?.toLowerCase();
+
+    if (!session || userRole !== 'admin') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Admin required' },
         { status: 401 }
       );
     }

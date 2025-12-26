@@ -1,315 +1,343 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  Plus,
+  Search,
+  FileText,
+  LayoutGrid,
+  MoreVertical,
+  Edit,
+  Trash2,
+  CheckCircle2,
+  Clock,
+  Filter,
+  Download,
+  Calendar,
+  BarChart3,
+  Settings as SettingsIcon,
+  HelpCircle,
+  PlayCircle,
+  TrendingUp,
+  Library,
+  ChevronLeft,
+  ChevronRight,
+  MonitorPlay,
+  CalendarClock,
+  History,
+  CreditCard,
+  Layers
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Filter, Download, Upload, Calendar, Clock, Award, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/cn';
+import Link from 'next/link';
 
-// Mock data - replace with API calls
-const tests = [
-  {
-    id: '1',
-    title: 'Physics Weekly Test - Mechanics',
-    type: 'weekly',
-    subject: 'Physics',
-    topic: 'Mechanics',
-    startTime: '2023-11-15T10:00:00Z',
-    endTime: '2023-11-15T11:30:00Z',
-    duration: 90,
-    isPublished: true,
-    isPaid: false,
-    participants: 124,
-    avgScore: 72,
-    questions: 25
-  },
-  {
-    id: '2',
-    title: 'Chemistry Olympiad Qualifier',
-    type: 'olympiad',
-    subject: 'Chemistry',
-    topic: 'Organic Chemistry',
-    startTime: '2023-11-20T14:00:00Z',
-    endTime: '2023-11-20T17:00:00Z',
-    duration: 180,
-    isPublished: true,
-    isPaid: true,
-    price: 299,
-    participants: 89,
-    avgScore: 65,
-    questions: 50
-  },
-  {
-    id: '3',
-    title: 'Mathematics Challenge - Algebra',
-    type: 'practice',
-    subject: 'Mathematics',
-    topic: 'Algebra',
-    startTime: null,
-    endTime: null,
-    duration: 60,
-    isPublished: true,
-    isPaid: false,
-    participants: 0,
-    avgScore: null,
-    questions: 15
-  },
-  {
-    id: '4',
-    title: 'Biology Weekly Test - Genetics',
-    type: 'weekly',
-    subject: 'Biology',
-    topic: 'Genetics',
-    startTime: '2023-11-17T10:00:00Z',
-    endTime: '2023-11-17T11:00:00Z',
-    duration: 60,
-    isPublished: false,
-    isPaid: false,
-    participants: 0,
-    avgScore: null,
-    questions: 20
-  },
-];
+export default function TestsManagementPage() {
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function TestsPage() {
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Not scheduled';
-    return new Date(dateString).toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const stats = [
+    { label: 'Total Tests', value: '1,240', trend: '+5%', trendUp: true, icon: Library, color: 'text-primary' },
+    { label: 'Active Now', value: '3', trend: 'LIVE', trendUp: null, icon: PlayCircle, color: 'text-emerald-500', isLive: true },
+    { label: 'Upcoming', value: '12', trend: 'Next 7 days', trendUp: null, icon: CalendarClock, color: 'text-amber-500' },
+    { label: 'Completed', value: '1,225', trend: 'Avg: 78%', trendUp: true, icon: CheckCircle2, color: 'text-purple-500' }
+  ];
 
-  const getTestStatus = (test) => {
-    const now = new Date();
-    const start = test.startTime ? new Date(test.startTime) : null;
-    const end = test.endTime ? new Date(test.endTime) : null;
-    
-    if (!test.isPublished) {
-      return { label: 'Draft', variant: 'outline' };
+  const tests = [
+    {
+      id: 1,
+      name: 'National Math Olympiad Mock 5',
+      olympiad: 'IMO',
+      duration: '60 Mins',
+      subject: 'Math',
+      class: 'Class 10',
+      type: 'PAID',
+      price: '₹499',
+      date: 'Oct 12, 2023',
+      time: '10:00 AM - 11:00 AM',
+      status: 'LIVE',
+      participants: 245,
+      participantsTrend: 'Active Now'
+    },
+    {
+      id: 2,
+      name: 'Science Olympiad Prep - Level 1',
+      olympiad: 'NSO',
+      duration: '45 Mins',
+      subject: 'Science',
+      class: 'Class 8',
+      type: 'FREE',
+      price: 'Free',
+      date: 'Oct 15, 2023',
+      time: '09:00 AM',
+      status: 'Scheduled',
+      participants: 1024,
+      participantsTrend: 'Registered'
+    },
+    {
+      id: 3,
+      name: 'English Grammar Mastery',
+      olympiad: 'IEO',
+      duration: '30 Mins',
+      subject: 'English',
+      class: 'Class 6',
+      type: 'FREE',
+      price: 'Free',
+      date: 'Not scheduled',
+      status: 'Draft',
+      participants: '-',
     }
-    
-    if (start && now < start) {
-      return { label: 'Upcoming', variant: 'secondary' };
-    }
-    
-    if (end && now > end) {
-      return { label: 'Completed', variant: 'default' };
-    }
-    
-    if (start && end && now >= start && now <= end) {
-      return { label: 'In Progress', variant: 'destructive' };
-    }
-    
-    return { label: 'Scheduled', variant: 'default' };
-  };
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold">Test Management</h1>
-          <p className="text-muted-foreground">
-            Create, schedule, and manage tests for students
-          </p>
+    <div className="flex h-full bg-background dark:bg-background-dark text-foreground">
+      {/* Page Specific Sidebar */}
+      <aside className="w-64 border-r border-border bg-card dark:bg-surface-dark flex flex-col pt-4 hidden lg:flex shrink-0">
+        <div className="px-6 py-4 flex flex-col gap-1">
+          <h3 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-2 ml-2">Tests Management</h3>
+          <NavButton icon={LayoutGrid} label="Dashboard" active />
+          <NavButton icon={FileText} label="All Tests" />
+          <NavButton icon={MonitorPlay} label="Live Tests" />
+          <NavButton icon={CalendarClock} label="Scheduled" />
+          <NavButton icon={CreditCard} label="Paid Tests" />
+          <NavButton icon={History} label="Archives" />
         </div>
-        <div className="flex gap-2
-        ">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button asChild>
-            <Link href="/admin/tests/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Create Test
-            </Link>
-          </Button>
-        </div>
-      </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative w-full md:w-1/3">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <div className="mt-8 px-6">
+          <h3 className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest mb-4 ml-2">Quick Actions</h3>
+          <div className="flex flex-col gap-3">
+            <Button className="w-full justify-start gap-2 bg-primary hover:bg-blue-600 font-bold h-11">
+              <Plus className="size-4" /> Create New Test
+            </Button>
+            <Button variant="outline" className="w-full justify-start gap-2 border-border h-11 font-bold">
+              <Download className="size-4" /> Export Reports
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-auto p-6">
+          <div className="bg-primary/5 rounded-2xl p-4 border border-primary/10">
+            <p className="text-xs font-bold text-primary mb-1">Olympiad Season</p>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">System load is currently high due to active mock rounds.</p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-background">
+        <header className="p-6 md:p-8 flex flex-col md:flex-row justify-between items-end gap-6 border-b border-border bg-card/30 backdrop-blur-sm shrink-0">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black tracking-tight text-foreground">Tests Management</h1>
+            <p className="text-muted-foreground">Manage, schedule, and monitor olympiad tests across the platform.</p>
+          </div>
+          <div className="flex items-center gap-4 w-full md:w-auto">
+            <div className="relative flex-1 md:w-80 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground size-4 group-focus-within:text-primary transition-colors" />
               <Input
                 placeholder="Search tests..."
-                className="pl-9"
+                className="h-11 pl-11 rounded-xl bg-card border-border focus:ring-4 ring-primary/10 font-medium"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="mr-2 h-4 w-4" />
-                Filter
+            <Button className="bg-primary hover:bg-blue-700 text-white font-bold h-11 px-6 shadow-lg shadow-primary/20 shrink-0">
+              <Plus className="size-5 mr-2" /> Create Test
+            </Button>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scroll-smooth no-scrollbar">
+          {/* Stats Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-card p-6 rounded-2xl border border-border shadow-sm group hover:border-primary/50 transition-all"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className={cn("p-2 rounded-xl bg-opacity-10", stat.color.replace('text-', 'bg-'))}>
+                    <stat.icon className={cn("size-6", stat.color)} />
+                  </div>
+                  {stat.trend && (
+                    <Badge variant="secondary" className={cn(
+                      "font-bold text-[10px] px-2 py-0.5",
+                      stat.isLive ? "bg-emerald-500/10 text-emerald-500 animate-pulse border-emerald-500/20" : "bg-primary/5 text-primary border-none"
+                    )}>
+                      {stat.isLive && <span className="size-1.5 rounded-full bg-emerald-500 mr-1.5" />}
+                      {stat.trend}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+                <p className="text-3xl font-black mt-1 text-foreground">{stat.value}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Table Toolbar */}
+          <div className="bg-card p-4 rounded-2xl border border-border shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+            <div className="flex flex-wrap items-center gap-3">
+              <select className="h-10 rounded-xl border-none bg-muted/50 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer outline-none transition-all">
+                <option>All Types</option>
+                <option>Paid</option>
+                <option>Free</option>
+              </select>
+              <select className="h-10 rounded-xl border-none bg-muted/50 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer outline-none transition-all">
+                <option>Subject</option>
+                <option>Math</option>
+                <option>Science</option>
+              </select>
+              <select className="h-10 rounded-xl border-none bg-muted/50 px-4 text-sm font-bold focus:ring-2 focus:ring-primary/20 cursor-pointer outline-none transition-all">
+                <option>Status</option>
+                <option>Live</option>
+                <option>Scheduled</option>
+                <option>Draft</option>
+              </select>
+              <div className="h-8 w-px bg-border mx-1 hidden lg:block" />
+              <Button variant="outline" className="h-10 rounded-xl border-border font-bold gap-2 bg-card">
+                <Calendar className="size-4" /> Date Range
               </Button>
-              <Button variant="outline" size="sm">
-                <Calendar className="mr-2 h-4 w-4" />
-                Date Range
+            </div>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" className="h-10 rounded-xl font-bold gap-2 text-muted-foreground hover:text-foreground">
+                <Download className="size-4" /> Export
+              </Button>
+              <Button variant="ghost" disabled className="h-10 rounded-xl font-bold gap-2 text-muted-foreground opacity-50">
+                <Layers className="size-4" /> Bulk Actions
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all">All Tests</TabsTrigger>
-              <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
-              <TabsTrigger value="draft">Drafts</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-4">
-              <div className="rounded-md border">
-                <div className="grid grid-cols-12 gap-4 p-4 bg-muted/50 text-sm font-medium">
-                  <div className="col-span-5">Test</div>
-                  <div className="col-span-2">Subject</div>
-                  <div className="col-span-2">Schedule</div>
-                  <div className="col-span-1 text-center">Questions</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-                
-                {tests.map((test) => {
-                  const status = getTestStatus(test);
-                  return (
-                    <div key={test.id} className="grid grid-cols-12 gap-4 p-4 items-center border-t">
-                      <div className="col-span-5">
-                        <div className="font-medium">
-                          <Link href={`/admin/tests/${test.id}`} className="hover:underline">
-                            {test.title}
-                          </Link>
+
+          {/* Test Table */}
+          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-muted/30 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  <tr>
+                    <th className="p-5 w-10"><input type="checkbox" className="rounded border-border" /></th>
+                    <th className="p-5">Test Details</th>
+                    <th className="p-5">Meta & Subject</th>
+                    <th className="p-5">Schedule</th>
+                    <th className="p-5">Price</th>
+                    <th className="p-5 text-center">Status</th>
+                    <th className="p-5 text-right">Participants</th>
+                    <th className="p-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {tests.map((test, i) => (
+                    <motion.tr
+                      key={test.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      className="group hover:bg-muted/20 transition-colors cursor-pointer"
+                    >
+                      <td className="p-5"><input type="checkbox" className="rounded border-border" /></td>
+                      <td className="p-5">
+                        <div className="flex flex-col">
+                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{test.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{test.olympiad} • {test.duration}</span>
                         </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge variant={status.variant} className="text-xs">
-                            {status.label}
-                          </Badge>
-                          {test.isPaid && (
-                            <Badge variant="outline" className="text-xs">
-                              ₹{test.price}
-                            </Badge>
-                          )}
+                      </td>
+                      <td className="p-5">
+                        <div className="flex items-center gap-2">
+                          <Badge className={cn(
+                            "text-[10px] font-black border-none px-2",
+                            test.type === 'PAID' ? "bg-purple-500/10 text-purple-600" : "bg-blue-500/10 text-blue-600"
+                          )}>{test.type}</Badge>
+                          <span className="text-xs font-bold text-foreground/80">{test.subject}</span>
+                          <span className="text-xs text-muted-foreground font-medium">• {test.class}</span>
                         </div>
-                      </div>
-                      <div className="col-span-2 text-sm text-muted-foreground">
-                        {test.subject} • {test.topic}
-                      </div>
-                      <div className="col-span-2 text-sm">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3.5 w-3.5 text-muted-foreground mr-1" />
-                          {test.startTime ? formatDate(test.startTime) : 'Not scheduled'}
+                      </td>
+                      <td className="p-5">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-foreground/90">{test.date}</span>
+                          {test.time && <span className="text-[10px] text-muted-foreground font-medium">{test.time}</span>}
                         </div>
-                        {test.startTime && test.endTime && (
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {test.duration} mins
-                          </div>
-                        )}
-                      </div>
-                      <div className="col-span-1 text-center text-sm">
-                        {test.questions}
-                      </div>
-                      <div className="col-span-2 flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/admin/tests/${test.id}/results`}>
-                            <BarChart3 className="h-4 w-4" />
-                            <span className="sr-only">Results</span>
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" asChild>
-                          <Link href={`/admin/tests/${test.id}/edit`}>
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit</span>
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                          <span className="sr-only">More</span>
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
+                      </td>
+                      <td className="p-5 font-black text-sm">{test.price}</td>
+                      <td className="p-5 text-center">
+                        <Badge className={cn(
+                          "font-black text-[10px] border-none px-3 py-1",
+                          test.status === 'LIVE' ? "bg-emerald-500/10 text-emerald-500 animate-pulse border border-emerald-500/20" :
+                            test.status === 'Scheduled' ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" :
+                              "bg-muted text-muted-foreground border border-border"
+                        )}>
+                          {test.status === 'LIVE' && <span className="size-1.5 rounded-full bg-emerald-500 mr-2" />}
+                          {test.status}
+                        </Badge>
+                      </td>
+                      <td className="p-5 text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="font-black text-foreground">{test.participants}</span>
+                          {test.participantsTrend && <span className={cn("text-[9px] font-bold", test.status === 'LIVE' ? "text-emerald-500" : "text-muted-foreground")}>{test.participantsTrend}</span>}
+                        </div>
+                      </td>
+                      <td className="p-5 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
+                              <MoreVertical className="size-5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 p-1 rounded-2xl">
+                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
+                              <BarChart3 className="size-4 text-primary" /> <span>Analytics</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
+                              <Edit className="size-4 text-emerald-500" /> <span>Edit Setup</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500">
+                              <Trash2 className="size-4" /> <span>Suspend Test</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="p-5 border-t border-border flex items-center justify-between bg-muted/10">
+              <p className="text-xs text-muted-foreground font-bold">Showing <span className="text-foreground">1 to 5</span> of 1,240 results</p>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Previous</Button>
+                <Button size="sm" className="rounded-xl font-black bg-primary size-9 p-0">1</Button>
+                <Button variant="ghost" size="sm" className="rounded-xl font-bold size-9 p-0">2</Button>
+                <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Next</Button>
               </div>
-              
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-sm text-muted-foreground">
-                  Showing <span className="font-medium">1-{tests.length}</span> of <span className="font-medium">{tests.length}</span> tests
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Button variant="outline" size="sm" disabled>
-                    Previous
-                  </Button>
-                  <Button variant="outline" size="sm" disabled>
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/admin/tests/import">
-                <Upload className="mr-2 h-4 w-4" />
-                Import Questions
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/admin/tests/templates">
-                <FileText className="mr-2 h-4 w-4" />
-                Use Template
-              </Link>
-            </Button>
-            <Button variant="outline" className="w-full justify-start" asChild>
-              <Link href="/admin/tests/schedule">
-                <Calendar className="mr-2 h-4 w-4" />
-                Schedule Bulk Tests
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-        
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Upcoming Tests</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {tests
-              .filter(t => t.startTime && new Date(t.startTime) > new Date())
-              .sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-              .slice(0, 3)
-              .map(test => (
-                <div key={test.id} className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{test.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(test.startTime)}
-                    </div>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link href={`/admin/tests/${test.id}`}>View</Link>
-                  </Button>
-                </div>
-              ))}
-            {tests.filter(t => t.startTime && new Date(t.startTime) > new Date()).length === 0 && (
-              <div className="text-center py-4 text-muted-foreground">
-                No upcoming tests scheduled
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   );
 }
+
+function NavButton({ icon: Icon, label, active = false }) {
+  return (
+    <button className={cn(
+      "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold text-sm",
+      active
+        ? "bg-primary text-white shadow-lg shadow-primary/20"
+        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+    )}>
+      <Icon className="size-5" />
+      {label}
+    </button>
+  );
+}
+
+// Re-using Shadcn components for Dropdown
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';

@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/cn';
-import { ThemeToggle } from './theme-toggle';
 import { UserNav } from '@/components/user-nav';
 
 export function MainNav() {
@@ -37,7 +36,6 @@ export function MainNav() {
           ))}
         </nav>
         <div className="ml-auto flex items-center space-x-4">
-          <ThemeToggle />
           <UserNav />
         </div>
       </div>

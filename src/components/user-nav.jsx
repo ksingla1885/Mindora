@@ -18,7 +18,7 @@ import {
 import { useSession, signOut } from "next-auth/react"
 import Link from "next/link"
 
-export function UserNav() {
+export function UserNav({ profileHref = "/profile", settingsHref = "/settings" }) {
     const { data: session } = useSession()
     const user = session?.user
 
@@ -55,12 +55,12 @@ export function UserNav() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                     <DropdownMenuItem asChild>
-                        <Link href="/profile" className="w-full cursor-pointer">
+                        <Link href={profileHref} className="w-full cursor-pointer">
                             Profile
                         </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/settings" className="w-full cursor-pointer">
+                        <Link href={settingsHref} className="w-full cursor-pointer">
                             Settings
                         </Link>
                     </DropdownMenuItem>
@@ -70,7 +70,7 @@ export function UserNav() {
                     className="cursor-pointer"
                     onSelect={(event) => {
                         event.preventDefault()
-                        signOut()
+                        signOut({ callbackUrl: '/' })
                     }}
                 >
                     Log out

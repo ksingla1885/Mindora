@@ -2,7 +2,6 @@
 
 import { AppSidebar } from "@/components/app-sidebar";
 import { MainNav } from "@/components/main-nav";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 import { redirect } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -59,7 +58,6 @@ export default function DashboardLayout({ children }) {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4 ml-auto">
-                        <ThemeToggle />
                         <button className="relative rounded-full bg-[#f0f2f4] p-2 text-[#616f89] hover:text-primary transition-colors dark:bg-[#1f2937] dark:text-white" suppressHydrationWarning>
                             <Bell className="h-5 w-5" />
                             <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>

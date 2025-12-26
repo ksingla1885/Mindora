@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,8 +14,8 @@ const s3Client = new S3Client({
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -47,7 +46,7 @@ export async function POST(request) {
     // Generate a unique filename
     const fileExtension = file.name.split('.').pop();
     const fileName = `${type}/${uuidv4()}.${fileExtension}`;
-    
+
     // Prepare the S3 upload parameters
     const params = {
       Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -87,8 +86,8 @@ export async function POST(request) {
 // Generate a pre-signed URL for direct uploads
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -1,552 +1,458 @@
 'use client';
 
-import { Calendar, Clock, Users, BookOpen, DollarSign, BarChart2, TrendingUp, ArrowUp, ArrowDown, Download, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format } from 'date-fns';
-import { EnrollmentChart } from '@/components/analytics/enrollment-chart';
-import { DemographicsChart } from '@/components/analytics/demographics-chart';
-import { PerformanceChart } from '@/components/analytics/performance-chart';
-import { Skeleton } from '@/components/ui/skeleton';
-import useAdminAnalytics from '@/hooks/useAdminAnalytics';
-import { toast } from '@/components/ui/use-toast';
+import {
+  Calendar,
+  Download,
+  Users,
+  FileText,
+  ClipboardList,
+  Target,
+  BarChart2,
+  Settings,
+  MoreVertical,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle,
+  AlertTriangle,
+  Lightbulb,
+  CreditCard,
+  ChevronDown,
+  Info
+} from 'lucide-react';
 
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0,
-  }).format(amount);
-};
-
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('en-IN').format(num);
-};
-
-export default function AnalyticsDashboard() {
-  const {
-    loading,
-    error,
-    data,
-    timeRange,
-    setTimeRange,
-    refreshData,
-  } = useAdminAnalytics(30);
-  
-  const [activeTab, setActiveTab] = useState('overview');
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-        <div className="text-center max-w-md">
-          <h2 className="text-2xl font-bold text-red-600 mb-2">Error Loading Analytics</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <Button onClick={refreshData} variant="outline">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
-            <p className="text-muted-foreground">Key metrics and insights about your platform</p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-24" />
-          </div>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-36" />
-          ))}
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Skeleton className="col-span-4 h-80" />
-          <Skeleton className="col-span-3 h-80" />
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Skeleton className="col-span-4 h-80" />
-          <Skeleton className="col-span-3 h-80" />
-        </div>
-      </div>
-    );
-  }
-
-  const handleExport = () => {
-    try {
-      // Create a CSV string
-      let csvContent = 'data:text/csv;charset=utf-8,';
-      
-      if (activeTab === 'overview') {
-        // Export overview data
-        csvContent += 'Metric,Value\n';
-        csvContent += `Total Students,${data.stats?.totalStudents || 0}\n`;
-        csvContent += `Active Students,${data.stats?.activeStudents || 0}\n`;
-        csvContent += `Total Courses,${data.stats?.totalCourses || 0}\n`;
-        csvContent += `Total Revenue,${data.stats?.totalRevenue || 0}\n`;
-      } else if (activeTab === 'students') {
-        // Export enrollment data
-        csvContent += 'Date,Enrollments\n';
-        data.formattedEnrollmentData.forEach(item => {
-          csvContent += `${item.date},${item.count}\n`;
-        });
-      } else if (activeTab === 'revenue') {
-        // Export revenue data
-        csvContent += 'Date,Revenue\n';
-        data.formattedRevenueData.forEach(item => {
-          csvContent += `${item.date},${item.amount || 0}\n`;
-        });
-      } else if (activeTab === 'courses') {
-        // Export course performance data
-        csvContent += 'Course Title,Enrollments,Average Rating,Completion Rate\n';
-        data.coursePerformance.forEach(course => {
-          csvContent += `"${course.title}",${course.enrollments || 0},${course.averageRating?.toFixed(1) || 0},${course.completionRate?.toFixed(1) || 0}%\n`;
-        });
-      }
-      
-      // Create a download link and trigger it
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `analytics-${activeTab}-${new Date().toISOString().split('T')[0]}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast({
-        title: 'Export Successful',
-        description: 'Your data has been exported successfully.',
-      });
-    } catch (error) {
-      console.error('Export failed:', error);
-      toast({
-        title: 'Export Failed',
-        description: 'There was an error exporting your data. Please try again.',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const metrics = [
-    {
-      title: 'Total Students',
-      value: formatNumber(data.stats?.totalStudents || 0),
-      icon: Users,
-      description: `${formatNumber(data.stats?.activeStudents || 0)} active`,
-      change: data.stats?.studentGrowth || 0,
-    },
-    {
-      title: 'Total Courses',
-      value: formatNumber(data.stats?.totalCourses || 0),
-      icon: BookOpen,
-      description: 'Across all categories',
-      change: 5.2, // This would come from API in a real app
-    },
-    {
-      title: 'Total Revenue',
-      value: formatCurrency(data.stats?.totalRevenue || 0),
-      icon: DollarSign,
-      description: 'All-time revenue',
-      change: data.stats?.revenueGrowth || 0,
-    },
-    {
-      title: 'Avg. Session',
-      value: '12m 34s',
-      icon: Clock,
-      description: 'Average session duration',
-      change: 2.1, // This would come from API in a real app
-    },
-  ];
-
+export default function AnalyticsPage() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Analytics Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor your platform's performance and user engagement
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Select 
-            value={timeRange} 
-            onValueChange={setTimeRange}
-          >
-            <SelectTrigger className="w-[180px]">
-              <Clock className="mr-2 h-4 w-4" />
-              <SelectValue placeholder="Select time range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="12m">Last 12 months</SelectItem>
-              <SelectItem value="custom">Custom range</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-10"
-            onClick={handleExport}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-10"
-            onClick={refreshData}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
-          </Button>
-        </div>
-      </div>
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground font-display selection:bg-primary selection:text-white">
+      <style jsx global>{`
+        /* Custom Scrollbar for Dashboard */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background-color: transparent; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: hsl(var(--muted-foreground) / 0.3);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: hsl(var(--muted-foreground) / 0.5);
+        }
+      `}</style>
 
-      <Tabs defaultValue="overview" onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          <TabsTrigger value="courses">Courses</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {metrics.map((metric, index) => (
-              <Card key={index}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{metric.title}</CardTitle>
-                  <div className={`h-4 w-4 ${metric.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                    {metric.change >= 0 ? (
-                      <ArrowUp className="h-4 w-4" />
-                    ) : (
-                      <ArrowDown className="h-4 w-4" />
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{metric.value}</div>
-                  <p className="text-xs text-muted-foreground flex items-center">
-                    {metric.change && (
-                      <span className={`inline-flex items-center ${metric.change >= 0 ? 'text-green-500' : 'text-red-500'} font-medium`}>
-                        {metric.change >= 0 ? (
-                          <ArrowUp className="h-3 w-3 mr-1" />
-                        ) : (
-                          <ArrowDown className="h-3 w-3 mr-1" />
-                        )}
-                        {metric.change}%
-                      </span>
-                    )}
-                    <span className="ml-1">{metric.description}</span>
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-            <Card className="col-span-4">
-              <CardHeader>
-                <CardTitle>Enrollment Trend</CardTitle>
-                <CardDescription>
-                  New student enrollments over time
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pl-2">
-                <EnrollmentChart data={data.formattedEnrollmentData} />
-              </CardContent>
-            </Card>
-            <Card className="col-span-3">
-              <CardHeader>
-                <CardTitle>Top Courses</CardTitle>
-                <CardDescription>
-                  Most popular courses by enrollment
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {data.topCourses.map((course) => (
-                    <div key={course.id} className="flex items-center">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">{course.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatNumber(course.enrollments || 0)} students • {formatCurrency(course.revenue || 0)}
-                        </p>
-                      </div>
-                      <div className="ml-auto font-medium">
-                        <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-primary" 
-                            style={{ width: `${(course.enrollments / data.topCourses[0].enrollments) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="students" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Student Demographics</CardTitle>
-                <CardDescription>
-                  Geographic distribution of students
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center bg-muted/50 rounded-md">
-                <DemographicsChart data={data.studentDemographics} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Age Groups</CardTitle>
-                <CardDescription>
-                  Distribution of students by age
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[300px] flex items-center justify-center bg-muted/50 rounded-md">
-                <div className="text-center">
-                  <TrendingUp className="h-8 w-8 mx-auto text-muted-foreground" />
-                  <p className="mt-2 text-muted-foreground">Age distribution chart</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="courses">
-          <Card>
-            <CardHeader>
-              <CardTitle>Course Analytics</CardTitle>
-              <CardDescription>
-                Detailed performance metrics for all courses
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-full overflow-hidden bg-muted/10 relative">
+        {/* Header Sticky */}
+        <header className="w-full z-20 bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 shrink-0">
+          <div className="max-w-[1600px] mx-auto px-6 py-5">
+            <div className="flex flex-col gap-4">
+              {/* Top Row: Title & Actions */}
+              <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Course Completion Rate</h3>
-                  <div className="flex items-center gap-4">
-                    <div className="w-24 h-24 relative">
-                      <svg className="w-full h-full" viewBox="0 0 36 36">
-                        <path
-                          d="M18 2.0845
-                            a 15.9155 15.9155 0 0 1 0 31.831
-                            a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none"
-                          stroke="#e5e7eb"
-                          strokeWidth="3"
-                        />
-                        <path
-                          d="M18 2.0845
-                            a 15.9155 15.9155 0 0 1 0 31.831
-                            a 15.9155 15.9155 0 0 1 0 -31.831"
-                          fill="none"
-                          stroke="#10b981"
-                          strokeWidth="3"
-                          strokeDasharray="75, 100"
-                          strokeLinecap="round"
-                        />
-                        <text x="18" y="20.5" textAnchor="middle" className="text-sm font-bold fill-gray-900">75%</text>
-                      </svg>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                        <span className="text-sm">Completed: 75%</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-3 w-3 rounded-full bg-yellow-500 mr-2"></div>
-                        <span className="text-sm">In Progress: 15%</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-3 w-3 rounded-full bg-gray-200 mr-2"></div>
-                        <span className="text-sm">Not Started: 10%</span>
-                      </div>
-                    </div>
-                  </div>
+                  <h2 className="text-3xl font-black tracking-tight text-foreground">Analytics</h2>
+                  <p className="text-muted-foreground text-sm mt-1">Overview of student performance, content impact, and revenue trends.</p>
                 </div>
-                
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Assessment Performance</h3>
-                  <PerformanceChart data={data} />
+                <div className="flex items-center gap-3">
+                  <button className="hidden md:flex items-center justify-center gap-2 rounded-lg h-10 px-4 border border-border bg-card text-muted-foreground text-sm font-medium hover:text-foreground hover:border-foreground/50 transition-colors">
+                    <Calendar className="w-5 h-5" />
+                    <span>Schedule Report</span>
+                  </button>
+                  <button className="flex items-center justify-center gap-2 rounded-lg h-10 px-4 bg-foreground text-background border border-foreground text-sm font-bold hover:bg-foreground/90 transition-colors">
+                    <Download className="w-5 h-5" />
+                    <span>Export Reports</span>
+                  </button>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <p className="text-sm text-blue-800">Average Time to Complete</p>
-                    <p className="text-2xl font-bold text-blue-900">14.5 hrs</p>
-                    <p className="text-xs text-blue-600">-2.3% from last month</p>
-                  </div>
-                  <div className="bg-green-50 p-4 rounded-lg">
-                    <p className="text-sm text-green-800">Engagement Rate</p>
-                    <p className="text-2xl font-bold text-green-900">68%</p>
-                    <p className="text-xs text-green-600">+5.2% from last month</p>
-                  </div>
-                  <div className="bg-purple-50 p-4 rounded-lg">
-                    <p className="text-sm text-purple-800">Satisfaction Score</p>
-                    <p className="text-2xl font-bold text-purple-900">4.7/5.0</p>
-                    <p className="text-xs text-purple-600">Based on 342 reviews</p>
+              </div>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-3">
+                <button className="group flex h-9 items-center gap-x-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 transition-colors">
+                  <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Date</span>
+                  <span className="text-foreground text-sm font-medium">This Month</span>
+                  <ChevronDown className="text-muted-foreground w-[18px] h-[18px]" />
+                </button>
+                <button className="group flex h-9 items-center gap-x-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 transition-colors">
+                  <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Class</span>
+                  <span className="text-foreground text-sm font-medium">All Classes</span>
+                  <ChevronDown className="text-muted-foreground w-[18px] h-[18px]" />
+                </button>
+                <button className="group flex h-9 items-center gap-x-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 transition-colors">
+                  <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Subject</span>
+                  <span className="text-foreground text-sm font-medium">Mathematics</span>
+                  <ChevronDown className="text-muted-foreground w-[18px] h-[18px]" />
+                </button>
+                <button className="group flex h-9 items-center gap-x-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 transition-colors">
+                  <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Olympiad</span>
+                  <span className="text-foreground text-sm font-medium">All</span>
+                  <ChevronDown className="text-muted-foreground w-[18px] h-[18px]" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Scrollable Dashboard Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
+          <div className="max-w-[1600px] mx-auto flex flex-col gap-6 pb-10">
+            {/* KPI STRIP */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              {/* KPI 1 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Active Students</p>
+                  <Users className="text-muted-foreground w-5 h-5" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">1,240</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="text-emerald-500 w-4 h-4" />
+                    <p className="text-emerald-500 text-xs font-bold">+12%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              {/* KPI 2 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Avg Test Score</p>
+                  <Target className="text-muted-foreground w-5 h-5" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">76%</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="text-emerald-500 w-4 h-4" />
+                    <p className="text-emerald-500 text-xs font-bold">+2%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
+                  </div>
+                </div>
+              </div>
+              {/* KPI 3 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Completion Rate</p>
+                  <CheckCircle className="text-muted-foreground w-5 h-5" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">88%</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingDown className="text-red-500 w-4 h-4" />
+                    <p className="text-red-500 text-xs font-bold">-1%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
+                  </div>
+                </div>
+              </div>
+              {/* KPI 4 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">DPP Participation</p>
+                  <FileText className="text-muted-foreground w-5 h-5" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">65%</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="text-emerald-500 w-4 h-4" />
+                    <p className="text-emerald-500 text-xs font-bold">+5%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
+                  </div>
+                </div>
+              </div>
+              {/* KPI 5 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Paid Conversion</p>
+                  <CreditCard className="text-muted-foreground w-5 h-5" />
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">4.2%</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="text-emerald-500 w-4 h-4" />
+                    <p className="text-emerald-500 text-xs font-bold">+0.5%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
+                  </div>
+                </div>
+              </div>
+              {/* KPI 6 */}
+              <div className="flex flex-col justify-between rounded-xl p-5 bg-card border border-border hover:border-foreground/20 transition-colors group cursor-pointer">
+                <div className="flex items-start justify-between">
+                  <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">Total Revenue</p>
+                  <span className="text-muted-foreground text-[20px] font-sans">₹</span>
+                </div>
+                <div className="mt-3">
+                  <p className="text-foreground text-2xl font-black">₹4.5L</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <TrendingUp className="text-emerald-500 w-4 h-4" />
+                    <p className="text-emerald-500 text-xs font-bold">+15%</p>
+                    <p className="text-muted-foreground text-xs ml-1">vs last mo.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <TabsContent value="revenue">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Analytics</CardTitle>
-              <CardDescription>
-                Financial performance and revenue trends
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                <div className="h-[300px]">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-medium">Revenue Overview</h3>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center">
-                        <div className="h-3 w-3 rounded-full bg-blue-500 mr-1"></div>
-                        <span className="text-xs">This Year</span>
-                      </div>
-                      <div className="flex items-center">
-                        <div className="h-3 w-3 rounded-full bg-gray-200 mr-1"></div>
-                        <span className="text-xs">Last Year</span>
-                      </div>
+            {/* Row 2: Performance Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Chart: Average Score Over Time */}
+              <div className="lg:col-span-2 rounded-xl bg-card border border-border p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-foreground text-lg font-bold">Student Performance Trend</h3>
+                    <p className="text-muted-foreground text-sm">Average test scores over the last 6 months</p>
+                  </div>
+                  <button className="p-2 hover:bg-muted rounded-lg text-muted-foreground hover:text-foreground transition-colors">
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                </div>
+                {/* CSS Chart Area */}
+                <div className="relative h-64 w-full flex items-end justify-between gap-2 px-2 pb-6 border-b border-border/50">
+                  {/* Y Axis Labels */}
+                  <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-muted-foreground -ml-8 pr-2 py-6">
+                    <span>100%</span>
+                    <span>75%</span>
+                    <span>50%</span>
+                    <span>25%</span>
+                    <span>0%</span>
+                  </div>
+                  {/* Grid Lines */}
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-6">
+                    <div className="w-full border-t border-dashed border-border h-0"></div>
+                    <div className="w-full border-t border-dashed border-border h-0"></div>
+                    <div className="w-full border-t border-dashed border-border h-0"></div>
+                    <div className="w-full border-t border-dashed border-border h-0"></div>
+                    <div className="w-full border-t border-dashed border-border h-0"></div>
+                  </div>
+                  {/* SVG Line Path */}
+                  <svg className="absolute inset-0 h-[calc(100%-1.5rem)] w-full overflow-visible z-10" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="gradient-primary" x1="0" x2="0" y1="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2"></stop>
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0"></stop>
+                      </linearGradient>
+                    </defs>
+                    <path d="M0,180 L80,160 L160,190 L240,120 L320,130 L400,90 L480,100 L560,70 L640,60 L720,50" fill="url(#gradient-primary)" stroke="none"></path>
+                    <polyline fill="none" points="0,180 80,160 160,190 240,120 320,130 400,90 480,100 560,70 640,60 720,50" stroke="hsl(var(--primary))" strokeWidth="3" vectorEffect="non-scaling-stroke"></polyline>
+                    {/* Data Points */}
+                    {[
+                      { cx: "11%", cy: "75%" },
+                      { cx: "22%", cy: "66%" },
+                      { cx: "33%", cy: "80%" },
+                      { cx: "44%", cy: "50%" },
+                      { cx: "55%", cy: "54%" },
+                      { cx: "66%", cy: "37%" },
+                      { cx: "77%", cy: "41%" },
+                      { cx: "88%", cy: "29%" },
+                      { cx: "100%", cy: "20%" }
+                    ].map((point, index) => (
+                      <circle
+                        key={index}
+                        className="hover:r-6 transition-all cursor-pointer"
+                        cx={point.cx}
+                        cy={point.cy}
+                        fill="hsl(var(--primary))"
+                        r="4"
+                      />
+                    ))}
+                  </svg>
+                </div>
+                {/* X Axis Labels */}
+                <div className="flex justify-between w-full text-xs text-muted-foreground pt-3 px-2">
+                  <span>Sep</span>
+                  <span>Oct</span>
+                  <span>Nov</span>
+                  <span>Dec</span>
+                  <span>Jan</span>
+                  <span>Feb</span>
+                </div>
+              </div>
+
+              {/* Chart: Question Quality / Heatmap */}
+              <div className="rounded-xl bg-card border border-border p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-foreground text-lg font-bold">Accuracy Heatmap</h3>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span className="text-xs text-muted-foreground">Easy</span>
+                    <span className="w-2 h-2 rounded-full bg-red-500 ml-2"></span>
+                    <span className="text-xs text-muted-foreground">Hard</span>
+                  </div>
+                </div>
+                <p className="text-muted-foreground text-sm mb-4">Topic-wise question difficulty analysis</p>
+                <div className="flex-1 grid grid-cols-4 gap-2">
+                  {/* Column 1 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="h-10 rounded bg-red-500/80 w-full" title="Algebra - 20% Accuracy"></div>
+                    <div className="h-10 rounded bg-amber-500/60 w-full" title="Algebra - 50% Accuracy"></div>
+                    <div className="h-10 rounded bg-emerald-500/40 w-full" title="Algebra - 70% Accuracy"></div>
+                    <div className="h-10 rounded bg-emerald-500/80 w-full" title="Algebra - 90% Accuracy"></div>
+                  </div>
+                  {/* Column 2 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="h-10 rounded bg-red-500/40 w-full"></div>
+                    <div className="h-10 rounded bg-emerald-500/80 w-full"></div>
+                    <div className="h-10 rounded bg-amber-500/50 w-full"></div>
+                    <div className="h-10 rounded bg-emerald-500/20 w-full"></div>
+                  </div>
+                  {/* Column 3 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="h-10 rounded bg-emerald-500/90 w-full"></div>
+                    <div className="h-10 rounded bg-emerald-500/60 w-full"></div>
+                    <div className="h-10 rounded bg-red-500/60 w-full"></div>
+                    <div className="h-10 rounded bg-amber-500/80 w-full"></div>
+                  </div>
+                  {/* Column 4 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="h-10 rounded bg-amber-500/40 w-full"></div>
+                    <div className="h-10 rounded bg-emerald-500/80 w-full"></div>
+                    <div className="h-10 rounded bg-emerald-500/90 w-full"></div>
+                    <div className="h-10 rounded bg-red-500/70 w-full"></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 text-xs text-muted-foreground text-center mt-2">
+                  <span>Alg</span>
+                  <span>Geo</span>
+                  <span>Tri</span>
+                  <span>Cal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Row 3: Insights & Revenue */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+              {/* AI Insights Panel */}
+              <div className="rounded-xl bg-card border border-border p-6 flex flex-col h-full">
+                <div className="flex items-center gap-2 text-purple-400 mb-4">
+                  <Lightbulb className="w-5 h-5" />
+                  <h3 className="text-foreground text-lg font-bold">AI Insights</h3>
+                </div>
+                <div className="flex flex-col gap-3 h-full">
+                  {/* Insight Card 1 */}
+                  <div className="p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors cursor-pointer flex gap-3">
+                    <div className="w-8 h-8 rounded bg-red-500/10 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="text-red-500 w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-sm font-medium">High Churn Risk</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">15 students from Class 10 inactive &gt; 7 days.</p>
                     </div>
                   </div>
-                  <div className="h-[250px] flex items-center justify-center bg-muted/5 rounded-md border border-dashed">
-                    <div className="text-center p-6">
-                      <DollarSign className="h-8 w-8 mx-auto text-green-500" />
-                      <h3 className="mt-2 text-sm font-medium text-gray-900">Revenue Trends</h3>
-                      <p className="mt-1 text-sm text-gray-500">Monthly revenue comparison</p>
-                      <p className="mt-4 text-2xl font-bold text-green-600">₹2,48,750</p>
-                      <p className="text-sm text-green-500">+8.3% from last period</p>
+                  {/* Insight Card 2 */}
+                  <div className="p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors cursor-pointer flex gap-3">
+                    <div className="w-8 h-8 rounded bg-orange-500/10 flex items-center justify-center shrink-0">
+                      <AlertTriangle className="text-orange-500 w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-sm font-medium">Weak Topic Alert</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">Trigonometry avg score dropped by 12%.</p>
+                    </div>
+                  </div>
+                  {/* Insight Card 3 */}
+                  <div className="p-3 rounded-lg bg-card border border-border hover:bg-muted/50 transition-colors cursor-pointer flex gap-3">
+                    <div className="w-8 h-8 rounded bg-blue-500/10 flex items-center justify-center shrink-0">
+                      <Lightbulb className="text-blue-500 w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-sm font-medium">Content Opportunity</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">Add more video solutions for "Calculus" tests.</p>
                     </div>
                   </div>
                 </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="border rounded-lg p-4">
-                    <h3 className="text-sm font-medium mb-2">Revenue by Course</h3>
-                    <div className="space-y-3">
-                      {metrics.topCourses.map((course, index) => (
-                        <div key={course.id} className="space-y-1">
-                          <div className="flex justify-between text-sm">
-                            <span className="truncate max-w-[180px]">{course.title}</span>
-                            <span className="font-medium">₹{course.revenue.toLocaleString()}</span>
-                          </div>
-                          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-blue-500" 
-                              style={{ 
-                                width: `${(course.revenue / metrics.topCourses[0].revenue) * 100}%`,
-                                backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6'][index % 3]
-                              }}
-                            />
-                          </div>
-                        </div>
-                      ))}
+                <button className="w-full mt-4 py-2 text-xs font-bold text-primary hover:text-primary/80 uppercase tracking-wide border-t border-border">View All Insights</button>
+              </div>
+
+              {/* Revenue Breakdown */}
+              <div className="rounded-xl bg-card border border-border p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-foreground text-lg font-bold">Revenue Sources</h3>
+                  <button className="text-xs text-primary font-bold">View Report</button>
+                </div>
+                <div className="flex items-center justify-center py-4 relative">
+                  {/* Donut Chart Simulation */}
+                  <div className="w-40 h-40 rounded-full border-[16px] border-muted/20 relative flex items-center justify-center" style={{
+                    background: 'conic-gradient(hsl(var(--primary)) 0% 65%, #10b981 65% 85%, hsl(var(--muted)) 85% 100%)',
+                    borderRadius: '50%'
+                  }}>
+                    <div className="w-28 h-28 bg-card rounded-full flex flex-col items-center justify-center z-10">
+                      <p className="text-muted-foreground text-xs font-medium">Total</p>
+                      <p className="text-foreground text-xl font-bold">₹4.5L</p>
                     </div>
                   </div>
-                  
-                  <div className="border rounded-lg p-4">
-                    <h3 className="text-sm font-medium mb-2">Payment Methods</h3>
-                    <div className="h-[180px] flex items-center justify-center">
-                      <div className="relative w-32 h-32">
-                        <svg className="w-full h-full" viewBox="0 0 36 36">
-                          <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
-                          <circle 
-                            cx="18" 
-                            cy="18" 
-                            r="15.9" 
-                            fill="none" 
-                            stroke="#3b82f6" 
-                            strokeWidth="3" 
-                            strokeDasharray="60 100" 
-                            strokeDashoffset="25" 
-                          />
-                          <circle 
-                            cx="18" 
-                            cy="18" 
-                            r="15.9" 
-                            fill="none" 
-                            stroke="#10b981" 
-                            strokeWidth="3" 
-                            strokeDasharray="30 100" 
-                            strokeDashoffset="-30" 
-                          />
-                          <circle 
-                            cx="18" 
-                            cy="18" 
-                            r="15.9" 
-                            fill="none" 
-                            stroke="#8b5cf6" 
-                            strokeWidth="3" 
-                            strokeDasharray="10 100" 
-                            strokeDashoffset="-60" 
-                          />
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                          <span className="text-2xl font-bold">100%</span>
-                          <span className="text-xs text-gray-500">Payments</span>
-                        </div>
-                      </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2 mt-4">
+                  <div className="text-center">
+                    <p className="text-primary text-lg font-bold">65%</p>
+                    <p className="text-muted-foreground text-xs">Test Series</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-emerald-500 text-lg font-bold">20%</p>
+                    <p className="text-muted-foreground text-xs">Crash Course</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-muted-foreground text-lg font-bold">15%</p>
+                    <p className="text-muted-foreground text-xs">Other</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Content Engagement */}
+              <div className="rounded-xl bg-card border border-border p-6 flex flex-col">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-foreground text-lg font-bold">Content Engagement</h3>
+                </div>
+                <div className="flex flex-col gap-6">
+                  {/* Item 1 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground font-medium">Video Completion Rate</span>
+                      <span className="text-foreground font-bold">72%</span>
                     </div>
-                    <div className="mt-2 space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center">
-                          <div className="h-3 w-3 rounded-full bg-blue-500 mr-2"></div>
-                          <span>Credit/Debit Card</span>
-                        </div>
-                        <span className="font-medium">60%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center">
-                          <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                          <span>UPI</span>
-                        </div>
-                        <span className="font-medium">30%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center">
-                          <div className="h-3 w-3 rounded-full bg-purple-500 mr-2"></div>
-                          <span>Net Banking</span>
-                        </div>
-                        <span className="font-medium">10%</span>
-                      </div>
+                    <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-primary w-[72%] rounded-full"></div>
+                    </div>
+                  </div>
+                  {/* Item 2 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground font-medium">PDF Download Rate</span>
+                      <span className="text-foreground font-bold">45%</span>
+                    </div>
+                    <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-amber-500 w-[45%] rounded-full"></div>
+                    </div>
+                  </div>
+                  {/* Item 3 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground font-medium">Test Attempt Rate</span>
+                      <span className="text-foreground font-bold">88%</span>
+                    </div>
+                    <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 w-[88%] rounded-full"></div>
+                    </div>
+                  </div>
+                  {/* Item 4 */}
+                  <div className="flex flex-col gap-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-foreground font-medium">Avg Time on Platform</span>
+                      <span className="text-foreground font-bold">42m</span>
+                    </div>
+                    <div className="h-2 w-full bg-muted/30 rounded-full overflow-hidden">
+                      <div className="h-full bg-purple-500 w-[60%] rounded-full"></div>
                     </div>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+
+            {/* Footer / Quick Links */}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6">
+              <p className="text-muted-foreground text-sm">© 2023 Mindora Education. All rights reserved.</p>
+              <div className="flex gap-4">
+                <a className="text-sm text-muted-foreground hover:text-foreground transition-colors" href="#">Help Center</a>
+                <a className="text-sm text-muted-foreground hover:text-foreground transition-colors" href="#">Privacy Policy</a>
+                <a className="text-sm text-muted-foreground hover:text-foreground transition-colors" href="#">Contact Support</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { sendEmail } from '@/lib/email'; // Assuming email utility exists
 
 export async function POST(request) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
+        const userRole = session?.user?.role?.toLowerCase();
 
-        if (!session || session.user.role !== 'ADMIN') {
+        if (!session || userRole !== 'admin') {
             return NextResponse.json(
-                { error: 'Unauthorized' },
+                { error: 'Unauthorized - Admin required' },
                 { status: 401 }
             );
         }

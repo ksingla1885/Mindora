@@ -27,7 +27,6 @@ import Link from 'next/link';
 
 // Layout Imports
 import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useSession } from "next-auth/react";
 import { Search, Bell, Menu, BookOpen } from "lucide-react";
 
@@ -419,7 +418,6 @@ export default function DailyPracticePage() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-4 ml-auto">
-            <ThemeToggle />
             <button
               className="relative rounded-full bg-accent/50 p-2 text-muted-foreground hover:text-primary transition-colors"
               suppressHydrationWarning
