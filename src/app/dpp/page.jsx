@@ -31,30 +31,8 @@ import { useSession } from "next-auth/react";
 import { Search, Bell, Menu, BookOpen } from "lucide-react";
 
 
-// Mock Daily Problem Data
-const DAILY_PROBLEM = {
-  id: 'dpp-2023-12-25',
-  date: 'December 25, 2025',
-  subject: 'Deep Learning',
-  topic: 'Optimization Algorithms',
-  concept: 'Adam vs SGD',
-  difficulty: 'Hard',
-  streak: 12,
-  question: {
-    type: 'MCQ', // or 'SUBJECTIVE'
-    text: "Which of the following statements about Adam optimization is TRUE compared to SGD?",
-    options: [
-      { id: 'A', text: "Adam uses a single learning rate for all parameters." },
-      { id: 'B', text: "Adam adapts learning rates for each parameter based on first and second moments of gradients." },
-      { id: 'C', text: "Adam never converges on non-convex surfaces." },
-      { id: 'D', text: "SGD always converges faster than Adam on sparse data." }
-    ],
-    correctAnswer: 'B',
-    explanation: "Adam (Adaptive Moment Estimation) maintains per-parameter learning rates that are adapted based on the average of recent magnitudes of the gradients for the weight (like RMSProp). This means it performs well on problems with sparse gradients and noisy problems.",
-    formula: "m_t = β1*m_{t-1} + (1-β1)*g_t",
-    hint: "Think about how adaptive moment estimation handles different parameters."
-  }
-};
+// No static data - will be fetched from API
+const DAILY_PROBLEM = null;
 
 export default function DailyPracticePage() {
   // States: 'entry', 'solve', 'feedback', 'reflection'
@@ -121,6 +99,32 @@ export default function DailyPracticePage() {
 
   // Render logic for the internal states (Entry, Solve, Feedback)
   const renderContent = () => {
+    // Show empty state if no problem is available
+    if (!DAILY_PROBLEM) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="flex flex-col items-center justify-center min-h-[60vh] text-center max-w-2xl"
+        >
+          <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
+            <Brain className="w-10 h-10 text-muted-foreground/50" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground mb-3">No Daily Problem Available</h2>
+          <p className="text-muted-foreground max-w-md leading-relaxed mb-6">
+            There is currently no daily practice problem available. Check back tomorrow for your next challenge!
+          </p>
+          <Link href="/dashboard">
+            <Button variant="outline" className="gap-2">
+              <ChevronLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
+        </motion.div>
+      );
+    }
+
     return (
       <AnimatePresence mode="wait">
         {/* 1. ENTRY STATE (From HTML Design) */}

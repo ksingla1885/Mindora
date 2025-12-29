@@ -39,57 +39,13 @@ export default function TestsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const stats = [
-    { label: 'Total Tests', value: '1,240', trend: '+5%', trendUp: true, icon: Library, color: 'text-primary' },
-    { label: 'Active Now', value: '3', trend: 'LIVE', trendUp: null, icon: PlayCircle, color: 'text-emerald-500', isLive: true },
-    { label: 'Upcoming', value: '12', trend: 'Next 7 days', trendUp: null, icon: CalendarClock, color: 'text-amber-500' },
-    { label: 'Completed', value: '1,225', trend: 'Avg: 78%', trendUp: true, icon: CheckCircle2, color: 'text-purple-500' }
+    { label: 'Total Tests', value: '0', trend: 'No tests', trendUp: null, icon: Library, color: 'text-primary' },
+    { label: 'Active Now', value: '0', trend: 'None', trendUp: null, icon: PlayCircle, color: 'text-emerald-500', isLive: false },
+    { label: 'Upcoming', value: '0', trend: 'Next 7 days', trendUp: null, icon: CalendarClock, color: 'text-amber-500' },
+    { label: 'Completed', value: '0', trend: 'No data', trendUp: null, icon: CheckCircle2, color: 'text-purple-500' }
   ];
 
-  const tests = [
-    {
-      id: 1,
-      name: 'National Math Olympiad Mock 5',
-      olympiad: 'IMO',
-      duration: '60 Mins',
-      subject: 'Math',
-      class: 'Class 10',
-      type: 'PAID',
-      price: '₹499',
-      date: 'Oct 12, 2023',
-      time: '10:00 AM - 11:00 AM',
-      status: 'LIVE',
-      participants: 245,
-      participantsTrend: 'Active Now'
-    },
-    {
-      id: 2,
-      name: 'Science Olympiad Prep - Level 1',
-      olympiad: 'NSO',
-      duration: '45 Mins',
-      subject: 'Science',
-      class: 'Class 8',
-      type: 'FREE',
-      price: 'Free',
-      date: 'Oct 15, 2023',
-      time: '09:00 AM',
-      status: 'Scheduled',
-      participants: 1024,
-      participantsTrend: 'Registered'
-    },
-    {
-      id: 3,
-      name: 'English Grammar Mastery',
-      olympiad: 'IEO',
-      duration: '30 Mins',
-      subject: 'English',
-      class: 'Class 6',
-      type: 'FREE',
-      price: 'Free',
-      date: 'Not scheduled',
-      status: 'Draft',
-      participants: '-',
-    }
-  ];
+  const tests = [];
 
   return (
     <div className="flex h-full bg-background dark:bg-background-dark text-foreground">
@@ -212,107 +168,125 @@ export default function TestsManagementPage() {
           </div>
 
           {/* Test Table */}
-          <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-muted/30 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                  <tr>
-                    <th className="p-5 w-10"><input type="checkbox" className="rounded border-border" /></th>
-                    <th className="p-5">Test Details</th>
-                    <th className="p-5">Meta & Subject</th>
-                    <th className="p-5">Schedule</th>
-                    <th className="p-5">Price</th>
-                    <th className="p-5 text-center">Status</th>
-                    <th className="p-5 text-right">Participants</th>
-                    <th className="p-5 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {tests.map((test, i) => (
-                    <motion.tr
-                      key={test.id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.05 }}
-                      className="group hover:bg-muted/20 transition-colors cursor-pointer"
-                    >
-                      <td className="p-5"><input type="checkbox" className="rounded border-border" /></td>
-                      <td className="p-5">
-                        <div className="flex flex-col">
-                          <span className="font-bold text-foreground group-hover:text-primary transition-colors">{test.name}</span>
-                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{test.olympiad} • {test.duration}</span>
-                        </div>
-                      </td>
-                      <td className="p-5">
-                        <div className="flex items-center gap-2">
-                          <Badge className={cn(
-                            "text-[10px] font-black border-none px-2",
-                            test.type === 'PAID' ? "bg-purple-500/10 text-purple-600" : "bg-blue-500/10 text-blue-600"
-                          )}>{test.type}</Badge>
-                          <span className="text-xs font-bold text-foreground/80">{test.subject}</span>
-                          <span className="text-xs text-muted-foreground font-medium">• {test.class}</span>
-                        </div>
-                      </td>
-                      <td className="p-5">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-bold text-foreground/90">{test.date}</span>
-                          {test.time && <span className="text-[10px] text-muted-foreground font-medium">{test.time}</span>}
-                        </div>
-                      </td>
-                      <td className="p-5 font-black text-sm">{test.price}</td>
-                      <td className="p-5 text-center">
-                        <Badge className={cn(
-                          "font-black text-[10px] border-none px-3 py-1",
-                          test.status === 'LIVE' ? "bg-emerald-500/10 text-emerald-500 animate-pulse border border-emerald-500/20" :
-                            test.status === 'Scheduled' ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" :
-                              "bg-muted text-muted-foreground border border-border"
-                        )}>
-                          {test.status === 'LIVE' && <span className="size-1.5 rounded-full bg-emerald-500 mr-2" />}
-                          {test.status}
-                        </Badge>
-                      </td>
-                      <td className="p-5 text-right">
-                        <div className="flex flex-col items-end">
-                          <span className="font-black text-foreground">{test.participants}</span>
-                          {test.participantsTrend && <span className={cn("text-[9px] font-bold", test.status === 'LIVE' ? "text-emerald-500" : "text-muted-foreground")}>{test.participantsTrend}</span>}
-                        </div>
-                      </td>
-                      <td className="p-5 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
-                              <MoreVertical className="size-5" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 p-1 rounded-2xl">
-                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
-                              <BarChart3 className="size-4 text-primary" /> <span>Analytics</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
-                              <Edit className="size-4 text-emerald-500" /> <span>Edit Setup</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500">
-                              <Trash2 className="size-4" /> <span>Suspend Test</span>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </motion.tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="p-5 border-t border-border flex items-center justify-between bg-muted/10">
-              <p className="text-xs text-muted-foreground font-bold">Showing <span className="text-foreground">1 to 5</span> of 1,240 results</p>
-              <div className="flex gap-1">
-                <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Previous</Button>
-                <Button size="sm" className="rounded-xl font-black bg-primary size-9 p-0">1</Button>
-                <Button variant="ghost" size="sm" className="rounded-xl font-bold size-9 p-0">2</Button>
-                <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Next</Button>
+          {tests.length === 0 ? (
+            <div className="bg-card rounded-2xl border border-border shadow-sm p-20">
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="p-6 bg-muted/30 rounded-full mb-6">
+                  <FileText className="size-16 text-muted-foreground/30" />
+                </div>
+                <h3 className="text-xl font-bold text-foreground mb-2">No tests created yet</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  Start creating olympiad tests for your students. Click "Create Test" to get started.
+                </p>
+                <Button className="gap-2 bg-primary hover:bg-blue-600 text-white font-bold shadow-lg shadow-primary/20">
+                  <Plus className="size-5" />
+                  Create Your First Test
+                </Button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead className="bg-muted/30 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <tr>
+                      <th className="p-5 w-10"><input type="checkbox" className="rounded border-border" /></th>
+                      <th className="p-5">Test Details</th>
+                      <th className="p-5">Meta & Subject</th>
+                      <th className="p-5">Schedule</th>
+                      <th className="p-5">Price</th>
+                      <th className="p-5 text-center">Status</th>
+                      <th className="p-5 text-right">Participants</th>
+                      <th className="p-5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {tests.map((test, i) => (
+                      <motion.tr
+                        key={test.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.05 }}
+                        className="group hover:bg-muted/20 transition-colors cursor-pointer"
+                      >
+                        <td className="p-5"><input type="checkbox" className="rounded border-border" /></td>
+                        <td className="p-5">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{test.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{test.olympiad} • {test.duration}</span>
+                          </div>
+                        </td>
+                        <td className="p-5">
+                          <div className="flex items-center gap-2">
+                            <Badge className={cn(
+                              "text-[10px] font-black border-none px-2",
+                              test.type === 'PAID' ? "bg-purple-500/10 text-purple-600" : "bg-blue-500/10 text-blue-600"
+                            )}>{test.type}</Badge>
+                            <span className="text-xs font-bold text-foreground/80">{test.subject}</span>
+                            <span className="text-xs text-muted-foreground font-medium">• {test.class}</span>
+                          </div>
+                        </td>
+                        <td className="p-5">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-foreground/90">{test.date}</span>
+                            {test.time && <span className="text-[10px] text-muted-foreground font-medium">{test.time}</span>}
+                          </div>
+                        </td>
+                        <td className="p-5 font-black text-sm">{test.price}</td>
+                        <td className="p-5 text-center">
+                          <Badge className={cn(
+                            "font-black text-[10px] border-none px-3 py-1",
+                            test.status === 'LIVE' ? "bg-emerald-500/10 text-emerald-500 animate-pulse border border-emerald-500/20" :
+                              test.status === 'Scheduled' ? "bg-blue-500/10 text-blue-600 border border-blue-500/20" :
+                                "bg-muted text-muted-foreground border border-border"
+                          )}>
+                            {test.status === 'LIVE' && <span className="size-1.5 rounded-full bg-emerald-500 mr-2" />}
+                            {test.status}
+                          </Badge>
+                        </td>
+                        <td className="p-5 text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="font-black text-foreground">{test.participants}</span>
+                            {test.participantsTrend && <span className={cn("text-[9px] font-bold", test.status === 'LIVE' ? "text-emerald-500" : "text-muted-foreground")}>{test.participantsTrend}</span>}
+                          </div>
+                        </td>
+                        <td className="p-5 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
+                                <MoreVertical className="size-5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-48 p-1 rounded-2xl">
+                              <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
+                                <BarChart3 className="size-4 text-primary" /> <span>Analytics</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
+                                <Edit className="size-4 text-emerald-500" /> <span>Edit Setup</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500">
+                                <Trash2 className="size-4" /> <span>Suspend Test</span>
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="p-5 border-t border-border flex items-center justify-between bg-muted/10">
+                <p className="text-xs text-muted-foreground font-bold">Showing <span className="text-foreground">0 to 0</span> of 0 results</p>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Previous</Button>
+                  <Button size="sm" className="rounded-xl font-black bg-primary size-9 p-0">1</Button>
+                  <Button variant="ghost" size="sm" className="rounded-xl font-bold size-9 p-0">2</Button>
+                  <Button variant="outline" size="sm" className="rounded-xl font-bold h-9">Next</Button>
+                </div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

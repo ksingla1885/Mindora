@@ -44,50 +44,14 @@ import { cn } from '@/lib/cn';
 
 export default function ContentManagementPage() {
     const [searchQuery, setSearchQuery] = useState('');
-    const [activeUploads, setActiveUploads] = useState([
-        { id: 1, name: 'Physics_Chapter1.mp4', progress: 45, size: '45MB', current: '12MB', time: '2 mins' }
-    ]);
+    const [activeUploads, setActiveUploads] = useState([]);
 
     const stats = [
-        { label: 'Storage', value: '45.2 GB', trend: '2.1 GB new', trendUp: true, icon: HardDrive },
-        { label: 'Total Items', value: '1,240', trend: 'Files active', trendUp: null, icon: CheckCircle2 }
+        { label: 'Storage', value: '0 GB', trend: 'No data', trendUp: null, icon: HardDrive },
+        { label: 'Total Items', value: '0', trend: 'No files', trendUp: null, icon: CheckCircle2 }
     ];
 
-    const contentItems = [
-        {
-            id: 1,
-            title: 'Intro to Linear Algebra: Matrices & Vectors',
-            type: 'YouTube',
-            duration: '12:45',
-            subject: 'Math',
-            class: 'Class 10',
-            difficulty: 'Easy',
-            addedAt: '2 days ago',
-            thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=400',
-        },
-        {
-            id: 2,
-            title: 'Thermodynamics: Advanced Concepts',
-            type: 'S3',
-            duration: '45:00',
-            subject: 'Physics',
-            class: 'Class 12',
-            difficulty: 'Hard',
-            addedAt: '5 hours ago',
-            thumbnail: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?auto=format&fit=crop&q=80&w=400',
-        },
-        {
-            id: 3,
-            title: 'Complete Organic Chemistry Formulas Cheat Sheet',
-            type: 'PDF',
-            size: '2.4 MB',
-            subject: 'Chemistry',
-            class: 'Class 11',
-            difficulty: 'Medium',
-            addedAt: '1 week ago',
-            thumbnail: null,
-        }
-    ];
+    const contentItems = [];
 
     const [editingId, setEditingId] = useState(null);
 
@@ -124,8 +88,14 @@ export default function ContentManagementPage() {
                         <div className="space-y-4 pt-4">
                             <div className="flex items-center justify-between">
                                 <h4 className="text-xs font-bold text-foreground">Active Uploads</h4>
-                                <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px] border-none px-2 py-0">1 left</Badge>
+                                <Badge variant="secondary" className="bg-muted text-muted-foreground text-[10px] border-none px-2 py-0">0</Badge>
                             </div>
+                            {activeUploads.length === 0 && (
+                                <div className="flex flex-col items-center justify-center py-6 text-center">
+                                    <CloudUpload className="size-8 text-muted-foreground/30 mb-2" />
+                                    <p className="text-[10px] text-muted-foreground">No active uploads</p>
+                                </div>
+                            )}
                             {activeUploads.map(upload => (
                                 <div key={upload.id} className="flex flex-col gap-2">
                                     <div className="flex justify-between items-center mb-1">
@@ -219,11 +189,27 @@ export default function ContentManagementPage() {
                     </div>
 
                     {/* Content Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
-                        {contentItems.map((item, i) => (
-                            <ContentCard key={item.id} item={item} index={i} isEditing={editingId === item.id} onEdit={() => setEditingId(item.id)} onCancel={() => setEditingId(null)} />
-                        ))}
-                    </div>
+                    {contentItems.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="p-6 bg-muted/30 rounded-full mb-6">
+                                <FileText className="size-16 text-muted-foreground/30" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2">No content yet</h3>
+                            <p className="text-muted-foreground max-w-md mb-6">
+                                Start building your library by uploading videos and PDFs. Click "New Content" to get started.
+                            </p>
+                            <Button className="gap-2 bg-primary hover:bg-blue-600 text-white font-bold shadow-lg shadow-primary/20">
+                                <Plus className="size-5" />
+                                Add Your First Content
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                            {contentItems.map((item, i) => (
+                                <ContentCard key={item.id} item={item} index={i} isEditing={editingId === item.id} onEdit={() => setEditingId(item.id)} onCancel={() => setEditingId(null)} />
+                            ))}
+                        </div>
+                    )}
 
                     {/* Pagination */}
                     <div className="flex justify-center mt-12 mb-8">

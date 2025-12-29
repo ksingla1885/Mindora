@@ -1,65 +1,11 @@
 'use client';
 
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Calendar, Bell, ExternalLink, Trophy, Info, ChevronRight, Clock, Sparkles, Pin } from 'lucide-react';
-import { useRef } from 'react';
+import { motion } from 'framer-motion';
+import { Trophy, Bell } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-// --- Mock Data (Preserved) ---
-const notices = [
-    {
-        id: 1,
-        title: "International Math Olympiad (IMO) 2024 Registration Extended",
-        category: "Important",
-        date: "24 Dec 2023",
-        icon: Bell,
-        description: "The registration deadline for IMO 2024 has been extended to January 15, 2024. Ensure you complete your profile updates before applying.",
-        link: "#",
-        priority: "High",
-        color: "text-red-500",
-        border: "border-red-500/50",
-        glow: "shadow-red-500/20"
-    },
-    {
-        id: 2,
-        title: "National Science Olympiad (NSO) Schedule Announced",
-        category: "Schedule",
-        date: "20 Dec 2023",
-        icon: Calendar,
-        description: "The NSO level 1 exams are scheduled for February 2024. Check the detailed timetable for your specific class and region.",
-        link: "#",
-        priority: "Medium",
-        color: "text-blue-500",
-        border: "border-blue-500/30",
-        glow: "shadow-blue-500/10"
-    },
-    {
-        id: 3,
-        title: "New Study Material for Cyber Olympiad",
-        category: "Resources",
-        date: "18 Dec 2023",
-        icon: Info,
-        description: "Updated study materials and previous year papers for the National Cyber Olympiad have been uploaded to the portal.",
-        link: "#",
-        priority: "Low",
-        color: "text-emerald-500",
-        border: "border-emerald-500/30",
-        glow: "shadow-emerald-500/10"
-    },
-    {
-        id: 4,
-        title: "Upcoming Olympiad: English International Olympiad (EIO)",
-        category: "Upcoming",
-        date: "15 Dec 2023",
-        icon: Trophy,
-        description: "Prepare for the English International Olympiad. Registration opens next week. Focus on grammar and comprehension modules.",
-        link: "#",
-        priority: "Medium",
-        color: "text-purple-500",
-        border: "border-purple-500/30",
-        glow: "shadow-purple-500/10"
-    }
-];
+// No static data - will be fetched from API
+const notices = [];
 
 // --- Components ---
 
@@ -202,17 +148,8 @@ const TimelineItem = ({ notice, index, isLast }) => {
 };
 
 export default function OlympiadNoticesPage() {
-    // Determine Featured (Highest Priority)
-    // Filter out the featured one for the timeline to avoid duplication if strictly separating,
-    // OR keep logical order. The prompt implies structure separation.
-    // Let's find index of first 'High'.
-
-    // Sort notices by logic if needed, but array order is usually chronological. 
-    // I'll pick the first 'High' as featured, rest as timeline.
-
-    const featuredIndex = notices.findIndex(n => n.priority === 'High');
-    const featuredNotice = featuredIndex !== -1 ? notices[featuredIndex] : notices[0];
-    const timelineNotices = notices.filter(n => n.id !== featuredNotice.id);
+    // Check if there are any notices
+    const hasNotices = notices.length > 0;
 
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 animate-fade-in">
@@ -232,33 +169,52 @@ export default function OlympiadNoticesPage() {
             </div>
 
             <main className="max-w-5xl mx-auto px-6 py-12">
-                {/* Featured Section */}
-                <FeaturedNotice notice={featuredNotice} />
+                {!hasNotices ? (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                        className="flex flex-col items-center justify-center min-h-[60vh] text-center"
+                    >
+                        <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
+                            <Bell className="w-10 h-10 text-muted-foreground/50" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-foreground mb-3">No Olympiad Notices Yet</h2>
+                        <p className="text-muted-foreground max-w-md leading-relaxed">
+                            There are currently no olympiad notices or updates available. Check back later for important announcements, schedules, and resources.
+                        </p>
+                    </motion.div>
+                ) : (
+                    <>
+                        {/* Featured Section */}
+                        <FeaturedNotice notice={notices[0]} />
 
-                {/* Timeline Section */}
-                <div className="relative pl-2 md:pl-0">
-                    <div className="mb-12 flex items-center gap-4">
-                        <h3 className="text-xl font-light text-muted-foreground">Recent Updates</h3>
-                        <div className="h-[1px] flex-1 bg-border/50" />
-                    </div>
+                        {/* Timeline Section */}
+                        <div className="relative pl-2 md:pl-0">
+                            <div className="mb-12 flex items-center gap-4">
+                                <h3 className="text-xl font-light text-muted-foreground">Recent Updates</h3>
+                                <div className="h-[1px] flex-1 bg-border/50" />
+                            </div>
 
-                    <div className="space-y-0">
-                        {timelineNotices.map((notice, index) => (
-                            <TimelineItem
-                                key={notice.id}
-                                notice={notice}
-                                index={index}
-                                isLast={index === timelineNotices.length - 1}
-                            />
-                        ))}
-                    </div>
+                            <div className="space-y-0">
+                                {notices.slice(1).map((notice, index) => (
+                                    <TimelineItem
+                                        key={notice.id}
+                                        notice={notice}
+                                        index={index}
+                                        isLast={index === notices.slice(1).length - 1}
+                                    />
+                                ))}
+                            </div>
 
-                    {/* End of Feed Indicator */}
-                    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/30 gap-2">
-                        <div className="w-1 h-12 bg-gradient-to-b from-border to-transparent" />
-                        <span className="text-xs font-mono uppercase tracking-widest">End of Stream</span>
-                    </div>
-                </div>
+                            {/* End of Feed Indicator */}
+                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/30 gap-2">
+                                <div className="w-1 h-12 bg-gradient-to-b from-border to-transparent" />
+                                <span className="text-xs font-mono uppercase tracking-widest">End of Stream</span>
+                            </div>
+                        </div>
+                    </>
+                )}
             </main>
         </div>
     );

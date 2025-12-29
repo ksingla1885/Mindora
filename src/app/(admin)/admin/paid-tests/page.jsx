@@ -37,55 +37,14 @@ export default function PaidTestsManagementPage() {
     const [selectedTest, setSelectedTest] = useState(null);
 
     const stats = [
-        { label: 'Total Paid Tests', value: '142', trend: '+5%', trendUp: true, icon: Package, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
-        { label: 'Active Paid Tests', value: '45', trend: '+2%', trendUp: true, icon: Zap, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-        { label: 'Total Revenue', value: '₹4.25L', trend: '+15%', trendUp: true, icon: IndianRupee, color: 'text-emerald-500', highlighted: true, bgColor: 'bg-emerald-500/10' },
-        { label: 'Revenue (Month)', value: '₹85K', trend: '+8%', trendUp: true, icon: Calendar, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
-        { label: 'Conversion Rate', value: '12%', trend: '-1%', trendUp: false, icon: Percent, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+        { label: 'Total Paid Tests', value: '0', trend: 'No tests', trendUp: null, icon: Package, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+        { label: 'Active Paid Tests', value: '0', trend: 'None', trendUp: null, icon: Zap, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+        { label: 'Total Revenue', value: '₹0', trend: 'No sales', trendUp: null, icon: IndianRupee, color: 'text-emerald-500', highlighted: false, bgColor: 'bg-emerald-500/10' },
+        { label: 'Revenue (Month)', value: '₹0', trend: 'No data', trendUp: null, icon: Calendar, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+        { label: 'Conversion Rate', value: '0%', trend: 'No data', trendUp: null, icon: Percent, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
     ];
 
-    const tests = [
-        {
-            id: 1,
-            title: 'IMO Level 2 Mock Test - Class 10',
-            subject: 'Math',
-            olympiad: 'IMO Olympiad',
-            price: '₹499',
-            originalPrice: '₹999',
-            discount: '50% OFF (Valid till 30 Oct)',
-            status: 'Live',
-            purchases: 342,
-            todayPurchases: '+12 today',
-            revenue: '₹1,70,658',
-        },
-        {
-            id: 2,
-            title: 'NSO Science Prep - Class 8',
-            subject: 'Science',
-            olympiad: 'NSO Olympiad',
-            price: '₹299',
-            originalPrice: null,
-            discount: 'No discount active',
-            status: 'Scheduled',
-            startTime: 'Nov 01, 10:00 AM',
-            purchases: 12,
-            todayPurchases: 'Pre-book',
-            revenue: '₹3,588',
-            selected: true,
-        },
-        {
-            id: 3,
-            title: 'English Grammar Pro - Class 5',
-            subject: 'English',
-            olympiad: 'IEO Olympiad',
-            price: '--',
-            originalPrice: null,
-            discount: 'Price not set',
-            status: 'Draft',
-            purchases: '-',
-            revenue: '-',
-        }
-    ];
+    const tests = [];
 
     return (
         <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
@@ -194,114 +153,132 @@ export default function PaidTestsManagementPage() {
                 </div>
 
                 {/* Tests Table */}
-                <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-                    <div className="overflow-x-auto min-h-[400px]">
-                        <table className="w-full text-left border-collapse min-w-[950px]">
-                            <thead className="bg-muted/40 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                <tr>
-                                    <th className="p-5 pl-8 w-12"><input type="checkbox" className="rounded border-border bg-background" /></th>
-                                    <th className="p-5">Test Details</th>
-                                    <th className="p-5">Price Config</th>
-                                    <th className="p-5 text-center">Status</th>
-                                    <th className="p-5">Purchases</th>
-                                    <th className="p-5">Revenue</th>
-                                    <th className="p-5 text-right pr-8">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-border">
-                                {tests.map((test, i) => (
-                                    <tr
-                                        key={test.id}
-                                        onClick={() => setSelectedTest(test)}
-                                        className={cn(
-                                            "group hover:bg-emerald-500/5 transition-all cursor-pointer",
-                                            test.selected && "bg-emerald-500/[0.03] border-l-2 border-l-emerald-500"
-                                        )}
-                                    >
-                                        <td className="p-5 pl-8" onClick={(e) => e.stopPropagation()}>
-                                            <input type="checkbox" checked={test.selected} readOnly className="rounded border-border text-emerald-500 focus:ring-emerald-500 bg-background" />
-                                        </td>
-                                        <td className="p-5">
-                                            <div className="flex flex-col gap-1.5">
-                                                <p className="text-sm font-black text-foreground group-hover:text-emerald-500 transition-colors uppercase tracking-tight">{test.title}</p>
-                                                <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
-                                                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">{test.subject}</span>
-                                                    <span className="opacity-30">•</span>
-                                                    <span>{test.olympiad}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="p-5">
-                                            <div className="flex flex-col">
-                                                <div className="flex items-baseline gap-2">
-                                                    <span className="text-base font-black text-foreground">{test.price}</span>
-                                                    {test.originalPrice && <span className="text-xs text-muted-foreground line-through font-medium">{test.originalPrice}</span>}
-                                                </div>
-                                                <span className={cn("text-[9px] font-black uppercase tracking-tighter", test.discount.includes('OFF') ? "text-emerald-600" : "text-muted-foreground")}>
-                                                    {test.discount}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="p-5 text-center">
-                                            {test.status === 'Live' ? (
-                                                <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-black uppercase tracking-widest px-3 py-1">
-                                                    <Zap className="size-3 mr-1.5 animate-pulse fill-current" />
-                                                    Live
-                                                </Badge>
-                                            ) : test.status === 'Scheduled' ? (
-                                                <div className="flex flex-col items-center">
-                                                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] font-black uppercase tracking-widest px-3 py-1">
-                                                        <Clock className="size-3 mr-1.5" />
-                                                        Scheduled
-                                                    </Badge>
-                                                    <div className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{test.startTime}</div>
-                                                </div>
-                                            ) : (
-                                                <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 opacity-60">
-                                                    Draft
-                                                </Badge>
-                                            )}
-                                        </td>
-                                        <td className="p-5">
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-black text-foreground tracking-tight">{test.purchases} Units</span>
-                                                {test.status !== 'Draft' && (
-                                                    <span className={cn(
-                                                        "text-[9px] font-bold mt-0.5 uppercase tracking-tighter",
-                                                        test.todayPurchases === 'Pre-book' ? "text-muted-foreground" : "text-emerald-600"
-                                                    )}>
-                                                        {test.todayPurchases}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </td>
-                                        <td className="p-5 font-black text-base text-foreground tracking-tighter">{test.revenue}</td>
-                                        <td className="p-5 pr-8 text-right">
-                                            <div className="flex items-center justify-end gap-1">
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 transition-all">
-                                                    <Eye className="size-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/5 transition-all">
-                                                    <Edit className="size-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-all">
-                                                    <Trash2 className="size-4" />
-                                                </Button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div className="flex items-center justify-between p-6 border-t border-border bg-muted/20">
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Showing 1-3 of 142 tests</p>
-                        <div className="flex gap-2">
-                            <Button variant="outline" className="h-9 px-5 rounded-xl font-bold bg-card border-border hover:bg-muted text-foreground opacity-50">Previous</Button>
-                            <Button variant="outline" className="h-9 px-5 rounded-xl font-bold bg-card border-border hover:bg-muted text-foreground">Next</Button>
+                {tests.length === 0 ? (
+                    <div className="bg-card border border-border rounded-2xl p-20">
+                        <div className="flex flex-col items-center justify-center text-center">
+                            <div className="p-6 bg-muted/30 rounded-full mb-6">
+                                <IndianRupee className="size-16 text-muted-foreground/30" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2">No paid tests yet</h3>
+                            <p className="text-muted-foreground max-w-md mb-6">
+                                Start monetizing your olympiad tests. Create your first paid test to begin generating revenue.
+                            </p>
+                            <Button className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold shadow-lg shadow-emerald-500/20">
+                                <Plus className="size-5" />
+                                Create First Paid Test
+                            </Button>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+                        <div className="overflow-x-auto min-h-[400px]">
+                            <table className="w-full text-left border-collapse min-w-[950px]">
+                                <thead className="bg-muted/40 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                    <tr>
+                                        <th className="p-5 pl-8 w-12"><input type="checkbox" className="rounded border-border bg-background" /></th>
+                                        <th className="p-5">Test Details</th>
+                                        <th className="p-5">Price Config</th>
+                                        <th className="p-5 text-center">Status</th>
+                                        <th className="p-5">Purchases</th>
+                                        <th className="p-5">Revenue</th>
+                                        <th className="p-5 text-right pr-8">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                    {tests.map((test, i) => (
+                                        <tr
+                                            key={test.id}
+                                            onClick={() => setSelectedTest(test)}
+                                            className={cn(
+                                                "group hover:bg-emerald-500/5 transition-all cursor-pointer",
+                                                test.selected && "bg-emerald-500/[0.03] border-l-2 border-l-emerald-500"
+                                            )}
+                                        >
+                                            <td className="p-5 pl-8" onClick={(e) => e.stopPropagation()}>
+                                                <input type="checkbox" checked={test.selected} readOnly className="rounded border-border text-emerald-500 focus:ring-emerald-500 bg-background" />
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="flex flex-col gap-1.5">
+                                                    <p className="text-sm font-black text-foreground group-hover:text-emerald-500 transition-colors uppercase tracking-tight">{test.title}</p>
+                                                    <div className="flex items-center gap-2 text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+                                                        <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">{test.subject}</span>
+                                                        <span className="opacity-30">•</span>
+                                                        <span>{test.olympiad}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="flex flex-col">
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-base font-black text-foreground">{test.price}</span>
+                                                        {test.originalPrice && <span className="text-xs text-muted-foreground line-through font-medium">{test.originalPrice}</span>}
+                                                    </div>
+                                                    <span className={cn("text-[9px] font-black uppercase tracking-tighter", test.discount.includes('OFF') ? "text-emerald-600" : "text-muted-foreground")}>
+                                                        {test.discount}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="p-5 text-center">
+                                                {test.status === 'Live' ? (
+                                                    <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-[10px] font-black uppercase tracking-widest px-3 py-1">
+                                                        <Zap className="size-3 mr-1.5 animate-pulse fill-current" />
+                                                        Live
+                                                    </Badge>
+                                                ) : test.status === 'Scheduled' ? (
+                                                    <div className="flex flex-col items-center">
+                                                        <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px] font-black uppercase tracking-widest px-3 py-1">
+                                                            <Clock className="size-3 mr-1.5" />
+                                                            Scheduled
+                                                        </Badge>
+                                                        <div className="text-[9px] font-bold text-muted-foreground mt-1 uppercase tracking-tighter">{test.startTime}</div>
+                                                    </div>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-[10px] font-black uppercase tracking-widest px-3 py-1 opacity-60">
+                                                        Draft
+                                                    </Badge>
+                                                )}
+                                            </td>
+                                            <td className="p-5">
+                                                <div className="flex flex-col">
+                                                    <span className="text-sm font-black text-foreground tracking-tight">{test.purchases} Units</span>
+                                                    {test.status !== 'Draft' && (
+                                                        <span className={cn(
+                                                            "text-[9px] font-bold mt-0.5 uppercase tracking-tighter",
+                                                            test.todayPurchases === 'Pre-book' ? "text-muted-foreground" : "text-emerald-600"
+                                                        )}>
+                                                            {test.todayPurchases}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="p-5 font-black text-base text-foreground tracking-tighter">{test.revenue}</td>
+                                            <td className="p-5 pr-8 text-right">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 transition-all">
+                                                        <Eye className="size-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/5 transition-all">
+                                                        <Edit className="size-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-all">
+                                                        <Trash2 className="size-4" />
+                                                    </Button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="flex items-center justify-between p-6 border-t border-border bg-muted/20">
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Showing 0-0 of 0 tests</p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" className="h-9 px-5 rounded-xl font-bold bg-card border-border hover:bg-muted text-foreground opacity-50">Previous</Button>
+                                <Button variant="outline" className="h-9 px-5 rounded-xl font-bold bg-card border-border hover:bg-muted text-foreground">Next</Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </main>
 
             {/* Right Drawer - Details Sidebar */}
@@ -414,12 +391,13 @@ export default function PaidTestsManagementPage() {
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Live Feed (Recent)</h3>
-                                        <button className="text-[10px] font-black text-emerald-500 uppercase tracking-widest hover:underline transition-all">View Ledger</button>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <BuyerRow initials="AK" name="Arjun Kumar" bg="bg-indigo-500/10" text="text-indigo-600 dark:text-indigo-400" amount="+ ₹299" />
-                                        <BuyerRow initials="PS" name="Priya Sharma" bg="bg-pink-500/10" text="text-pink-600 dark:text-pink-400" amount="+ ₹299" />
-                                        <BuyerRow initials="RV" name="Rohan Verma" bg="bg-amber-500/10" text="text-amber-600 dark:text-amber-400" amount="Failed" failed />
+                                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                                        <div className="p-4 bg-muted/30 rounded-full mb-4">
+                                            <IndianRupee className="size-10 text-muted-foreground/30" />
+                                        </div>
+                                        <p className="text-xs font-bold text-muted-foreground">No recent purchases</p>
+                                        <p className="text-[10px] text-muted-foreground/60 mt-1">Buyer activity will appear here</p>
                                     </div>
                                 </div>
 

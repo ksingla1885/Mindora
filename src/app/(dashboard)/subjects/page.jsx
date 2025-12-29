@@ -38,7 +38,14 @@ const educationData = [
                 topics: [
                     { name: "Number Systems", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
                     { name: "Polynomials", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Coordinate Geometry", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Coordinate Geometry", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Triangles", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Quadrilaterals", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Circles", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Heron’s Formula", unit: "Unit 7", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Surface Areas and Volumes", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Statistics", unit: "Unit 9", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Probability", unit: "Unit 10", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
                 ]
             },
             {
@@ -52,9 +59,17 @@ const educationData = [
                 hoverBorder: "hover:border-green-300 dark:hover:border-green-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Matter in Our Surroundings", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
-                    { name: "Is Matter Around Us Pure", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "The Fundamental Unit of Life", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" }
+                    { name: "Motion", unit: "Unit 1", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Force and Laws of Motion", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Gravitation", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Work and Energy", unit: "Unit 4", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Sound", unit: "Unit 5", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Structure of the Atom", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Tissues", unit: "Unit 7", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Diversity in Living Organisms", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Why Do We Fall Ill", unit: "Unit 9", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Natural Resources", unit: "Unit 10", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Improvement in Food Resources", unit: "Unit 11", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
                 ]
             }
         ]
@@ -74,9 +89,22 @@ const educationData = [
                 hoverBorder: "hover:border-indigo-300 dark:hover:border-indigo-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Real Numbers", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
-                    { name: "Polynomials", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Triangles", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Real Numbers", unit: "Unit 1", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Polynomials", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Pair of Linear Equations in Two Variables", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Quadratic Equations", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Arithmetic Progressions", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Triangles", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Coordinate Geometry", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Introduction to Trigonometry", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Trigonometric Identities", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Heights and Distances", unit: "Unit 10", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Circles", unit: "Unit 11", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Constructions", unit: "Unit 12", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Areas Related to Circles", unit: "Unit 13", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Surface Areas and Volumes", unit: "Unit 14", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Statistics", unit: "Unit 15", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Probability", unit: "Unit 16", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
                 ]
             },
             {
@@ -90,9 +118,21 @@ const educationData = [
                 hoverBorder: "hover:border-green-300 dark:hover:border-green-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Chemical Reactions", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
-                    { name: "Acids, Bases and Salts", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Life Processes", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Light – Reflection and Refraction", unit: "Unit 1", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "The Human Eye and the Colourful World", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Electricity", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Magnetic Effects of Electric Current", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Chemical Reactions and Equations", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Acids, Bases and Salts", unit: "Unit 6", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Metals and Non-metals", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Carbon and its Compounds", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Sources of Energy", unit: "Unit 9", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Life Processes", unit: "Unit 10", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Control and Coordination", unit: "Unit 11", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "How do Organisms Reproduce", unit: "Unit 12", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Heredity and Evolution", unit: "Unit 13", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Environment", unit: "Unit 14", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Management of Natural Resources", unit: "Unit 15", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
                 ]
             }
         ]
@@ -112,9 +152,20 @@ const educationData = [
                 hoverBorder: "hover:border-purple-300 dark:hover:border-purple-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Kinematics", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Laws of Motion", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Thermodynamics", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Physical World and Measurement", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Motion in a Straight Line", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Motion in a Plane", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Laws of Motion", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Work, Energy and Power", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "System of Particles and Rotational Motion", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Gravitation", unit: "Unit 7", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Mechanical Properties of Solids", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Mechanical Properties of Fluids", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Thermal Properties of Matter", unit: "Unit 10", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Thermodynamics", unit: "Unit 11", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Kinetic Theory", unit: "Unit 12", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Oscillations", unit: "Unit 13", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Waves", unit: "Unit 14", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
                 ]
             },
             {
@@ -128,9 +179,19 @@ const educationData = [
                 hoverBorder: "hover:border-teal-300 dark:hover:border-teal-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Structure of Atom", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Chemical Bonding", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Hydrocarbons", unit: "Unit 13", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" }
+                    { name: "Some Basic Concepts of Chemistry", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Structure of Atom", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "States of Matter", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Thermodynamics", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Equilibrium", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Classification of Elements & Periodicity", unit: "Unit 6", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Chemical Bonding & Molecular Structure", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Redox Reactions", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Hydrogen", unit: "Unit 9", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "s-Block Elements", unit: "Unit 10", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Some p-Block Elements", unit: "Unit 11", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Organic Chemistry – Basic Principles", unit: "Unit 12", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Hydrocarbons", unit: "Unit 13", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
                 ]
             },
             {
@@ -144,9 +205,21 @@ const educationData = [
                 hoverBorder: "hover:border-indigo-300 dark:hover:border-indigo-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Sets and Functions", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Sets and Relations", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Functions", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
                     { name: "Trigonometric Functions", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Conic Sections", unit: "Unit 11", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" }
+                    { name: "Principle of Mathematical Induction", unit: "Unit 4", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Complex Numbers and Quadratic Equations", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Linear Inequalities", unit: "Unit 6", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Permutations and Combinations", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Binomial Theorem", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Sequences and Series", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Straight Lines", unit: "Unit 10", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Conic Sections", unit: "Unit 11", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Introduction to Three-Dimensional Geometry", unit: "Unit 12", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Limits and Derivatives", unit: "Unit 13", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Statistics", unit: "Unit 14", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Probability", unit: "Unit 15", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" }
                 ]
             },
             {
@@ -160,9 +233,15 @@ const educationData = [
                 hoverBorder: "hover:border-orange-300 dark:hover:border-orange-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Celestial Mechanics", unit: "Unit 1", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Stellar Evolution", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Cosmology", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Introduction to Astronomy", unit: "Unit 1", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Earth & Sky", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "The Moon", unit: "Unit 3", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "The Sun", unit: "Unit 4", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "The Solar System", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Stars", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Galaxies & Universe", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Observational Astronomy", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Basic Astrophysics", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
                 ]
             }
         ]
@@ -182,9 +261,20 @@ const educationData = [
                 hoverBorder: "hover:border-purple-300 dark:hover:border-purple-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Electric Charges and Fields", unit: "Unit 1", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Current Electricity", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Ray Optics", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Electric Charges and Fields", unit: "Unit 1", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Electrostatic Potential and Capacitance", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Current Electricity", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Moving Charges and Magnetism", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Magnetism and Matter", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Electromagnetic Induction", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Alternating Current", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Electromagnetic Waves", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Ray Optics and Optical Instruments", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Wave Optics", unit: "Unit 10", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Dual Nature of Radiation and Matter", unit: "Unit 11", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Atoms", unit: "Unit 12", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Nuclei", unit: "Unit 13", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Semiconductor Electronics", unit: "Unit 14", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
                 ]
             },
             {
@@ -198,9 +288,22 @@ const educationData = [
                 hoverBorder: "hover:border-teal-300 dark:hover:border-teal-700",
                 hasPreview: true,
                 topics: [
+                    { name: "Solid State", unit: "Unit 1", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
                     { name: "Solutions", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
                     { name: "Electrochemistry", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Coordination Compounds", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Chemical Kinetics", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Surface Chemistry", unit: "Unit 5", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "General Principles of Isolation of Elements", unit: "Unit 6", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "p-Block Elements", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "d- and f-Block Elements", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Coordination Compounds", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Haloalkanes and Haloarenes", unit: "Unit 10", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Alcohols, Phenols and Ethers", unit: "Unit 11", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Aldehydes, Ketones and Carboxylic Acids", unit: "Unit 12", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Amines", unit: "Unit 13", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Biomolecules", unit: "Unit 14", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Polymers", unit: "Unit 15", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
+                    { name: "Chemistry in Everyday Life", unit: "Unit 16", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
                 ]
             },
             {
@@ -215,8 +318,17 @@ const educationData = [
                 hasPreview: true,
                 topics: [
                     { name: "Relations and Functions", unit: "Unit 1", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Matrices", unit: "Unit 2", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" },
-                    { name: "Integrals", unit: "Unit 3", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
+                    { name: "Inverse Trigonometric Functions", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Matrices", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Determinants", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Continuity and Differentiability", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Applications of Derivatives", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Integrals", unit: "Unit 7", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Applications of Integrals", unit: "Unit 8", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Differential Equations", unit: "Unit 9", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Vectors", unit: "Unit 10", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Three-Dimensional Geometry", unit: "Unit 11", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Probability", unit: "Unit 12", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" }
                 ]
             },
             {
@@ -230,9 +342,15 @@ const educationData = [
                 hoverBorder: "hover:border-orange-300 dark:hover:border-orange-700",
                 hasPreview: true,
                 topics: [
-                    { name: "Galactic Structure", unit: "Unit 2", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
-                    { name: "Exoplanets", unit: "Unit 4", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
-                    { name: "Space Exploration", unit: "Unit 6", difficulty: "Easy", difficultyColor: "bg-green-50 text-green-700 border-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-900/30" }
+                    { name: "Celestial Mechanics", unit: "Unit 1", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "The Sun", unit: "Unit 2", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "The Earth–Moon System", unit: "Unit 3", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Stars & Stellar Evolution", unit: "Unit 4", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Galaxies", unit: "Unit 5", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Cosmology", unit: "Unit 6", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Observational Astronomy", unit: "Unit 7", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" },
+                    { name: "Astrophysical Processes", unit: "Unit 8", difficulty: "Hard", difficultyColor: "bg-red-50 text-red-700 border-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-900/30" },
+                    { name: "Data Analysis & Sky Mapping", unit: "Unit 9", difficulty: "Medium", difficultyColor: "bg-yellow-50 text-yellow-700 border-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-400 dark:border-yellow-900/30" }
                 ]
             }
         ]

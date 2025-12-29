@@ -33,39 +33,11 @@ export default function QuestionManagementPage() {
     const [searchQuery, setSearchQuery] = useState('');
 
     const stats = [
-        { label: 'Total Questions', value: '4,582', trend: '+12 today', trendUp: true, icon: FileQuestion },
-        { label: 'Unreviewed', value: '128', trend: 'Requires action', trendUp: null, icon: Clock }
+        { label: 'Total Questions', value: '0', trend: 'No questions', trendUp: null, icon: FileQuestion },
+        { label: 'Unreviewed', value: '0', trend: 'No pending', trendUp: null, icon: Clock }
     ];
 
-    const questions = [
-        {
-            id: 1,
-            text: 'What is the sum of the first 20 prime numbers?',
-            subject: 'Math',
-            topic: 'Number Systems',
-            difficulty: 'Hard',
-            author: 'Dr. Sharma',
-            status: 'Published'
-        },
-        {
-            id: 2,
-            text: 'Define the Heisenberg Uncertainty Principle in the context of electron positioning.',
-            subject: 'Physics',
-            topic: 'Quantum Mechanics',
-            difficulty: 'Medium',
-            author: 'Prof. Verma',
-            status: 'Review'
-        },
-        {
-            id: 3,
-            text: 'Identify the functional group present in the given molecule...',
-            subject: 'Chemistry',
-            topic: 'Organic Chemistry',
-            difficulty: 'Intermediate',
-            author: 'Dr. Batra',
-            status: 'Published'
-        }
-    ];
+    const questions = [];
 
     return (
         <div className="flex h-full bg-background dark:bg-background-dark text-foreground">
@@ -139,62 +111,86 @@ export default function QuestionManagementPage() {
                     </div>
 
                     {/* Question List */}
-                    <div className="space-y-4 pt-4">
-                        {questions.map((q, i) => (
-                            <motion.div
-                                key={q.id}
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group"
-                            >
-                                <div className="flex-1 space-y-3">
-                                    <div className="flex items-center gap-2">
-                                        <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-[10px]">{q.subject}</Badge>
-                                        <Badge variant="outline" className="text-[10px] font-medium border-border">{q.topic}</Badge>
-                                        <span className="text-[11px] text-muted-foreground font-medium">• By {q.author}</span>
+                    {questions.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
+                            <div className="p-6 bg-muted/30 rounded-full mb-6">
+                                <FileQuestion className="size-16 text-muted-foreground/30" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground mb-2">No questions yet</h3>
+                            <p className="text-muted-foreground max-w-md mb-6">
+                                Start building your question bank by adding individual questions or importing them in bulk.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button className="gap-2 bg-primary hover:bg-blue-600 text-white font-bold shadow-lg shadow-primary/20">
+                                    <Plus className="size-5" />
+                                    Add First Question
+                                </Button>
+                                <Button variant="outline" className="gap-2 border-border font-bold">
+                                    <Upload className="size-5" />
+                                    Bulk Import
+                                </Button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 pt-4">
+                            {questions.map((q, i) => (
+                                <motion.div
+                                    key={q.id}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group"
+                                >
+                                    <div className="flex-1 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-[10px]">{q.subject}</Badge>
+                                            <Badge variant="outline" className="text-[10px] font-medium border-border">{q.topic}</Badge>
+                                            <span className="text-[11px] text-muted-foreground font-medium">• By {q.author}</span>
+                                        </div>
+                                        <p className="text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors pr-8">
+                                            {q.text}
+                                        </p>
+                                        <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
+                                            <span className={cn(
+                                                "flex items-center gap-1",
+                                                q.difficulty === 'Hard' ? "text-red-500" : q.difficulty === 'Medium' ? "text-amber-500" : "text-emerald-500"
+                                            )}>{q.difficulty}</span>
+                                            <span className="flex items-center gap-1">
+                                                {q.status === 'Published' ? <CheckCircle2 className="size-3 text-emerald-500" /> : <Clock className="size-3 text-amber-500" />}
+                                                {q.status}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <p className="text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors pr-8">
-                                        {q.text}
-                                    </p>
-                                    <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
-                                        <span className={cn(
-                                            "flex items-center gap-1",
-                                            q.difficulty === 'Hard' ? "text-red-500" : q.difficulty === 'Medium' ? "text-amber-500" : "text-emerald-500"
-                                        )}>{q.difficulty}</span>
-                                        <span className="flex items-center gap-1">
-                                            {q.status === 'Published' ? <CheckCircle2 className="size-3 text-emerald-500" /> : <Clock className="size-3 text-amber-500" />}
-                                            {q.status}
-                                        </span>
+                                    <div className="flex items-center gap-2 mt-4 md:mt-0">
+                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
+                                            <Edit className="size-5" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all">
+                                            <Trash2 className="size-5" />
+                                        </Button>
+                                        <Button variant="outline" size="icon" className="rounded-xl border-border">
+                                            <MoreVertical className="size-5" />
+                                        </Button>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-2 mt-4 md:mt-0">
-                                    <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
-                                        <Edit className="size-5" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all">
-                                        <Trash2 className="size-5" />
-                                    </Button>
-                                    <Button variant="outline" size="icon" className="rounded-xl border-border">
-                                        <MoreVertical className="size-5" />
-                                    </Button>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
 
                     {/* Pagination */}
-                    <div className="flex items-center justify-between pt-8 border-t border-border">
-                        <p className="text-sm text-muted-foreground font-medium">Showing <span className="text-foreground font-bold">1-10</span> of 4,582 questions</p>
-                        <div className="flex gap-2">
-                            <Button variant="outline" className="rounded-xl gap-2 h-10 border-border font-bold">
-                                <ChevronLeft className="size-4" /> Previous
-                            </Button>
-                            <Button variant="outline" className="rounded-xl gap-2 h-10 border-border font-bold">
-                                Next <ChevronRight className="size-4" />
-                            </Button>
+                    {questions.length > 0 && (
+                        <div className="flex items-center justify-between pt-8 border-t border-border">
+                            <p className="text-sm text-muted-foreground font-medium">Showing <span className="text-foreground font-bold">0-0</span> of 0 questions</p>
+                            <div className="flex gap-2">
+                                <Button variant="outline" className="rounded-xl gap-2 h-10 border-border font-bold">
+                                    <ChevronLeft className="size-4" /> Previous
+                                </Button>
+                                <Button variant="outline" className="rounded-xl gap-2 h-10 border-border font-bold">
+                                    Next <ChevronRight className="size-4" />
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </main>
             </div>
         </div>

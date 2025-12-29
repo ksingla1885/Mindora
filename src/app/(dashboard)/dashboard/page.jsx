@@ -113,7 +113,7 @@ export default async function DashboardPage() {
     test: attempt.test.title,
     score: attempt.score || 0,
     total: 100, // Assuming 100 for now
-    rank: 12, // Placeholder
+    rank: null, // Rank data not yet available
     date: attempt.submittedAt ? attempt.submittedAt.toISOString() : new Date().toISOString(),
   }));
 
@@ -295,7 +295,7 @@ export default async function DashboardPage() {
                         <td className="px-6 py-4 text-[#111318] dark:text-gray-300">
                           <span className="font-bold">{score.score}</span>/{score.total}
                         </td>
-                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">#{score.rank}</td>
+                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">{score.rank ? `#${score.rank}` : '-'}</td>
                         <td className="px-6 py-4 text-right">
                           <a href="#" className="text-primary font-medium hover:underline">View Analysis</a>
                         </td>
