@@ -35,9 +35,8 @@ export async function GET(request) {
       ],
     };
 
-    if (role && role !== 'all') {
-      where.role = role;
-    }
+    // Enforce STUDENT role only as per requirement
+    where.role = 'STUDENT';
 
     if (status === 'active') {
       where.emailVerified = { not: null };
@@ -62,6 +61,7 @@ export async function GET(request) {
         name: true,
         email: true,
         role: true,
+        class: true, // Added class
         emailVerified: true,
         createdAt: true,
         updatedAt: true,

@@ -139,8 +139,8 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
         const subjectsData = await subjectsRes.json();
         const classesData = await classesRes.json();
 
-        setSubjects(subjectsData.subjects || []);
-        setClasses(classesData.classes || []);
+        setSubjects(subjectsData.data || []);
+        setClasses(classesData.data || []);
       } catch (error) {
         console.error('Error fetching data:', error);
         toast({
@@ -215,7 +215,7 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
   // Toggle correct answer for an option
   const toggleCorrectAnswer = (index) => {
     const newOptions = [...options];
-    
+
     if (!multipleAnswers) {
       // For single answer, only one option can be correct
       newOptions.forEach((opt, i) => {
@@ -225,7 +225,7 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
       // For multiple answers, toggle the selected option
       newOptions[index].isCorrect = !newOptions[index].isCorrect;
     }
-    
+
     form.setValue('options', newOptions);
   };
 
@@ -353,36 +353,17 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
 
                 <FormField
                   control={form.control}
-                  name="subjectId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select subject" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {subjects.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                              {subject.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="classId"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Class *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          form.setValue('subjectId', ''); // Reset subject when class changes
+                        }}
+                        defaultValue={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select class" />
@@ -399,6 +380,56 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="subjectId"
+                  render={({ field }) => {
+                    const selectedClassId = form.watch('classId');
+                    const selectedClass = classes.find(c => c.id === selectedClassId);
+
+                    const filteredSubjects = subjects.filter(subject => {
+                      if (!selectedClass) return true;
+
+                      const name = subject.name.toLowerCase();
+                      const isClass11 = selectedClass.name.includes('11');
+                      const isClass12 = selectedClass.name.includes('12');
+
+                      if (isClass11) {
+                        return ['physics', 'chemistry', 'mathematics', 'astronomy'].includes(name);
+                      }
+                      if (isClass12) {
+                        return ['physics', 'chemistry', 'mathematics'].includes(name);
+                      }
+                      return true;
+                    });
+
+                    return (
+                      <FormItem>
+                        <FormLabel>Subject *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!selectedClassId}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={selectedClassId ? "Select subject" : "Select class first"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {filteredSubjects.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField

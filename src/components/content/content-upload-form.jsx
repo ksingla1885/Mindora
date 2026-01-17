@@ -73,20 +73,29 @@ export function ContentUploadForm({
         thumbnailFile: null,
     });
 
-    // Update available topics when subject changes
+    // Update available topics when subject or class changes
     useEffect(() => {
+        let filtered = topics;
         if (formData.subjectId) {
-            const filtered = topics.filter(topic => topic.subjectId === formData.subjectId);
-            setAvailableTopics(filtered);
-
-            // Reset topic if it's not in the filtered list
-            if (formData.topicId && !filtered.some(t => t.id === formData.topicId)) {
-                setFormData(prev => ({ ...prev, topicId: '' }));
-            }
-        } else {
-            setAvailableTopics(topics);
+            filtered = filtered.filter(topic => topic.subjectId === formData.subjectId);
         }
-    }, [formData.subjectId, topics, formData.topicId]);
+        if (formData.classLevel) {
+            // Accepts classLevel as string, topic.classLevel may be string or number
+            filtered = filtered.filter(topic => {
+                // Accepts topic.classLevel as string, number, or array
+                if (Array.isArray(topic.classLevel)) {
+                    return topic.classLevel.includes(formData.classLevel) || topic.classLevel.includes(Number(formData.classLevel));
+                }
+                return topic.classLevel == formData.classLevel;
+            });
+        }
+        setAvailableTopics(filtered);
+
+        // Reset topic if it's not in the filtered list
+        if (formData.topicId && !filtered.some(t => t.id === formData.topicId)) {
+            setFormData(prev => ({ ...prev, topicId: '' }));
+        }
+    }, [formData.subjectId, formData.classLevel, topics, formData.topicId]);
 
     // Set initial subject based on topic if in edit mode
     useEffect(() => {

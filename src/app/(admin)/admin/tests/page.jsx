@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Plus,
   Search,
@@ -35,17 +36,75 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/cn';
 import Link from 'next/link';
 
+import { TestForm } from './_components/test-form';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+
 export default function TestsManagementPage() {
+  const router = useRouter();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [tests, setTests] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchTests = async () => {
+    try {
+      setIsLoading(true);
+      const res = await fetch('/api/tests');
+      const data = await res.json();
+      if (data.success) {
+        setTests(data.data.map(t => ({
+          id: t.id,
+          name: t.title,
+          olympiad: t.olympiad?.name || 'N/A',
+          duration: `${t.durationMinutes} mins`,
+          type: t.isPaid ? 'PAID' : 'FREE',
+          subject: t.subject || 'General',
+          class: t.categories?.[0] || 'N/A',
+          date: t.startTime ? new Date(t.startTime).toLocaleDateString() : 'N/A',
+          time: t.startTime ? new Date(t.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          price: t.price ? `₹${t.price}` : 'Free',
+          status: t.isPublished ? (new Date(t.endTime) < new Date() ? 'Completed' : (new Date(t.startTime) <= new Date() ? 'LIVE' : 'Scheduled')) : 'Draft',
+          participants: t._count?.attempts || 0,
+          participantsTrend: null
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch tests', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load tests.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTests();
+  }, []);
 
   const stats = [
-    { label: 'Total Tests', value: '0', trend: 'No tests', trendUp: null, icon: Library, color: 'text-primary' },
-    { label: 'Active Now', value: '0', trend: 'None', trendUp: null, icon: PlayCircle, color: 'text-emerald-500', isLive: false },
-    { label: 'Upcoming', value: '0', trend: 'Next 7 days', trendUp: null, icon: CalendarClock, color: 'text-amber-500' },
-    { label: 'Completed', value: '0', trend: 'No data', trendUp: null, icon: CheckCircle2, color: 'text-purple-500' }
+    { label: 'Total Tests', value: tests.length.toString(), trend: 'Updated just now', trendUp: null, icon: Library, color: 'text-primary' },
+    { label: 'Active Now', value: tests.filter(t => t.status === 'LIVE').length.toString(), trend: 'Currently live', trendUp: null, icon: PlayCircle, color: 'text-emerald-500', isLive: true },
+    { label: 'Upcoming', value: tests.filter(t => t.status === 'Scheduled').length.toString(), trend: 'Next 7 days', trendUp: null, icon: CalendarClock, color: 'text-amber-500' },
+    { label: 'Completed', value: tests.filter(t => t.status === 'Completed').length.toString(), trend: 'Past tests', trendUp: null, icon: CheckCircle2, color: 'text-purple-500' }
   ];
-
-  const tests = [];
 
   return (
     <div className="flex h-full bg-background dark:bg-background-dark text-foreground">
@@ -96,9 +155,22 @@ export default function TestsManagementPage() {
                 className="h-11 pl-11 rounded-xl bg-card border-border focus:ring-4 ring-primary/10 font-medium"
               />
             </div>
-            <Button className="bg-primary hover:bg-blue-700 text-white font-bold h-11 px-6 shadow-lg shadow-primary/20 shrink-0">
-              <Plus className="size-5 mr-2" /> Create Test
-            </Button>
+            <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-primary hover:bg-blue-700 text-white font-bold h-11 px-6 shadow-lg shadow-primary/20 shrink-0">
+                  <Plus className="size-5 mr-2" /> Create Test
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Test</DialogTitle>
+                </DialogHeader>
+                <TestForm onSuccess={() => {
+                  setIsCreateModalOpen(false);
+                  fetchTests();
+                }} />
+              </DialogContent>
+            </Dialog>
           </div>
         </header>
 
@@ -208,6 +280,7 @@ export default function TestsManagementPage() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.05 }}
                         className="group hover:bg-muted/20 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/admin/tests/${test.id}`)}
                       >
                         <td className="p-5"><input type="checkbox" className="rounded border-border" /></td>
                         <td className="p-5">
@@ -253,7 +326,10 @@ export default function TestsManagementPage() {
                         <td className="p-5 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all">
+                              <button
+                                className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-all"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <MoreVertical className="size-5" />
                               </button>
                             </DropdownMenuTrigger>
@@ -261,8 +337,14 @@ export default function TestsManagementPage() {
                               <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
                                 <BarChart3 className="size-4 text-primary" /> <span>Analytics</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer">
-                                <Edit className="size-4 text-emerald-500" /> <span>Edit Setup</span>
+                              <DropdownMenuItem
+                                className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  router.push(`/admin/tests/${test.id}`);
+                                }}
+                              >
+                                <Edit className="size-4 text-emerald-500" /> <span>Manage Questions</span>
                               </DropdownMenuItem>
                               <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500">
                                 <Trash2 className="size-4" /> <span>Suspend Test</span>
@@ -288,8 +370,8 @@ export default function TestsManagementPage() {
             </div>
           )}
         </main>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 
@@ -306,12 +388,3 @@ function NavButton({ icon: Icon, label, active = false }) {
     </button>
   );
 }
-
-// Re-using Shadcn components for Dropdown
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from '@/components/ui/dropdown-menu';

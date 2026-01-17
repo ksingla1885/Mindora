@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
 // GET /api/tests/[testId]/questions - Get all questions for a test
 export async function GET(request, { params }) {
-  const { testId } = params;
+  const { testId } = await params;
 
   try {
     const testQuestions = await prisma.testQuestion.findMany({
@@ -52,9 +51,9 @@ export async function GET(request, { params }) {
 
 // POST /api/tests/[testId]/questions - Add questions to a test
 export async function POST(request, { params }) {
-  const { testId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const { testId } = await params;
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -64,7 +63,7 @@ export async function POST(request, { params }) {
 
   try {
     const { questionIds } = await request.json();
-    
+
     if (!Array.isArray(questionIds) || questionIds.length === 0) {
       return NextResponse.json(
         { success: false, error: 'At least one question ID is required' },
@@ -129,7 +128,7 @@ export async function POST(request, { params }) {
 
     // Add new questions to the test
     const testQuestions = await prisma.$transaction(
-      newQuestionIds.map((questionId, index) => 
+      newQuestionIds.map((questionId, index) =>
         prisma.testQuestion.create({
           data: {
             testId,
@@ -176,21 +175,21 @@ export async function POST(request, { params }) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error adding questions to test:', error);
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'One or more questions already exist in the test' },
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'One or more questions not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to add questions to test' },
       { status: 500 }

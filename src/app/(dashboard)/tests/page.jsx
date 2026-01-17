@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
     KeyboardArrowDown, // Replaced by ChevronDown 
@@ -25,8 +25,43 @@ import { cn } from "@/lib/cn";
 // No static data - will be fetched from API
 const WEEKLY_TESTS = [];
 
-export default function WeeklyTestsPage() {
+const WeeklyTestsPage = () => {
     const [activeTab, setActiveTab] = useState("Free");
+    const [tests, setTests] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        const fetchTests = async () => {
+            try {
+                setLoading(true);
+                // Fetch tests based on active tab (Free/Paid)
+                // Note: The API currently returns all tests, checking isPaid property on the client side for now 
+                // or pass as param if API supported it. API supports isPublished.
+                // We'll filter by isPaid on the client or add param to API.
+                // Assuming /api/tests handles class filtering automatically via session.
+                const response = await fetch('/api/tests');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch tests');
+                }
+                const result = await response.json();
+                if (result.success) {
+                    setTests(result.data);
+                }
+            } catch (err) {
+                console.error("Error fetching tests:", err);
+                setError("Failed to load tests");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTests();
+    }, []);
+
+    const filteredTests = tests.filter(test =>
+        activeTab === "Free" ? !test.isPaid : test.isPaid
+    );
 
     return (
         <div className="flex-1 flex justify-center py-8 px-4 lg:px-8">
@@ -95,53 +130,48 @@ export default function WeeklyTestsPage() {
 
                 {/* Grid Content */}
                 <section>
-                    {WEEKLY_TESTS.length === 0 ? (
+                    {loading ? (
+                        <div className="flex items-center justify-center min-h-[50vh]">
+                            <p className="text-muted-foreground">Loading tests...</p>
+                        </div>
+                    ) : filteredTests.length === 0 ? (
                         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
                             <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
                                 <BarChart2 className="w-10 h-10 text-muted-foreground/50" />
                             </div>
-                            <h2 className="text-2xl font-bold text-foreground mb-3">No Weekly Tests Available</h2>
+                            <h2 className="text-2xl font-bold text-foreground mb-3">No {activeTab} Tests Available</h2>
                             <p className="text-muted-foreground max-w-md leading-relaxed">
-                                There are currently no weekly olympiad tests available. Check back on Monday for new tests!
+                                There are currently no {activeTab.toLowerCase()} olympiad tests available. Check back later!
                             </p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {WEEKLY_TESTS.map((test) => (
+                            {filteredTests.map((test) => (
                                 <Link key={test.id} href={`/tests/${test.id}`} className="block">
                                     <div className="group flex flex-col bg-white dark:bg-[#1a2332] rounded-xl overflow-hidden border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(19,91,236,0.15)] transition-all duration-300 h-full">
                                         {/* Image Header */}
                                         <div
                                             className={cn(
                                                 "h-40 bg-cover bg-center relative transition-all duration-500",
-                                                test.status === "Completed" && "grayscale group-hover:grayscale-0",
-                                                test.status === "Completed" && "opacity-90 group-hover:opacity-100"
+                                                // Using a placeholder or test.image if available
+                                                "bg-slate-200 dark:bg-slate-800"
                                             )}
-                                            style={{ backgroundImage: `url('${test.image}')` }}
+                                            style={test.image ? { backgroundImage: `url('${test.image}')` } : {}}
                                         >
                                             <div className="absolute top-3 right-3">
-                                                {test.status === 'Live' && (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-green-500/90 text-white backdrop-blur-sm shadow-sm animate-pulse">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                                                        LIVE NOW
-                                                    </span>
-                                                )}
-                                                {test.status === 'Upcoming' && (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-500/90 text-white backdrop-blur-sm shadow-sm">
-                                                        UPCOMING
-                                                    </span>
-                                                )}
-                                                {test.status === 'Completed' && (
-                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-600/90 text-white backdrop-blur-sm shadow-sm">
-                                                        COMPLETED
-                                                    </span>
-                                                )}
+                                                {/* Status Badge Logic - Simplified for now */}
+                                                <span className={cn(
+                                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm",
+                                                    "bg-blue-500/90 text-white"
+                                                )}>
+                                                    {test.isPublished ? 'PUBLISHED' : 'DRAFT'}
+                                                </span>
                                             </div>
 
-                                            {test.price && (
+                                            {test.isPaid && test.price > 0 && (
                                                 <div className="absolute bottom-3 left-3">
                                                     <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-900/60 text-white backdrop-blur-sm border border-white/20">
-                                                        {test.price}
+                                                        ₹{test.price}
                                                     </span>
                                                 </div>
                                             )}
@@ -150,12 +180,10 @@ export default function WeeklyTestsPage() {
                                         {/* Content */}
                                         <div className="p-5 flex flex-col flex-1 gap-4">
                                             <div className="flex flex-col gap-1">
-                                                <div className={cn("flex items-center gap-2 text-xs font-semibold tracking-wide uppercase", test.subjectColor)}>
-                                                    <span>{test.subject}</span>
-                                                    <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
-                                                    <span>{test.olympiad}</span>
+                                                <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-blue-600 dark:text-blue-400">
+                                                    <span>{test.olympiad?.name || 'Olympiad'}</span>
                                                 </div>
-                                                <h3 className="text-slate-900 dark:text-white text-xl font-bold leading-tight">
+                                                <h3 className="text-slate-900 dark:text-white text-xl font-bold leading-tight line-clamp-2">
                                                     {test.title}
                                                 </h3>
                                             </div>
@@ -164,15 +192,11 @@ export default function WeeklyTestsPage() {
                                             <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-600 dark:text-[#92a4c9]">
                                                 <div className="flex items-center gap-2">
                                                     <Clock className="w-[18px] h-[18px]" />
-                                                    <span>{test.duration}</span>
+                                                    <span>{test.durationMinutes} min</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <List className="w-[18px] h-[18px]" />
-                                                    <span>{test.questions}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <BarChart2 className="w-[18px] h-[18px]" />
-                                                    <span className={cn("font-medium", test.difficultyColor)}>{test.difficulty}</span>
+                                                    <span>{test._count?.testQuestions || 0} Qs</span>
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <GraduationCap className="w-[18px] h-[18px]" />
@@ -184,30 +208,16 @@ export default function WeeklyTestsPage() {
                                             <div className="mt-auto pt-4 border-t border-slate-100 dark:border-[#232f48] flex items-center justify-between">
                                                 <div className="flex flex-col">
                                                     <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                        {test.status === 'Live' ? 'Ends in' : test.status === 'Completed' ? 'Ended' : 'Starts'}
+                                                        Starts
                                                     </span>
                                                     <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                        {test.timeLeft.replace('Ends in ', '').replace('Starts ', '').replace('Ended ', '')}
+                                                        {new Date(test.startTime).toLocaleDateString()}
                                                     </span>
                                                 </div>
 
-                                                {test.status === 'Live' ? (
-                                                    <button className="bg-primary hover:bg-blue-600 text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-lg shadow-primary/20">
-                                                        Start Test
-                                                    </button>
-                                                ) : test.status === 'Completed' ? (
-                                                    <button className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors">
-                                                        View Results
-                                                    </button>
-                                                ) : test.isPaid ? (
-                                                    <button className="bg-white dark:bg-transparent border border-primary text-primary hover:bg-primary/5 dark:hover:bg-primary/10 text-sm font-medium py-2 px-5 rounded-lg transition-colors">
-                                                        Buy & Register
-                                                    </button>
-                                                ) : (
-                                                    <button className="bg-white dark:bg-transparent border border-primary text-primary hover:bg-primary/5 dark:hover:bg-primary/10 text-sm font-medium py-2 px-5 rounded-lg transition-colors">
-                                                        Register
-                                                    </button>
-                                                )}
+                                                <button className="bg-primary hover:bg-blue-600 text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-lg shadow-primary/20">
+                                                    View Details
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -220,4 +230,6 @@ export default function WeeklyTestsPage() {
             </div>
         </div>
     );
-}
+};
+
+export default WeeklyTestsPage;

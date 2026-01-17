@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
@@ -16,11 +15,23 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
 
     const where = {};
-    
+
     if (olympiadId) {
       where.olympiadId = olympiadId;
     }
-    
+
+    // Filter by class
+    const classFilter = searchParams.get('class');
+    if (classFilter) {
+      where.class = classFilter;
+    } else {
+      // If no explicit class filter, try to filter by user's class for students
+      const session = await auth();
+      if (session?.user?.role === 'STUDENT' && session?.user?.class) {
+        where.class = session.user.class;
+      }
+    }
+
     if (isPublished !== null) {
       where.isPublished = isPublished === 'true';
     }
@@ -74,8 +85,8 @@ export async function GET(request) {
 
 // POST /api/tests - Create a new test
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -85,33 +96,43 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    
+
     // Validate required fields
-    if (!body.title || !body.startTime || !body.endTime || body.isPaid === undefined) {
+    if (!body.title || !body.class || body.isPaid === undefined) {
       return NextResponse.json(
-        { success: false, error: 'Title, start time, end time, and payment status are required' },
+        { success: false, error: 'Title, class, and payment status are required' },
         { status: 400 }
       );
     }
 
-    // Convert string dates to Date objects
-    const startTime = new Date(body.startTime);
-    const endTime = new Date(body.endTime);
-    
-    if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid date format' },
-        { status: 400 }
-      );
+    // Convert string dates to Date objects if provided
+    let startTime = null;
+    let endTime = null;
+
+    if (body.startTime) {
+      startTime = new Date(body.startTime);
     }
-    
-    if (startTime >= endTime) {
-      return NextResponse.json(
-        { success: false, error: 'End time must be after start time' },
-        { status: 400 }
-      );
+
+    if (body.endTime) {
+      endTime = new Date(body.endTime);
     }
-    
+
+    if (startTime && endTime) {
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid date format' },
+          { status: 400 }
+        );
+      }
+
+      if (startTime >= endTime) {
+        return NextResponse.json(
+          { success: false, error: 'End time must be after start time' },
+          { status: 400 }
+        );
+      }
+    }
+
     if (body.isPaid && (!body.price || body.price <= 0)) {
       return NextResponse.json(
         { success: false, error: 'Price is required for paid tests' },
@@ -119,20 +140,33 @@ export async function POST(request) {
       );
     }
 
-    // Create the test
+    // Create the test data object
+    const testData = {
+      title: body.title,
+      description: body.description || null,
+      isPaid: body.isPaid || false,
+      price: body.isPaid ? parseFloat(body.price) : 0,
+      startTime,
+      endTime,
+      durationMinutes: body.durationMinutes || 60,
+      isPublished: body.isPublished || false,
+      createdBy: session.user.id,
+      subject: body.subject,
+      class: body.class,
+      testType: body.testType,
+      tags: body.tags || [],
+      categories: body.categories || [],
+      instructions: body.instructions,
+      passingScore: body.passingScore ? parseFloat(body.passingScore) : null,
+      allowMultipleAttempts: body.maxAttempts !== 1, // Simple mapping for now
+    };
+
+    if (body.olympiadId) {
+      testData.olympiadId = body.olympiadId;
+    }
+
     const test = await prisma.test.create({
-      data: {
-        title: body.title,
-        description: body.description || null,
-        olympiadId: body.olympiadId || null,
-        isPaid: body.isPaid || false,
-        price: body.isPaid ? parseFloat(body.price) : 0,
-        startTime,
-        endTime,
-        durationMinutes: body.durationMinutes || 60,
-        isPublished: body.isPublished || false,
-        createdBy: session.user.id,
-      },
+      data: testData,
     });
 
     return NextResponse.json({
@@ -141,23 +175,24 @@ export async function POST(request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating test:', error);
-    
+    console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'A test with similar details already exists' },
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'P2003') {
       return NextResponse.json(
         { success: false, error: 'Invalid olympiad ID' },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { success: false, error: 'Failed to create test' },
+      { success: false, error: `Failed to create test: ${error.message}` },
       { status: 500 }
     );
   } finally {

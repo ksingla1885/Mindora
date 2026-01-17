@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
 // GET /api/tests/[testId] - Get a single test with questions
 export async function GET(request, { params }) {
-  const { testId } = params;
-  const session = await getServerSession(authOptions);
+  const { testId } = await params;
+  const session = await auth();
 
   try {
     const test = await prisma.test.findUnique({
@@ -96,8 +95,8 @@ export async function GET(request, { params }) {
 
 // PATCH /api/tests/[testId] - Update a test
 export async function PATCH(request, { params }) {
-  const { testId } = params;
-  const session = await getServerSession(authOptions);
+  const { testId } = await params;
+  const session = await auth();
 
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
@@ -195,8 +194,8 @@ export async function PATCH(request, { params }) {
 
 // DELETE /api/tests/[testId] - Delete a test
 export async function DELETE(request, { params }) {
-  const { testId } = params;
-  const session = await getServerSession(authOptions);
+  const { testId } = await params;
+  const session = await auth();
 
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(

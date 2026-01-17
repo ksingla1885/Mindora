@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
@@ -17,15 +16,15 @@ export async function GET(request) {
     const skip = (page - 1) * limit;
 
     const where = {};
-    
+
     if (topicId) {
       where.topicId = topicId;
     }
-    
+
     if (type) {
       where.type = type;
     }
-    
+
     if (difficulty) {
       where.difficulty = difficulty;
     }
@@ -79,8 +78,8 @@ export async function GET(request) {
 
 // POST /api/questions - Create a new question
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -90,7 +89,7 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.text || !body.topicId || !body.type) {
       return NextResponse.json(
@@ -107,14 +106,14 @@ export async function POST(request) {
           { status: 400 }
         );
       }
-      
+
       if (body.correctAnswer === undefined || body.correctAnswer === null) {
         return NextResponse.json(
           { success: false, error: 'Correct answer is required for MCQs' },
           { status: 400 }
         );
       }
-      
+
       // Convert options array to JSON string for storage
       body.options = JSON.stringify(body.options);
     }
@@ -155,21 +154,21 @@ export async function POST(request) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating question:', error);
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'A similar question already exists' },
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Topic not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to create question' },
       { status: 500 }

@@ -490,6 +490,11 @@ model Test {
   allowMultipleAttempts Boolean      @default(false) @map("allow_multiple_attempts")
   showResultsImmediately Boolean     @default(false) @map("show_results_immediately")
   passingScore        Float?         @map("passing_score")
+  subject             String?
+  testType            String         @default("weekly") @map("test_type")
+  class               String?
+  tags                String[]
+  categories          String[]
   instructions        String?        @db.Text
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")

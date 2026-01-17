@@ -1,0 +1,9 @@
+[dotenv@17.2.3] injecting env (23) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+Checking Supabase Environment Variables...
+NEXT_PUBLIC_SUPABASE_URL: ✅ Set
+SUPABASE_SERVICE_ROLE_KEY: ✅ Set
+Full env keys: [
+  'NEXT_PUBLIC_SUPABASE_ANON_KEY',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY'
+]

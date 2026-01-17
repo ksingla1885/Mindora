@@ -1,21 +1,10 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
+import { supabase } from '@/lib/supabase';
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
-
-// Allowed file types and their corresponding content types
+// Allowed file types
 const ALLOWED_FILE_TYPES = {
   'application/pdf': 'pdf',
   'video/mp4': 'mp4',
@@ -29,13 +18,16 @@ const ALLOWED_FILE_TYPES = {
   'text/plain': 'txt',
 };
 
-// Maximum file size (50MB in bytes)
+// Maximum file size (50MB)
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const BUCKET_NAME = 'content';
 
 export async function POST(request) {
   try {
+    console.log('🚀 Upload request received');
+
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -52,6 +44,7 @@ export async function POST(request) {
     const isFree = formData.get('isFree') === 'true';
     const duration = formData.get('duration') || null;
     const thumbnailUrl = formData.get('thumbnailUrl') || null;
+    const className = formData.get('class');
 
     // Validate required fields
     if (!file || !title || !topicId) {
@@ -77,72 +70,105 @@ export async function POST(request) {
       );
     }
 
-    // Check if topic exists
+    // Check if Topic Exists
     const topic = await prisma.topic.findUnique({
       where: { id: topicId },
     });
 
     if (!topic) {
+      return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
+    }
+
+    // Check Supabase Client
+    if (!supabase) {
       return NextResponse.json(
-        { error: 'Topic not found' },
-        { status: 404 }
+        { error: 'Server misconfiguration: Supabase client not initialized (missing keys).' },
+        { status: 500 }
       );
     }
 
-    // Generate a unique file key
+    // Ensure Bucket Exists (idempotent-ish)
+    const { data: buckets } = await supabase.storage.listBuckets();
+    if (!buckets?.find(b => b.name === BUCKET_NAME)) {
+      await supabase.storage.createBucket(BUCKET_NAME, {
+        public: true,
+        fileSizeLimit: MAX_FILE_SIZE,
+        allowedMimeTypes: Object.keys(ALLOWED_FILE_TYPES)
+      });
+    }
+
+    // Generate path
     const fileExtension = ALLOWED_FILE_TYPES[file.type];
-    const fileKey = `content/${uuidv4()}.${fileExtension}`;
+    const fileName = `${uuidv4()}.${fileExtension}`;
+    const filePath = `${fileName}`;
 
-    // Convert file to buffer
+    // Upload to Supabase
     const buffer = Buffer.from(await file.arrayBuffer());
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: false
+      });
 
-    // Upload to S3
-    const uploadParams = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: fileKey,
-      Body: buffer,
-      ContentType: file.type,
-      Metadata: {
-        'x-amz-meta-title': title,
-        'x-amz-meta-uploaded-by': session.user.id,
-      },
-    };
+    if (uploadError) {
+      console.error('Supabase Upload Error:', uploadError);
+      throw new Error(`Storage Error: ${uploadError.message}`);
+    }
 
-    await s3Client.send(new PutObjectCommand(uploadParams));
+    // Get Public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
 
-    // Generate a signed URL for the uploaded file
-    const getObjectParams = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
-      Key: fileKey,
-    };
+    // Create Slug from Title
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '') + '-' + uuidv4().slice(0, 8);
 
-    const fileUrl = await getSignedUrl(
-      s3Client,
-      new GetObjectCommand(getObjectParams),
-      { expiresIn: 60 * 60 * 24 * 7 } // 7 days
-    );
+
+    console.log('✅ File uploaded to Supabase successfully');
+    console.log('📝 Creating database record...');
+
+    // Verify user exists before creating content
+    const userExists = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true }
+    });
+
+    if (!userExists) {
+      console.error('❌ User not found:', session.user.id);
+      throw new Error('User account not found. Please log in again.');
+    }
+
+    console.log('✅ User verified:', session.user.id);
 
     // Save to database
     const contentItem = await prisma.contentItem.create({
       data: {
         title,
+        slug,
         description,
-        url: fileUrl,
+        url: publicUrl,
         type: contentType,
-        isFree,
-        duration: duration ? parseInt(duration) : null,
-        thumbnailUrl,
+        provider: 'supabase',
         topic: {
           connect: { id: topicId },
         },
-        uploadedBy: {
+        creator: {
           connect: { id: session.user.id },
         },
         metadata: {
+          isFree: isFree, // Stored here instead
+          duration: duration ? parseInt(duration) : null,
+          thumbnailUrl: thumbnailUrl,
           originalName: file.name,
           size: file.size,
           mimeType: file.type,
-          s3Key: fileKey,
+          bucket: BUCKET_NAME,
+          path: filePath,
+          ...(className && { class: className }),
         },
       },
       include: {
@@ -160,6 +186,8 @@ export async function POST(request) {
         },
       },
     });
+
+    console.log('✅ Database record created successfully');
 
     return NextResponse.json({
       success: true,
@@ -167,60 +195,13 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload handler error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET() {
-  try {
-    // List all content items (for admin)
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'ADMIN') {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const contentItems = await prisma.contentItem.findMany({
-      include: {
-        topic: {
-          select: {
-            id: true,
-            name: true,
-            subject: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        uploadedBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
+      {
+        error: 'Failed to upload file',
+        details: error.message,
+        stack: error.stack
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: contentItems,
-    });
-  } catch (error) {
-    console.error('Error fetching content items:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch content items' },
       { status: 500 }
     );
   }

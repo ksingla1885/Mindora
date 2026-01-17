@@ -189,23 +189,7 @@ export default function SignUp() {
               </div>
             </div>
 
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-foreground mb-1">
-                I am a
-              </label>
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleChange}
-                className="block w-full px-3 py-2.5 bg-background border border-input rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary sm:text-sm transition-all duration-200"
-                suppressHydrationWarning
-              >
-                <option value="STUDENT">Student</option>
-                <option value="TEACHER">Teacher</option>
-              </select>
-            </div>
-
+            {/* Role selection removed - defaulting to STUDENT */}
             {formData.role === 'STUDENT' && (
               <div className="animate-in fade-in slide-in-from-top-2 duration-200">
                 <label htmlFor="studentClass" className="block text-sm font-medium text-foreground mb-1">

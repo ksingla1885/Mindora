@@ -8,7 +8,7 @@ export async function GET(request) {
   const topicId = searchParams.get('topicId');
   const search = searchParams.get('search') || '';
   const type = searchParams.get('type');
-  
+
   try {
     const contentItems = await prisma.contentItem.findMany({
       where: {
@@ -52,7 +52,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const { 
+    const {
       title,
       description,
       type,
@@ -61,7 +61,7 @@ export async function POST(request) {
       topicId,
       metadata = {}
     } = await request.json();
-    
+
     if (!title) {
       return NextResponse.json(
         { success: false, error: 'Title is required' },
@@ -128,20 +128,20 @@ export async function POST(request) {
       }
     });
 
-    return NextResponse.json({ 
-      success: true, 
-      data: contentItem 
+    return NextResponse.json({
+      success: true,
+      data: contentItem
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating content item:', error);
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'A content item with this title already exists in this topic' },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to create content item' },
       { status: 500 }

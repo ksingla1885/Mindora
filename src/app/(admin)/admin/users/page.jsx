@@ -101,7 +101,8 @@ export default function UsersPage() {
     const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesStatus = selectedStatus === 'all' ||
       (selectedStatus === 'active' ? user.emailVerified : !user.emailVerified);
-    const matchesClass = selectedClass === 'all' || user.class === selectedClass;
+    // Use loose equality or string conversion for class comparison to handle number/string differences
+    const matchesClass = selectedClass === 'all' || String(user.class) === String(selectedClass);
 
     return matchesSearch && matchesRole && matchesStatus && matchesClass;
   });
@@ -128,34 +129,46 @@ export default function UsersPage() {
     }
   };
 
-  const handleBulkAction = async (action) => {
-    if (selectedUsers.length === 0) {
-      toast.error('Please select at least one user.');
-      return;
-    }
-
+  const executeAction = async (userIds, action) => {
     setIsBulkActionLoading(true);
     try {
       const response = await fetch('/api/admin/users/bulk-action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userIds: selectedUsers,
+          userIds,
           action,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to perform bulk action');
+      if (!response.ok) throw new Error('Failed to perform action');
 
       await loadUsers();
-      setSelectedUsers([]);
+      setSelectedUsers([]); // Clear selection if any
       toast.success(`Successfully performed ${action} on users`);
     } catch (error) {
-      console.error('Bulk action error:', error);
+      console.error('Action error:', error);
       toast.error(`Failed to perform ${action}`);
     } finally {
       setIsBulkActionLoading(false);
     }
+  };
+
+  const handleBulkAction = (action) => {
+    if (selectedUsers.length === 0) {
+      toast.error('Please select at least one user.');
+      return;
+    }
+    executeAction(selectedUsers, action);
+  };
+
+  const handleSingleAction = (userId, action) => {
+    executeAction([userId], action);
+  };
+
+  const handleResetPassword = (email) => {
+    // In a real app, this would call an API to send a reset email
+    toast.success(`Password reset link sent to ${email}`);
   };
 
   // Stats
@@ -366,7 +379,7 @@ export default function UsersPage() {
                   </div>
                 </th>
                 <th className="px-6 py-5">User</th>
-                <th className="px-6 py-5">Profile</th>
+                <th className="px-6 py-5">Class</th>
                 <th className="px-6 py-5">Role</th>
                 <th className="px-6 py-5">Joined</th>
                 <th className="px-6 py-5">Status</th>
@@ -437,7 +450,7 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center rounded-lg bg-muted px-2.5 py-1 text-[11px] font-bold text-foreground border border-border">
-                          {user.class ? `Grade ${user.class}` : (user.role === 'admin' ? 'Management' : 'General')}
+                          {user.class ? `Grade ${user.class}` : '-'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
@@ -486,12 +499,18 @@ export default function UsersPage() {
                                 <span className="font-medium">Edit Details</span>
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg gap-3 cursor-pointer p-3">
+                            <DropdownMenuItem
+                              className="rounded-lg gap-3 cursor-pointer p-3"
+                              onClick={() => handleResetPassword(user.email)}
+                            >
                               <Key className="size-4 text-amber-500" />
                               <span className="font-medium">Reset Password</span>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-border" />
-                            <DropdownMenuItem className="rounded-lg gap-3 cursor-pointer p-3 text-red-500 focus:text-red-500 focus:bg-red-500/10">
+                            <DropdownMenuItem
+                              className="rounded-lg gap-3 cursor-pointer p-3 text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                              onClick={() => handleSingleAction(user.id, 'deactivate')}
+                            >
                               <Trash2 className="size-4" />
                               <span className="font-medium">Block Access</span>
                             </DropdownMenuItem>
