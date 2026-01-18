@@ -5,42 +5,11 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import EmailProvider from "next-auth/providers/email"
 import bcrypt from "bcryptjs"
 import { randomBytes } from "crypto"
-import { Resend } from 'resend'
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+import { sendVerificationEmail } from "@/lib/email"
 
 // Generate a random token for email verification and password reset
 const generateToken = () => {
     return randomBytes(32).toString('hex')
-}
-
-// Send verification email
-const sendVerificationEmail = async (email, token) => {
-    const verifyUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`
-
-    if (resend) {
-        await resend.emails.send({
-            from: 'Mindora <noreply@mindora.com>',
-            to: email,
-            subject: 'Verify your email address',
-            html: `
-        <div>
-          <h1>Welcome to Mindora!</h1>
-          <p>Please verify your email by clicking the link below:</p>
-          <a href="${verifyUrl}">Verify Email</a>
-          <p>Or copy and paste this link into your browser:</p>
-          <p>${verifyUrl}</p>
-        </div>
-      `
-        })
-    } else {
-        console.log('--------------------------------------------------')
-        console.log('WARNING: RESEND_API_KEY missing. Email not sent.')
-        console.log(`To: ${email}`)
-        console.log(`Subject: Verify your email address`)
-        console.log(`Verify URL: ${verifyUrl}`)
-        console.log('--------------------------------------------------')
-    }
 }
 
 export const authOptions = {
@@ -63,7 +32,12 @@ export const authOptions = {
 
             // Send verification email
             if (process.env.NODE_ENV !== 'test') {
-                await sendVerificationEmail(user.email, verificationToken)
+                try {
+                    // Pass the full user object (with email) and the token
+                    await sendVerificationEmail({ ...user, email: user.email }, verificationToken)
+                } catch (error) {
+                    console.error("Failed to send verification email:", error)
+                }
             }
 
             return newUser
@@ -95,7 +69,11 @@ export const authOptions = {
                 if (!user.emailVerified) {
                     // Resend verification email if not verified
                     if (process.env.NODE_ENV !== 'test') {
-                        await sendVerificationEmail(user.email, user.verificationToken)
+                        try {
+                            await sendVerificationEmail(user, user.verificationToken)
+                        } catch (error) {
+                            console.error("Failed to resend verification email:", error)
+                        }
                     }
                     throw new Error('Please verify your email before logging in. A new verification email has been sent.')
                 }

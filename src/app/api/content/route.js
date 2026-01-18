@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
@@ -52,6 +53,15 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const session = await auth();
+
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const {
       title,
       description,
@@ -102,15 +112,24 @@ export async function POST(request) {
       );
     }
 
+    // Generate slug from title
+    const baseSlug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+    const slug = `${baseSlug}-${Date.now()}`; // Ensure uniqueness
+
     const contentItem = await prisma.contentItem.create({
       data: {
         title,
+        slug,
         description: description || null,
         type,
         url,
         provider,
         metadata,
-        topicId
+        topicId,
+        createdBy: session.user.id,
       },
       include: {
         topic: {
@@ -150,3 +169,4 @@ export async function POST(request) {
     await prisma.$disconnect();
   }
 }
+

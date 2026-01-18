@@ -3,8 +3,23 @@ import { render } from '@react-email/render';
 import { VerificationEmail } from '@/components/emails/VerificationEmail';
 import { ResetPasswordEmail } from '@/components/emails/ResetPasswordEmail';
 
-// Create a test account for development
-const createTestAccount = async () => {
+// Configure email transporter
+const getEmailConfig = async () => {
+  // If real credentials are provided, use them (works in both dev and prod)
+  if (process.env.SMTP_PASSWORD) {
+    return {
+      service: process.env.SMTP_SERVICE,
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    };
+  }
+
+  // Fallback to Ethereal for development if no real credentials
   if (process.env.NODE_ENV === 'development') {
     const testAccount = await nodemailer.createTestAccount();
     return {
@@ -17,21 +32,21 @@ const createTestAccount = async () => {
       },
     };
   }
-  
-  // Production configuration (using SendGrid)
+
+  // Default/Production configuration (will fail if env vars missing)
   return {
-    host: process.env.EMAIL_SERVER_HOST,
-    port: process.env.EMAIL_SERVER_PORT,
-    secure: true,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: process.env.SMTP_SECURE === 'true',
     auth: {
-      user: process.env.EMAIL_SERVER_USER,
-      pass: process.env.EMAIL_SERVER_PASSWORD,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASSWORD,
     },
   };
 };
 
 const transporter = nodemailer.createTransport({
-  ...(await createTestAccount()),
+  ...(await getEmailConfig()),
 });
 
 // Verify connection configuration
@@ -45,7 +60,7 @@ transporter.verify((error) => {
 
 export const sendVerificationEmail = async (user, token) => {
   const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
-  
+
   const emailHtml = render(
     <VerificationEmail username={user.name || 'there'} verificationUrl={verificationUrl} />
   );
@@ -66,7 +81,7 @@ export const sendVerificationEmail = async (user, token) => {
 
 export const sendPasswordResetEmail = async (user, token) => {
   const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
-  
+
   const emailHtml = render(
     <ResetPasswordEmail username={user.name || 'there'} resetUrl={resetUrl} />
   );

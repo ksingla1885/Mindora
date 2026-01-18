@@ -44,6 +44,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { supabaseClient } from '@/lib/supabase-client';
 
 // Mapping of Classes to allowed Subjects
 const CLASS_SUBJECT_MAPPING = {
@@ -70,6 +71,8 @@ export default function ContentManagementPage() {
 
     // Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState(null);
     const [newContent, setNewContent] = useState({
         title: '',
         description: '',
@@ -155,10 +158,15 @@ export default function ContentManagementPage() {
         // Fetch topics for this subject
         if (val) {
             try {
-                // Try finding exact match or Class-specific match
-                let subjectObj = subjects.find(s => s.name === val);
+                // Debugging
+                console.log('Selecting Subject:', val, 'Class:', selectedClass);
+
+                // Try finding exact match or Class-specific match (Case Insensitive)
+                let subjectObj = subjects.find(s => s.name.toLowerCase() === val.toLowerCase());
+
                 if (!subjectObj && selectedClass) {
-                    subjectObj = subjects.find(s => s.name === `${val} (${selectedClass})`);
+                    const targetName = `${val} (${selectedClass})`.toLowerCase();
+                    subjectObj = subjects.find(s => s.name.toLowerCase() === targetName);
                 }
 
                 if (subjectObj) {
@@ -169,8 +177,12 @@ export default function ContentManagementPage() {
                     }
                 } else {
                     console.warn(`Subject not found for: ${val} in class ${selectedClass}`);
+                    console.log('Available Subjects:', subjects.map(s => s.name));
                     setTopics([]);
-                    toast.error(`Subject '${val}' not found in database for ${selectedClass}.`);
+                    // Only show error if subjects are actually loaded (avoid error during initial load)
+                    if (subjects.length > 0) {
+                        toast.error(`Subject '${val}' not found for ${selectedClass}.`);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching topics:', error);
@@ -274,56 +286,84 @@ export default function ContentManagementPage() {
 
         try {
             if (newContent.source === 'upload') {
-                // Handle File Upload
-                const formData = new FormData();
-                formData.append('file', newContent.file);
-                formData.append('title', newContent.title);
-                formData.append('description', newContent.description);
-                formData.append('topicId', finalTopicId);
-                formData.append('contentType', newContent.type === 'video' ? 'video/mp4' : 'application/pdf');
-                formData.append('isFree', 'true');
-                formData.append('class', selectedClass);
+                // 1. Client-Side Upload to Supabase
+                const file = newContent.file;
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${crypto.randomUUID()}.${fileExt}`;
+                const filePath = `${fileName}`;
 
-                // Fake progress for UI
+                // Fake progress for UI (since fetch API doesn't support progress easily)
                 const uploadId = Date.now();
                 setActiveUploads(prev => [...prev, {
                     id: uploadId,
-                    name: newContent.file.name,
+                    name: file.name,
                     progress: 0,
-                    size: (newContent.file.size / (1024 * 1024)).toFixed(2) + ' MB',
+                    size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
                     current: '0 MB',
-                    time: 'Calculating...'
+                    time: 'Uploading...'
                 }]);
 
                 const interval = setInterval(() => {
                     setActiveUploads(prev => prev.map(u =>
-                        u.id === uploadId ? { ...u, progress: Math.min(u.progress + 10, 90) } : u
+                        u.id === uploadId ? { ...u, progress: Math.min(u.progress + 5, 90) } : u
                     ));
                 }, 500);
 
-                const response = await fetch('/api/content/upload', {
-                    method: 'POST',
-                    body: formData,
-                });
+                try {
+                    const { error: uploadError } = await supabaseClient
+                        .storage
+                        .from('content')
+                        .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false
+                        });
 
-                clearInterval(interval);
-                setActiveUploads(prev => prev.filter(u => u.id !== uploadId));
+                    if (uploadError) throw new Error("Supabase Upload Error: " + uploadError.message);
 
-                if (!response.ok) {
-                    let errorMessage = 'Upload failed';
-                    try {
-                        const error = await response.json();
-                        errorMessage = error.details || error.error || 'Upload failed';
-                        console.error("Upload API Error (JSON):", error);
-                    } catch (e) {
-                        const text = await response.text();
-                        console.error("Upload API Error (Text):", text);
-                        errorMessage = `Server Error: ${response.status} ${response.statusText}`;
+                    // 2. Get Public URL
+                    const { data: { publicUrl } } = supabaseClient
+                        .storage
+                        .from('content')
+                        .getPublicUrl(filePath);
+
+                    // 3. Send Metadata to API
+                    const response = await fetch('/api/content/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: newContent.title,
+                            description: newContent.description,
+                            topicId: finalTopicId,
+                            contentType: newContent.type === 'video' ? 'video/mp4' : 'application/pdf',
+                            isFree: true,
+                            class: selectedClass,
+                            // Metadata
+                            url: publicUrl,
+                            originalName: file.name,
+                            size: file.size,
+                            mimeType: file.type,
+                            bucket: 'content',
+                            path: filePath
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        let errorMessage = 'Upload failed';
+                        try {
+                            const error = await response.json();
+                            errorMessage = error.details || error.error || 'Upload failed';
+                        } catch (e) {
+                            const text = await response.text();
+                            errorMessage = `Server Error: ${response.status} ${response.statusText}`;
+                        }
+                        throw new Error(errorMessage);
                     }
-                    throw new Error(errorMessage);
-                }
 
-                toast.success("File uploaded successfully.");
+                    toast.success("File uploaded successfully.");
+                } finally {
+                    clearInterval(interval);
+                    setActiveUploads(prev => prev.filter(u => u.id !== uploadId));
+                }
 
             } else {
                 // Handle Link Submission (YouTube/External)
@@ -375,22 +415,34 @@ export default function ContentManagementPage() {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm("Are you sure you want to delete this content?")) return;
+    const handleDelete = (id) => {
+        setItemToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!itemToDelete) return;
+        setIsSubmitting(true);
 
         try {
-            const response = await fetch(`/api/content/${id}`, {
+            const response = await fetch(`/api/content/${itemToDelete}`, {
                 method: 'DELETE'
             });
 
             if (response.ok) {
                 toast.success("Content removed.");
-                setContentItems(prev => prev.filter(i => i.id !== id));
+                setContentItems(prev => prev.filter(i => i.id !== itemToDelete));
+                setIsDeleteModalOpen(false);
             } else {
-                throw new Error("Delete failed");
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Delete failed");
             }
         } catch (e) {
-            toast.error("Could not delete content.");
+            console.error(e);
+            toast.error(e.message || "Could not delete content.");
+        } finally {
+            setIsSubmitting(false);
+            setItemToDelete(null);
         }
     };
 
@@ -629,21 +681,23 @@ export default function ContentManagementPage() {
                             </Select>
                         </div>
 
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="type" className="text-right">Type</Label>
-                            <Select
-                                value={newContent.type}
-                                onValueChange={(val) => setNewContent({ ...newContent, type: val })}
-                            >
-                                <SelectTrigger className="col-span-3 bg-muted/50 cursor-pointer">
-                                    <SelectValue placeholder="Content Type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="video">Video</SelectItem>
-                                    <SelectItem value="pdf">PDF Document</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        {newContent.source === 'upload' && (
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="type" className="text-right">Type</Label>
+                                <Select
+                                    value={newContent.type}
+                                    onValueChange={(val) => setNewContent({ ...newContent, type: val })}
+                                >
+                                    <SelectTrigger className="col-span-3 bg-muted/50 cursor-pointer">
+                                        <SelectValue placeholder="Content Type" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="video">Video</SelectItem>
+                                        <SelectItem value="pdf">PDF Document</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
 
                         <Tabs defaultValue="upload" className="w-full" onValueChange={(val) => setNewContent({ ...newContent, source: val })}>
                             <TabsList className="grid w-full grid-cols-2 bg-muted/50">
@@ -696,6 +750,34 @@ export default function ContentManagementPage() {
                         <Button onClick={handleSubmit} disabled={isSubmitting} className="cursor-pointer">
                             {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                             {newContent.source === 'upload' ? 'Upload Content' : 'Add Link'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Delete Confirmation Modal */}
+            <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+                <DialogContent className="sm:max-w-[425px] border-border bg-card">
+                    <DialogHeader>
+                        <DialogTitle className="text-destructive flex items-center gap-2">
+                            <Trash2 className="size-5" />
+                            Delete Content
+                        </DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to delete this specific content item? This action causes permanent data loss and cannot be undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={confirmDelete} disabled={isSubmitting}>
+                            {isSubmitting ? (
+                                <>
+                                    <Loader2 className="mr-2 size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                'Deleting Content'
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>

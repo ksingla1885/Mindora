@@ -19,12 +19,12 @@ const ALLOWED_FILE_TYPES = {
 };
 
 // Maximum file size (50MB)
-const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const BUCKET_NAME = 'content';
 
 export async function POST(request) {
   try {
-    console.log('🚀 Upload request received');
+    console.log('🚀 Upload/Create request received');
 
     // Check authentication
     const session = await auth();
@@ -35,101 +35,102 @@ export async function POST(request) {
       );
     }
 
-    const formData = await request.formData();
-    const file = formData.get('file');
-    const title = formData.get('title');
-    const description = formData.get('description') || '';
-    const topicId = formData.get('topicId');
-    const contentType = formData.get('contentType') || 'document';
-    const isFree = formData.get('isFree') === 'true';
-    const duration = formData.get('duration') || null;
-    const thumbnailUrl = formData.get('thumbnailUrl') || null;
-    const className = formData.get('class');
+    const contentTypeHeader = request.headers.get('content-type') || '';
 
-    // Validate required fields
-    if (!file || !title || !topicId) {
-      return NextResponse.json(
-        { error: 'File, title, and topicId are required' },
-        { status: 400 }
-      );
+    let title, description, topicId, contentType, isFree, duration, thumbnailUrl, className;
+    let publicUrl, slug, originalName, fileSize, mimeType, bucketName, filePath;
+
+    // Handle JSON (Client-side Upload)
+    if (contentTypeHeader.includes('application/json')) {
+      const body = await request.json();
+      title = body.title;
+      description = body.description || '';
+      topicId = body.topicId;
+      contentType = body.contentType || 'document';
+      isFree = body.isFree;
+      duration = body.duration;
+      thumbnailUrl = body.thumbnailUrl;
+      className = body.class;
+
+      // Upload details passed from client
+      publicUrl = body.url;
+      originalName = body.originalName;
+      fileSize = body.size;
+      mimeType = body.mimeType;
+      bucketName = body.bucket || BUCKET_NAME;
+      filePath = body.path;
+
+      if (!title || !topicId || !publicUrl) {
+        return NextResponse.json(
+          { error: 'Title, topicId, and URL are required' },
+          { status: 400 }
+        );
+      }
+
+      // Generate Slug
+      slug = title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)+/g, '') + '-' + uuidv4().slice(0, 8);
+
+    } else {
+      // Handle Multipart (Server-side Upload - Legacy/Fallback)
+      const formData = await request.formData();
+      const file = formData.get('file');
+
+      // ... (Existing variables extraction)
+      title = formData.get('title');
+      description = formData.get('description') || '';
+      topicId = formData.get('topicId');
+      contentType = formData.get('contentType') || 'document';
+      isFree = formData.get('isFree') === 'true';
+      duration = formData.get('duration') || null;
+      thumbnailUrl = formData.get('thumbnailUrl') || null;
+      className = formData.get('class');
+
+      // ... (Existing validation)
+      if (!file || !title || !topicId) {
+        return NextResponse.json(
+          { error: 'File, title, and topicId are required' },
+          { status: 400 }
+        );
+      }
+
+      // ... (Existing file validations and upload logic)
+      // Check Supabase Client (Server)
+      if (!supabase) {
+        return NextResponse.json({ error: 'Server misconfiguration' }, { status: 500 });
+      }
+
+      const fileExtension = ALLOWED_FILE_TYPES[file.type];
+      if (!fileExtension) return NextResponse.json({ error: 'File type not supported' }, { status: 400 });
+      if (file.size > MAX_FILE_SIZE) return NextResponse.json({ error: 'File too large' }, { status: 400 });
+
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      filePath = fileName;
+      bucketName = BUCKET_NAME;
+
+      // Ensure Bucket
+      const { data: buckets } = await supabase.storage.listBuckets();
+      if (!buckets?.find(b => b.name === BUCKET_NAME)) {
+        await supabase.storage.createBucket(BUCKET_NAME, { public: true, fileSizeLimit: MAX_FILE_SIZE, allowedMimeTypes: Object.keys(ALLOWED_FILE_TYPES) });
+      }
+
+      // Upload
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const { error: uploadError } = await supabase.storage.from(BUCKET_NAME).upload(filePath, buffer, { contentType: file.type, upsert: false });
+      if (uploadError) throw new Error(`Storage Error: ${uploadError.message}`);
+
+      const { data: { publicUrl: url } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(filePath);
+      publicUrl = url;
+      originalName = file.name;
+      fileSize = file.size;
+      mimeType = file.type;
+
+      slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '') + '-' + uuidv4().slice(0, 8);
     }
 
-    // Validate file type
-    if (!ALLOWED_FILE_TYPES[file.type]) {
-      return NextResponse.json(
-        { error: 'File type not supported' },
-        { status: 400 }
-      );
-    }
-
-    // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File size exceeds maximum limit of 50MB' },
-        { status: 400 }
-      );
-    }
-
-    // Check if Topic Exists
-    const topic = await prisma.topic.findUnique({
-      where: { id: topicId },
-    });
-
-    if (!topic) {
-      return NextResponse.json({ error: 'Topic not found' }, { status: 404 });
-    }
-
-    // Check Supabase Client
-    if (!supabase) {
-      return NextResponse.json(
-        { error: 'Server misconfiguration: Supabase client not initialized (missing keys).' },
-        { status: 500 }
-      );
-    }
-
-    // Ensure Bucket Exists (idempotent-ish)
-    const { data: buckets } = await supabase.storage.listBuckets();
-    if (!buckets?.find(b => b.name === BUCKET_NAME)) {
-      await supabase.storage.createBucket(BUCKET_NAME, {
-        public: true,
-        fileSizeLimit: MAX_FILE_SIZE,
-        allowedMimeTypes: Object.keys(ALLOWED_FILE_TYPES)
-      });
-    }
-
-    // Generate path
-    const fileExtension = ALLOWED_FILE_TYPES[file.type];
-    const fileName = `${uuidv4()}.${fileExtension}`;
-    const filePath = `${fileName}`;
-
-    // Upload to Supabase
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from(BUCKET_NAME)
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        upsert: false
-      });
-
-    if (uploadError) {
-      console.error('Supabase Upload Error:', uploadError);
-      throw new Error(`Storage Error: ${uploadError.message}`);
-    }
-
-    // Get Public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(BUCKET_NAME)
-      .getPublicUrl(filePath);
-
-    // Create Slug from Title
-    const slug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)+/g, '') + '-' + uuidv4().slice(0, 8);
-
-
-    console.log('✅ File uploaded to Supabase successfully');
-    console.log('📝 Creating database record...');
+    console.log('✅ Upload processed/verified. Creating DB record...');
 
     // Verify user exists before creating content
     const userExists = await prisma.user.findUnique({
@@ -163,9 +164,9 @@ export async function POST(request) {
           isFree: isFree, // Stored here instead
           duration: duration ? parseInt(duration) : null,
           thumbnailUrl: thumbnailUrl,
-          originalName: file.name,
-          size: file.size,
-          mimeType: file.type,
+          originalName: originalName,
+          size: fileSize,
+          mimeType: mimeType,
           bucket: BUCKET_NAME,
           path: filePath,
           ...(className && { class: className }),
@@ -195,14 +196,20 @@ export async function POST(request) {
     });
 
   } catch (error) {
-    console.error('Upload handler error:', error);
+    console.error('❌ Upload handler error:', error);
+
+    // Determine status code
+    const status = error.message === 'Unauthorized' ? 401 :
+      error.message?.includes('File size') ? 400 :
+        500;
+
     return NextResponse.json(
       {
-        error: 'Failed to upload file',
-        details: error.message,
-        stack: error.stack
+        success: false,
+        error: error.message || 'An unexpected error occurred during upload.',
+        details: typeof error === 'object' ? JSON.stringify(error, Object.getOwnPropertyNames(error)) : String(error),
       },
-      { status: 500 }
+      { status }
     );
   }
 }
