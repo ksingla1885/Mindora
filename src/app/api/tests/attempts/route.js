@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 // POST /api/tests/attempts - Start a new test attempt
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -140,16 +137,16 @@ export async function POST(request) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // No need to disconnect global prisma instance
   }
 }
 
 // PATCH /api/tests/attempts/[id] - Update test attempt (e.g., save progress)
 export async function PATCH(request, { params }) {
   const { id } = params;
-  
+
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -158,7 +155,7 @@ export async function PATCH(request, { params }) {
 
     // Update the attempt
     const updatedAttempt = await prisma.testAttempt.update({
-      where: { 
+      where: {
         id,
         userId: session.user.id, // Ensure user can only update their own attempts
         status: 'in_progress', // Only allow updating in-progress attempts
@@ -180,6 +177,6 @@ export async function PATCH(request, { params }) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // No need to disconnect global prisma instance
   }
 }

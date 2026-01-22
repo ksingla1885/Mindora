@@ -62,7 +62,9 @@ export async function POST(request, { params }) {
   }
 
   try {
-    const { questionIds } = await request.json();
+    const body = await request.json();
+    console.log(`[API] Adding questions to test ${testId}. Body:`, JSON.stringify(body));
+    const { questionIds } = body;
 
     if (!Array.isArray(questionIds) || questionIds.length === 0) {
       return NextResponse.json(
@@ -157,7 +159,8 @@ export async function POST(request, { params }) {
       )
     );
 
-    // Update test's question count
+    // No need to manually update _count, it is computed dynamically by Prisma
+    /*
     await prisma.test.update({
       where: { id: testId },
       data: {
@@ -168,6 +171,7 @@ export async function POST(request, { params }) {
         },
       },
     });
+    */
 
     return NextResponse.json({
       success: true,

@@ -1,16 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 // POST /api/tests/attempts/[id]/submit - Submit a test attempt
 export async function POST(request, { params }) {
-  const { id } = params;
-  
+  const { id } = await params;
+
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -19,7 +16,7 @@ export async function POST(request, { params }) {
 
     // Get the attempt with test details
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id,
         userId: session.user.id, // Ensure user can only submit their own attempts
         status: 'in_progress', // Only allow submitting in-progress attempts
@@ -120,6 +117,6 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // No need to disconnect global prisma instance
   }
 }

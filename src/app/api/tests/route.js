@@ -36,23 +36,42 @@ export async function GET(request) {
       where.isPublished = isPublished === 'true';
     }
 
+    // Get current user session to check for their attempts
+    const session = await auth();
+
+    // Modify query to include user's attempts info if logged in
+    const includeConfig = {
+      olympiad: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          testQuestions: true,
+          attempts: true, // This is total attempts by everyone
+        },
+      },
+    };
+
+    if (session?.user?.id) {
+      includeConfig.attempts = {
+        where: {
+          userId: session.user.id
+        },
+        select: {
+          id: true,
+          status: true,
+          submittedAt: true
+        }
+      };
+    }
+
     const [tests, total] = await Promise.all([
       prisma.test.findMany({
         where,
-        include: {
-          olympiad: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          _count: {
-            select: {
-              testQuestions: true,
-              attempts: true,
-            },
-          },
-        },
+        include: includeConfig,
         orderBy: {
           startTime: 'desc',
         },

@@ -1,11 +1,10 @@
-import { getServerSession } from 'next-auth/next';
 import { NextResponse } from 'next/server';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -19,7 +18,7 @@ export async function POST(request) {
 
     // Verify test exists and is published
     const test = await prisma.test.findUnique({
-      where: { 
+      where: {
         id: testId,
         isPublished: true,
       },
@@ -158,8 +157,8 @@ export async function POST(request) {
 }
 
 export async function GET(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },

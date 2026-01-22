@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 const prisma = new PrismaClient();
 
 export async function POST(request, { params }) {
   const { testId } = params;
-  
+
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -68,11 +67,11 @@ export async function POST(request, { params }) {
     if (action === 'start') {
       // Check if test exists and is active
       const test = await prisma.test.findUnique({
-        where: { 
+        where: {
           id: testId,
           isActive: true
         },
-        select: { 
+        select: {
           id: true,
           duration: true,
           startTime: true,
@@ -98,7 +97,7 @@ export async function POST(request, { params }) {
           { status: 403 }
         );
       }
-      
+
       if (test.endTime && now > test.endTime) {
         return NextResponse.json(
           { error: 'Test has ended' },
@@ -121,7 +120,7 @@ export async function POST(request, { params }) {
       });
 
       const maxAttempts = testConfig?.maxAttempts || 1;
-      
+
       if (attemptCount >= maxAttempts) {
         return NextResponse.json(
           { error: 'Maximum attempts reached for this test' },
@@ -162,9 +161,9 @@ export async function POST(request, { params }) {
 
 export async function GET(request, { params }) {
   const { testId } = params;
-  
+
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -206,7 +205,7 @@ export async function GET(request, { params }) {
     if (attempt.status === 'IN_PROGRESS') {
       const now = new Date();
       const endTime = new Date(attempt.startedAt.getTime() + attempt.test.duration * 60 * 1000);
-      
+
       if (now > endTime) {
         // Auto-submit expired attempt
         const updatedAttempt = await prisma.testAttempt.update({
@@ -225,7 +224,7 @@ export async function GET(request, { params }) {
             }
           }
         });
-        
+
         return NextResponse.json({
           ...updatedAttempt,
           isExpired: true

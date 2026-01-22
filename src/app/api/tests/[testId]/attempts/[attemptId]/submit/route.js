@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 // POST /api/tests/[testId]/attempts/[attemptId]/submit - Submit a test attempt
 export async function POST(request, { params }) {
   const { testId, attemptId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -20,7 +17,7 @@ export async function POST(request, { params }) {
   try {
     // Get the attempt with test and questions
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         testId,
         userId: session.user.id,
@@ -54,7 +51,7 @@ export async function POST(request, { params }) {
     const now = new Date();
     const endTime = new Date(attempt.startedAt);
     endTime.setMinutes(endTime.getMinutes() + attempt.test.durationMinutes);
-    
+
     if (now > endTime) {
       return NextResponse.json(
         { success: false, error: 'Test time has expired' },
@@ -66,7 +63,7 @@ export async function POST(request, { params }) {
     let score = 0;
     let totalMarks = 0;
     const results = [];
-    
+
     // Group answers by question ID for easier lookup
     const answerMap = new Map();
     attempt.answers.forEach(answer => {
@@ -79,7 +76,7 @@ export async function POST(request, { params }) {
       const question = testQuestion.question;
       let isCorrect = false;
       let marksObtained = 0;
-      
+
       // Only grade if answer exists
       if (answer) {
         switch (question.type) {
@@ -96,14 +93,14 @@ export async function POST(request, { params }) {
             isCorrect = false;
             break;
         }
-        
+
         // Calculate marks (you might want to adjust this based on your grading scheme)
         marksObtained = isCorrect ? testQuestion.marks : 0;
       }
-      
+
       score += marksObtained;
       totalMarks += testQuestion.marks;
-      
+
       results.push({
         questionId: question.id,
         questionText: question.text,
@@ -115,11 +112,11 @@ export async function POST(request, { params }) {
         marksObtained,
       });
     }
-    
+
     // Calculate percentage
     const percentage = Math.round((score / totalMarks) * 100);
     const isPassed = percentage >= attempt.test.passingPercentage;
-    
+
     // Update the attempt with results
     const updatedAttempt = await prisma.testAttempt.update({
       where: { id: attemptId },
@@ -173,6 +170,6 @@ export async function POST(request, { params }) {
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect();
+    // No need to disconnect global prisma instance
   }
 }

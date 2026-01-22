@@ -81,22 +81,24 @@ export function TestForm({ test, onSuccess }) {
 
   const form = useForm({
     resolver: zodResolver(testFormSchema),
-    defaultValues: test || {
-      title: '',
-      description: '',
-      class: '',
-      subject: '',
-      testType: 'weekly',
-      topic: '',
-      duration: 60,
-      isScheduled: false,
-      isPublished: true,
-      isPaid: false,
-      price: 0,
-      passingScore: 40,
-      maxAttempts: 1,
-      instructions: '',
-      tags: [],
+    defaultValues: {
+      title: test?.title || '',
+      description: test?.description || '',
+      class: test?.class || '',
+      subject: test?.subject || '',
+      testType: test?.testType || 'weekly',
+      topic: test?.topic || '',
+      duration: test?.duration || 60,
+      isScheduled: test?.isScheduled ?? false,
+      isPublished: test?.isPublished ?? true,
+      isPaid: test?.isPaid ?? false,
+      price: test?.price || 0,
+      passingScore: test?.passingScore || 40,
+      maxAttempts: test?.maxAttempts || 1,
+      instructions: test?.instructions || '',
+      tags: test?.tags || [],
+      startTime: test?.startTime,
+      endTime: test?.endTime,
     },
   });
 
@@ -143,18 +145,28 @@ export function TestForm({ test, onSuccess }) {
     try {
       setIsLoading(true);
 
+      const { isScheduled, duration, maxAttempts, topic, ...rest } = data;
+
       const requestData = {
-        ...data,
-        startTime: data.isScheduled && data.startTime ? data.startTime.toISOString() : null,
-        endTime: data.isScheduled && data.startTime && data.duration
-          ? new Date(data.startTime.getTime() + data.duration * 60000).toISOString()
+        ...rest,
+        durationMinutes: duration,
+        startTime: isScheduled && data.startTime ? data.startTime.toISOString() : null,
+        endTime: isScheduled && data.startTime && duration
+          ? new Date(data.startTime.getTime() + duration * 60000).toISOString()
           : null,
-        price: 0,
-        isPaid: false,
+        // Ensure price is 0 if not paid, but allow form value if paid
+        price: data.isPaid ? data.price : 0,
+        isPaid: data.isPaid,
+        allowMultipleAttempts: maxAttempts > 1,
+        // Map topic to tags if needed, or ignore if not supported by backend
+        // For now we just sanitize to avoid crashing PATCH
       };
 
-      const response = await fetch('/api/tests', {
-        method: 'POST',
+      const url = test ? `/api/tests/${test.id}` : '/api/tests';
+      const method = test ? 'PATCH' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestData),
       });

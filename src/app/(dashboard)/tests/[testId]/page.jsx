@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PaymentButton from '@/components/PaymentButton';
 import { TestTaker } from '@/components/tests/TestTaker';
+import { cn } from '@/lib/cn';
 
 export default function TestPage() {
   const params = useParams();
@@ -26,7 +27,7 @@ export default function TestPage() {
     const fetchTest = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/tests/${testId}`);
+        const response = await fetch(`/api/tests/${testId}`, { cache: 'no-store' });
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -64,8 +65,10 @@ export default function TestPage() {
 
   const handleTestComplete = (results) => {
     console.log('Test completed:', results);
-    // You can add additional logic here, e.g., redirecting to a results page
-    // For now, TestTaker handles showing results
+    // Refresh router to update server data/cache
+    router.refresh();
+    // Redirect to the main tests page (Weekly Olympiad Tests)
+    router.push('/tests');
   };
 
   if (loading || status === 'loading') {
@@ -97,14 +100,32 @@ export default function TestPage() {
   // If test is paid AND price > 0 AND not purchased
   const needsPayment = test.isPaid && test.price > 0 && !isPurchased;
 
+  // Check if test is completed based on server status or attempt analysis
+  // Logic: if not allowMultipleAttempts and status is COMPLETED
+  const userStatus = test.userStatus || 'NOT_STARTED';
+  // Fallback to local check if userStatus not yet available (e.g. from list API only?) 
+  // actually we just added it to details API.
+  const userAttempts = test.attempts || [];
+  const hasSubmittedAttempt = userAttempts.some(a => a.status === 'submitted');
+
+  const isCompleted = !test.allowMultipleAttempts && (userStatus === 'COMPLETED' || hasSubmittedAttempt);
+
   // If test is running, render TestTaker
   if (hasStarted && !needsPayment) {
     // Map questions from test.testQuestions to the format expected by TestTaker
     // TestTaker expects an array of question objects
-    const questions = test.testQuestions?.map(tq => ({
-      ...tq.question,
-      question: tq.question.text || tq.question.question
-    })) || [];
+    const questions = test.testQuestions?.map(tq => {
+      let type = tq.question.type;
+      if (type === 'mcq') type = 'MULTIPLE_CHOICE';
+      else if (type === 'short_answer') type = 'SHORT_ANSWER';
+      else if (type === 'long_answer') type = 'ESSAY';
+
+      return {
+        ...tq.question,
+        type,
+        question: tq.question.text || tq.question.question
+      };
+    }) || [];
 
     // Ensure durationMinutes is set
     const processedTest = {
@@ -142,9 +163,14 @@ export default function TestPage() {
               </div>
             )}
             {!needsPayment && (
-              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium flex items-center">
+              <div className={cn(
+                "px-3 py-1 rounded-full text-sm font-medium flex items-center",
+                isCompleted
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-green-100 text-green-800"
+              )}>
                 <CheckCircle className="w-4 h-4 mr-1" />
-                {test.price > 0 ? 'Purchased' : 'Free'}
+                {isCompleted ? 'Completed' : (test.price > 0 ? 'Purchased' : 'Free')}
               </div>
             )}
           </div>
@@ -202,16 +228,22 @@ export default function TestPage() {
               buttonText="Unlock Now"
             />
           ) : (
+
             <Button
               size="lg"
               onClick={handleStartTest}
-              className="w-full md:w-auto px-8 text-lg"
+              className={
+                cn(
+                  "w-full md:w-auto px-8 text-lg",
+                  isCompleted && "bg-green-600 hover:bg-green-700 cursor-default"
+                )}
+              disabled={isCompleted}
             >
-              Start Test
+              {isCompleted ? 'Test Completed' : 'Start Test'}
             </Button>
           )}
         </CardFooter>
       </Card>
-    </div>
+    </div >
   );
 }

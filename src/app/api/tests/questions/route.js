@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
@@ -42,7 +41,7 @@ export async function GET(request) {
 
 // POST /api/tests/questions - Create or update questions for a test
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -94,7 +93,7 @@ export async function POST(request) {
       const createdQuestions = [];
       for (let i = 0; i < questions.length; i++) {
         const { options, ...questionData } = questions[i];
-        
+
         const question = await tx.question.create({
           data: {
             ...questionData,
@@ -111,7 +110,7 @@ export async function POST(request) {
             options: true,
           },
         });
-        
+
         createdQuestions.push(question);
       }
 

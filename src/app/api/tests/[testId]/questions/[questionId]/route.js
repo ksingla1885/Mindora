@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
 // DELETE /api/tests/[testId]/questions/[questionId] - Remove a question from a test
 export async function DELETE(request, { params }) {
   const { testId, questionId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -70,14 +69,14 @@ export async function DELETE(request, { params }) {
     });
   } catch (error) {
     console.error('Error removing question from test:', error);
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Question not found in test' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to remove question from test' },
       { status: 500 }
@@ -90,8 +89,8 @@ export async function DELETE(request, { params }) {
 // PATCH /api/tests/[testId]/questions/[questionId] - Update question sequence or marks
 export async function PATCH(request, { params }) {
   const { testId, questionId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -100,11 +99,11 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    const { sequence } = await request.json();
-    
-    if (sequence === undefined) {
+    const { sequence, marks } = await request.json();
+
+    if (sequence === undefined && marks === undefined) {
       return NextResponse.json(
-        { success: false, error: 'Sequence is required' },
+        { success: false, error: 'Sequence or marks are required' },
         { status: 400 }
       );
     }
@@ -150,47 +149,57 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    // If sequence hasn't changed, return early
-    if (currentTestQuestion.sequence === sequence) {
-      return NextResponse.json({
-        success: true,
-        data: currentTestQuestion,
-      });
+    // CASE 1: Only updating marks (or sequence matches current)
+    if (sequence === undefined || sequence === currentTestQuestion.sequence) {
+      if (marks !== undefined) {
+        const updatedTestQuestion = await prisma.testQuestion.update({
+          where: { testId_questionId: { testId, questionId } },
+          data: { marks: parseInt(marks) },
+          include: { question: { include: { topic: { select: { id: true, name: true, subject: { select: { id: true, name: true } } } } } } },
+        });
+        return NextResponse.json({ success: true, data: updatedTestQuestion });
+      }
+      return NextResponse.json({ success: true, data: currentTestQuestion });
     }
 
-    // Update the sequence of the current question
+    // CASE 2: Sequence update (and optionally marks)
+    const updateData = { sequence };
+    if (marks !== undefined) {
+      updateData.marks = parseInt(marks);
+    }
+
     await prisma.$transaction([
-      // Update the sequence of other questions if needed
+      // Update the sequence of other questions
       ...(sequence > currentTestQuestion.sequence
         ? [
-            prisma.testQuestion.updateMany({
-              where: {
-                testId,
-                sequence: {
-                  gt: currentTestQuestion.sequence,
-                  lte: sequence,
-                },
+          prisma.testQuestion.updateMany({
+            where: {
+              testId,
+              sequence: {
+                gt: currentTestQuestion.sequence,
+                lte: sequence,
               },
-              data: {
-                sequence: { decrement: 1 },
-              },
-            }),
-          ]
+            },
+            data: {
+              sequence: { decrement: 1 },
+            },
+          }),
+        ]
         : [
-            prisma.testQuestion.updateMany({
-              where: {
-                testId,
-                sequence: {
-                  gte: sequence,
-                  lt: currentTestQuestion.sequence,
-                },
+          prisma.testQuestion.updateMany({
+            where: {
+              testId,
+              sequence: {
+                gte: sequence,
+                lt: currentTestQuestion.sequence,
               },
-              data: {
-                sequence: { increment: 1 },
-              },
-            }),
-          ]),
-      // Update the current question's sequence
+            },
+            data: {
+              sequence: { increment: 1 },
+            },
+          }),
+        ]),
+      // Update the current question
       prisma.testQuestion.update({
         where: {
           testId_questionId: {
@@ -198,9 +207,7 @@ export async function PATCH(request, { params }) {
             questionId,
           },
         },
-        data: {
-          sequence,
-        },
+        data: updateData,
         include: {
           question: {
             include: {
@@ -222,7 +229,7 @@ export async function PATCH(request, { params }) {
       }),
     ]);
 
-    // Get the updated test question with related data
+    // Get the final result
     const updatedTestQuestion = await prisma.testQuestion.findUnique({
       where: {
         testId_questionId: {
@@ -256,21 +263,18 @@ export async function PATCH(request, { params }) {
     });
   } catch (error) {
     console.error('Error updating test question:', error);
-    
     if (error.code === 'P2002') {
       return NextResponse.json(
-        { success: false, error: 'Sequence number already in use' },
+        { success: false, error: 'Sequence number clash' },
         { status: 400 }
       );
     }
-    
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Question not found in test' },
         { status: 404 }
       );
     }
-    
     return NextResponse.json(
       { success: false, error: 'Failed to update test question' },
       { status: 500 }

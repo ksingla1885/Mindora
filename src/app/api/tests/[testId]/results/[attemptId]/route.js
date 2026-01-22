@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request, { params }) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -19,7 +18,7 @@ export async function GET(request, { params }) {
   try {
     // Get the test attempt with answers
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         testId,
         userId, // Ensure the attempt belongs to the current user
@@ -58,14 +57,14 @@ export async function GET(request, { params }) {
       const userAnswer = attempt.answers.find(a => a.questionId === question.id);
       const isCorrect = userAnswer && userAnswer.answer === question.correctAnswer;
       const points = isCorrect ? (question.points || 1) : 0;
-      
+
       if (isCorrect) {
         correctAnswers++;
         score += points;
       }
-      
+
       maxScore += (question.points || 1);
-      
+
       results.push({
         questionId: question.id,
         questionText: question.text,

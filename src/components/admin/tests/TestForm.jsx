@@ -94,7 +94,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
 
         const response = await fetch(`/api/questions?${query}`);
         if (!response.ok) throw new Error('Failed to fetch questions');
-        
+
         const data = await response.json();
         setAvailableQuestions(data.questions || []);
       } catch (error) {
@@ -174,7 +174,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                 <FormItem>
                   <FormLabel>Test Title *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter test title" {...field} />
+                    <Input placeholder="Enter test title" {...field} value={field.value || ''} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -192,6 +192,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                       placeholder="Enter test description"
                       className="min-h-[100px]"
                       {...field}
+                      value={field.value || ''}
                     />
                   </FormControl>
                   <FormMessage />
@@ -234,6 +235,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                         type="number"
                         min={1}
                         {...field}
+                        value={field.value || ''}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
@@ -318,6 +320,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                           min={0}
                           step={0.01}
                           {...field}
+                          value={field.value ?? 0}
                           onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                         />
                       </FormControl>
@@ -386,6 +389,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                         min={0}
                         max={100}
                         {...field}
+                        value={field.value || ''}
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
@@ -405,6 +409,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                         placeholder="Enter test instructions that students will see before starting the test"
                         className="min-h-[100px]"
                         {...field}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
@@ -418,7 +423,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
           <div className="space-y-6">
             <div className="space-y-2">
               <h3 className="text-lg font-medium">Questions ({selectedQuestions.length})</h3>
-              
+
               {/* Search and filter */}
               <div className="space-y-2">
                 <Input
@@ -439,7 +444,7 @@ export function TestForm({ test, onSubmit, isSubmitting = false }) {
                       <SelectItem value="biology">Biology</SelectItem>
                     </SelectContent>
                   </Select>
-                  
+
                   <Select value={selectedClass} onValueChange={setSelectedClass}>
                     <SelectTrigger>
                       <SelectValue placeholder="Filter by class" />

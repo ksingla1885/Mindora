@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function PUT(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -13,7 +12,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { attemptId } = params;
+    const { attemptId } = await params;
     const { answers } = await request.json();
 
     // Validate request body
@@ -59,34 +58,29 @@ export async function PUT(request, { params }) {
       );
     }
 
-    // Update or create answers
-    const updatedAnswers = await prisma.$transaction(
-      Object.entries(answers).map(([questionId, answer]) =>
-        prisma.testAnswer.upsert({
-          where: {
-            attemptId_questionId: {
-              attemptId,
-              questionId,
-            },
-          },
-          update: {
-            answer: answer.answer,
-            isMarkedForReview: answer.isMarkedForReview || false,
-          },
-          create: {
-            attemptId,
-            questionId,
-            answer: answer.answer,
-            isMarkedForReview: answer.isMarkedForReview || false,
-          },
-        })
-      )
-    );
+    // Update or create answers in the JSON field
+    const currentAnswers = attempt.answers || {};
+    const newAnswers = { ...currentAnswers };
 
-    // Update the last saved timestamp
+    Object.entries(answers).forEach(([questionId, answerData]) => {
+      // Assuming answerData has .answer property as per original code
+      // We store the answer value directly to match TestTaker format, 
+      // or we could store the whole object if needed. 
+      // Given submit/route.js usage, it likely expects values or simple objects.
+      // Let's store the value.
+      newAnswers[questionId] = answerData.answer;
+    });
+
+    // Update the attempt
     await prisma.testAttempt.update({
       where: { id: attemptId },
-      data: { lastSavedAt: new Date() },
+      data: {
+        answers: newAnswers,
+        metadata: {
+          ...(attempt.metadata || {}),
+          lastSavedAt: new Date().toISOString()
+        }
+      },
     });
 
     return NextResponse.json({

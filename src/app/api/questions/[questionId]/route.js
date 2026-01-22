@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
@@ -53,8 +52,8 @@ export async function GET(request, { params }) {
 // PATCH /api/questions/[questionId] - Update a question
 export async function PATCH(request, { params }) {
   const { questionId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -64,7 +63,7 @@ export async function PATCH(request, { params }) {
 
   try {
     const body = await request.json();
-    
+
     // If updating options for MCQ, validate
     if (body.options && Array.isArray(body.options)) {
       if (body.options.length < 2) {
@@ -73,7 +72,7 @@ export async function PATCH(request, { params }) {
           { status: 400 }
         );
       }
-      
+
       // Convert options array to JSON string for storage
       body.options = JSON.stringify(body.options);
     }
@@ -113,14 +112,14 @@ export async function PATCH(request, { params }) {
     });
   } catch (error) {
     console.error('Error updating question:', error);
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Question not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to update question' },
       { status: 500 }
@@ -133,8 +132,8 @@ export async function PATCH(request, { params }) {
 // DELETE /api/questions/[questionId] - Delete a question
 export async function DELETE(request, { params }) {
   const { questionId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -163,9 +162,9 @@ export async function DELETE(request, { params }) {
 
     if (question.testQuestions.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Cannot delete question that is used in tests. Remove it from tests first.' 
+        {
+          success: false,
+          error: 'Cannot delete question that is used in tests. Remove it from tests first.'
         },
         { status: 400 }
       );
@@ -182,14 +181,14 @@ export async function DELETE(request, { params }) {
     });
   } catch (error) {
     console.error('Error deleting question:', error);
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Question not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to delete question' },
       { status: 500 }

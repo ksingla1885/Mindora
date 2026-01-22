@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
 // GET /api/tests/[testId]/attempts - Get user's attempts for a test
 export async function GET(request, { params }) {
   const { testId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -56,8 +55,8 @@ export async function GET(request, { params }) {
 // POST /api/tests/[testId]/attempts - Start a new test attempt
 export async function POST(request, { params }) {
   const { testId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -86,7 +85,7 @@ export async function POST(request, { params }) {
     }
 
     const now = new Date();
-    
+
     // Check if test is available
     if (test.startTime > now) {
       return NextResponse.json(
@@ -94,7 +93,7 @@ export async function POST(request, { params }) {
         { status: 400 }
       );
     }
-    
+
     if (test.endTime < now) {
       return NextResponse.json(
         { success: false, error: 'Test has ended' },
@@ -131,7 +130,7 @@ export async function POST(request, { params }) {
       // Calculate time remaining
       const timeElapsed = Math.floor((now - inProgressAttempt.startedAt) / 1000 / 60); // in minutes
       const timeRemaining = Math.max(0, test.durationMinutes - timeElapsed);
-      
+
       return NextResponse.json({
         success: true,
         data: {
@@ -221,21 +220,21 @@ export async function POST(request, { params }) {
     }, { status: 201 });
   } catch (error) {
     console.error('Error starting test attempt:', error);
-    
+
     if (error.code === 'P2002') {
       return NextResponse.json(
         { success: false, error: 'You already have an active attempt' },
         { status: 400 }
       );
     }
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Test not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
       { success: false, error: 'Failed to start test attempt' },
       { status: 500 }

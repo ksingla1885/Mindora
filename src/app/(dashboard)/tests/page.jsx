@@ -40,7 +40,7 @@ const WeeklyTestsPage = () => {
                 // or pass as param if API supported it. API supports isPublished.
                 // We'll filter by isPaid on the client or add param to API.
                 // Assuming /api/tests handles class filtering automatically via session.
-                const response = await fetch('/api/tests');
+                const response = await fetch('/api/tests', { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error('Failed to fetch tests');
                 }
@@ -146,89 +146,105 @@ const WeeklyTestsPage = () => {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {filteredTests.map((test) => (
-                                <Link key={test.id} href={`/tests/${test.id}`} className="block">
-                                    <div className="group flex flex-col bg-white dark:bg-[#1a2332] rounded-xl overflow-hidden border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(19,91,236,0.15)] transition-all duration-300 h-full">
-                                        {/* Image Header */}
-                                        <div
-                                            className={cn(
-                                                "h-40 bg-cover bg-center relative transition-all duration-500",
-                                                // Using a placeholder or test.image if available
-                                                "bg-slate-200 dark:bg-slate-800"
-                                            )}
-                                            style={test.image ? { backgroundImage: `url('${test.image}')` } : {}}
-                                        >
-                                            <div className="absolute top-3 right-3">
-                                                {/* Status Badge Logic - Simplified for now */}
-                                                <span className={cn(
-                                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm",
-                                                    "bg-blue-500/90 text-white"
-                                                )}>
-                                                    {test.isPublished ? 'PUBLISHED' : 'DRAFT'}
-                                                </span>
-                                            </div>
+                            {filteredTests.map((test) => {
+                                const isCompleted = !test.allowMultipleAttempts && test.attempts && test.attempts.length > 0;
 
-                                            {test.isPaid && test.price > 0 && (
-                                                <div className="absolute bottom-3 left-3">
-                                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-900/60 text-white backdrop-blur-sm border border-white/20">
-                                                        ₹{test.price}
+                                return (
+                                    <Link
+                                        key={test.id}
+                                        href={isCompleted ? '#' : `/tests/${test.id}`}
+                                        className={cn("block", isCompleted && "pointer-events-none opacity-80")}
+                                    >
+                                        <div className="group flex flex-col bg-white dark:bg-[#1a2332] rounded-xl overflow-hidden border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(19,91,236,0.15)] transition-all duration-300 h-full">
+                                            {/* Image Header */}
+                                            <div
+                                                className={cn(
+                                                    "h-40 bg-cover bg-center relative transition-all duration-500",
+                                                    // Using a placeholder or test.image if available
+                                                    "bg-slate-200 dark:bg-slate-800"
+                                                )}
+                                                style={test.image ? { backgroundImage: `url('${test.image}')` } : {}}
+                                            >
+                                                <div className="absolute top-3 right-3">
+                                                    {/* Status Badge Logic - Simplified for now */}
+                                                    <span className={cn(
+                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm",
+                                                        "bg-blue-500/90 text-white"
+                                                    )}>
+                                                        {test.isPublished ? 'PUBLISHED' : 'DRAFT'}
                                                     </span>
                                                 </div>
-                                            )}
+
+                                                {test.isPaid && test.price > 0 && (
+                                                    <div className="absolute bottom-3 left-3">
+                                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-slate-900/60 text-white backdrop-blur-sm border border-white/20">
+                                                            ₹{test.price}
+                                                        </span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="p-5 flex flex-col flex-1 gap-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-blue-600 dark:text-blue-400">
+                                                        <span>{test.olympiad?.name || 'Olympiad'}</span>
+                                                    </div>
+                                                    <h3 className="text-slate-900 dark:text-white text-xl font-bold leading-tight line-clamp-2">
+                                                        {test.title}
+                                                    </h3>
+                                                </div>
+
+                                                {/* Meta Info Grid */}
+                                                <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-600 dark:text-[#92a4c9]">
+                                                    <div className="flex items-center gap-2">
+                                                        <Clock className="w-[18px] h-[18px]" />
+                                                        <span>{test.durationMinutes} min</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <List className="w-[18px] h-[18px]" />
+                                                        <span>{test._count?.testQuestions || 0} Qs</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <GraduationCap className="w-[18px] h-[18px]" />
+                                                        <span>Class {test.class}</span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Footer */}
+                                                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-[#232f48] flex items-center justify-between">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                                            {test.startTime ? 'Starts' : 'Availability'}
+                                                        </span>
+                                                        <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                            {test.startTime ? new Date(test.startTime).toLocaleDateString() : 'Available Now'}
+                                                        </span>
+                                                    </div>
+
+                                                    <button
+                                                        className={cn(
+                                                            "text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-lg",
+                                                            isCompleted
+                                                                ? "bg-green-600 hover:bg-green-700 shadow-green-600/20 cursor-default"
+                                                                : "bg-primary hover:bg-blue-600 shadow-primary/20"
+                                                        )}
+                                                        disabled={isCompleted}
+                                                    >
+                                                        {isCompleted ? 'Completed' : 'View Details'}
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-
-                                        {/* Content */}
-                                        <div className="p-5 flex flex-col flex-1 gap-4">
-                                            <div className="flex flex-col gap-1">
-                                                <div className="flex items-center gap-2 text-xs font-semibold tracking-wide uppercase text-blue-600 dark:text-blue-400">
-                                                    <span>{test.olympiad?.name || 'Olympiad'}</span>
-                                                </div>
-                                                <h3 className="text-slate-900 dark:text-white text-xl font-bold leading-tight line-clamp-2">
-                                                    {test.title}
-                                                </h3>
-                                            </div>
-
-                                            {/* Meta Info Grid */}
-                                            <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-slate-600 dark:text-[#92a4c9]">
-                                                <div className="flex items-center gap-2">
-                                                    <Clock className="w-[18px] h-[18px]" />
-                                                    <span>{test.durationMinutes} min</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <List className="w-[18px] h-[18px]" />
-                                                    <span>{test._count?.testQuestions || 0} Qs</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <GraduationCap className="w-[18px] h-[18px]" />
-                                                    <span>Class {test.class}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Footer */}
-                                            <div className="mt-auto pt-4 border-t border-slate-100 dark:border-[#232f48] flex items-center justify-between">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                                                        Starts
-                                                    </span>
-                                                    <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                                                        {new Date(test.startTime).toLocaleDateString()}
-                                                    </span>
-                                                </div>
-
-                                                <button className="bg-primary hover:bg-blue-600 text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-lg shadow-primary/20">
-                                                    View Details
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Link>
-                            ))}
+                                    </Link>
+                                );
+                            })}
                         </div>
                     )}
                 </section>
 
-            </div>
-        </div>
+            </div >
+        </div >
     );
 };
 

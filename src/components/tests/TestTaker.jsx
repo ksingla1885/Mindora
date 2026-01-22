@@ -143,6 +143,11 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     try {
       let attemptData = initialAttempt;
 
+      // Use attemptId if already available in state or props
+      if (attemptId && !attemptData) {
+        attemptData = { id: attemptId };
+      }
+
       if (!attemptData) {
         // Create test attempt if not provided
         const attemptRes = await fetch(apiBaseUrl, {
@@ -181,17 +186,56 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       setFlaggedQuestions(attemptData.flaggedQuestions || {});
       setTimeSpent(attemptData.timeSpent || {});
 
+      console.log('TestTaker: Initializing', { testId: test?.id, questionsLength: questions.length });
+
       // Load questions if not provided
       if (questions.length === 0) {
+        console.log('TestTaker: No questions provided, fetching from API...');
         // If questions are part of the test object, use them
         if (test.questions && test.questions.length > 0) {
-          setQuestions(test.questions);
+          console.log('TestTaker: Found questions in test object', test.questions);
+          const mappedQuestions = test.questions.map(q => {
+            let type = q.type;
+            if (type === 'mcq') type = QUESTION_TYPES.MULTIPLE_CHOICE;
+            else if (type === 'short_answer') type = QUESTION_TYPES.SHORT_ANSWER;
+            else if (type === 'long_answer') type = QUESTION_TYPES.ESSAY;
+            return { ...q, type };
+          });
+          setQuestions(mappedQuestions);
         } else {
-          const questionsRes = await fetch(`/api/tests/${test.id}/questions`);
-          if (!questionsRes.ok) throw new Error('Failed to load questions');
-          const questionsData = await questionsRes.json();
-          setQuestions(questionsData);
+          console.log(`TestTaker: Fetching from /api/tests/${test.id}`);
+          const questionsRes = await fetch(`/api/tests/${test.id}`);
+
+          if (!questionsRes.ok) {
+            console.error('TestTaker: API fetch failed', questionsRes.status);
+            throw new Error('Failed to load questions');
+          }
+
+          const responseData = await questionsRes.json();
+          console.log('TestTaker: API Response', responseData);
+
+          if (responseData.success && responseData.data.testQuestions && responseData.data.testQuestions.length > 0) {
+            const mappedQuestions = responseData.data.testQuestions.map(tq => {
+              let type = tq.question.type;
+              if (type === 'mcq') type = QUESTION_TYPES.MULTIPLE_CHOICE;
+              else if (type === 'short_answer') type = QUESTION_TYPES.SHORT_ANSWER;
+              else if (type === 'long_answer') type = QUESTION_TYPES.ESSAY;
+
+              return {
+                ...tq.question,
+                type,
+                question: tq.question.text || tq.question.question
+              };
+            });
+            console.log('TestTaker: Mapped questions', mappedQuestions);
+            setQuestions(mappedQuestions);
+          } else {
+            console.warn('TestTaker: No questions found in API response');
+            setQuestions([]);
+          }
         }
+      } else {
+        console.log('TestTaker: Questions already provided', questions);
       }
 
     } catch (error) {
@@ -242,15 +286,15 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     // Debounce the save to avoid too many requests
     saveTimeoutRef.current = setTimeout(async () => {
       try {
-        const response = await fetch(`${apiBaseUrl}/${attemptId}/answers`, {
-          method: 'PUT',
+        const response = await fetch(`${apiBaseUrl}/${attemptId}`, {
+          method: 'PATCH', // Changed from PUT to PATCH and removed /answers endpoint
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             answers,
-            timeLeft,
-            timeSpent,
+            timeSpentSeconds: 1800 - timeLeft, // Calculate time spent roughly or use meaningful value
             currentQuestionIndex,
-            flaggedQuestions
+            // timeLeft, // Optional, depending on API support
+            // flaggedQuestions
           })
         });
 
@@ -263,252 +307,278 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       } catch (error) {
         console.error('Auto-save failed:', error);
       }
-    }, [attemptId, answers, timeLeft, timeSpent, currentQuestionIndex, apiBaseUrl]);
+    }, 2000);
+  }, [attemptId, answers, timeLeft, timeSpent, currentQuestionIndex, apiBaseUrl]);
 
-    // Handle test completion with analytics
-    const handleTestCompletion = useCallback(async (results) => {
-      try {
-        setIsSubmitting(true);
-        setTestResults(results);
+  // Handle test completion with analytics
+  const handleTestCompletion = useCallback(async (results) => {
+    try {
+      setIsSubmitting(true);
+      setTestResults(results);
 
-        // Analyze performance using AI
-        const analysis = await analyzePerformance(results);
-        if (analysis) {
-          setPerformanceAnalysis(analysis);
+      // Analyze performance using AI
+      const analysis = await analyzePerformance(results);
+      if (analysis) {
+        setPerformanceAnalysis(analysis);
 
-          // Get personalized tips if user is logged in
-          if (session?.user?.id) {
-            const tips = await getPersonalizedTips(session.user.id);
-            setPersonalizedTips(tips || []);
-          }
-
-          // Generate study plan for weak areas
-          const weakAreas = analysis.suggestions
-            .filter(s => s.priority === 'high')
-            .map(s => s.topic);
-
-          if (weakAreas.length > 0) {
-            const plan = await generateStudyPlan(weakAreas);
-            setStudyPlan(plan);
-          }
+        // Get personalized tips if user is logged in
+        if (session?.user?.id) {
+          const tips = await getPersonalizedTips(session.user.id);
+          setPersonalizedTips(tips || []);
         }
 
-        setShowTestResults(true);
-        onComplete?.(results);
-      } catch (error) {
-        console.error('Error completing test:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to complete test analysis. Please try again.',
-          variant: 'destructive',
+        // Generate study plan for weak areas
+        const weakAreas = analysis.suggestions
+          .filter(s => s.priority === 'high')
+          .map(s => s.topic);
+
+        if (weakAreas.length > 0) {
+          const plan = await generateStudyPlan(weakAreas);
+          setStudyPlan(plan);
+        }
+      }
+
+      setShowTestResults(true);
+      onComplete?.(results);
+    } catch (error) {
+      console.error('Error completing test:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to complete test analysis. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [analyzePerformance, generateStudyPlan, getPersonalizedTips, onComplete, session?.user?.id]);
+
+  // Handle getting explanation for a question
+  const handleGetExplanation = useCallback(async (questionId) => {
+    try {
+      setShowExplanation(true);
+      setCurrentExplanation('Loading explanation...');
+
+      const userAnswer = answers[questionId];
+      const explanation = await getQuestionExplanation(questionId, userAnswer);
+
+      if (explanation) {
+        setCurrentExplanation(explanation);
+      }
+    } catch (error) {
+      console.error('Error getting explanation:', error);
+      setCurrentExplanation('Failed to load explanation. Please try again.');
+    }
+  }, [answers, getQuestionExplanation]);
+
+  // Handle answer selection with WebSocket and Redis persistence
+  const handleAnswer = useCallback((questionId, value, questionType) => {
+    setAnswers(prev => {
+      const newAnswers = {
+        ...prev,
+        [questionId]: value
+      };
+
+      // Track time spent on question
+      const now = Date.now();
+      const timeSpentMs = now - questionStartTime;
+      const updatedTimeSpent = (timeSpent[questionId] || 0) + Math.floor(timeSpentMs / 1000);
+
+      // Update local state
+      setTimeSpent(prev => ({
+        ...prev,
+        [questionId]: updatedTimeSpent
+      }));
+
+      // Send real-time update via WebSocket
+      if (isConnected) {
+        sendAnswerUpdate(questionId, {
+          answer: value,
+          timestamp: now,
+          timeSpent: updatedTimeSpent
         });
-      } finally {
-        setIsSubmitting(false);
       }
-    }, [analyzePerformance, generateStudyPlan, getPersonalizedTips, onComplete, session?.user?.id]);
 
-    // Handle getting explanation for a question
-    const handleGetExplanation = useCallback(async (questionId) => {
-      try {
-        setShowExplanation(true);
-        setCurrentExplanation('Loading explanation...');
+      // Reset question timer
+      setQuestionStartTime(now);
 
-        const userAnswer = answers[questionId];
-        const explanation = await getQuestionExplanation(questionId, userAnswer);
+      // Auto-save after answering with debounce
+      saveAnswers();
 
-        if (explanation) {
-          setCurrentExplanation(explanation);
-        }
-      } catch (error) {
-        console.error('Error getting explanation:', error);
-        setCurrentExplanation('Failed to load explanation. Please try again.');
+      // Auto-advance to next question if enabled
+      const autoAdvance = localStorage.getItem('autoAdvance') === 'true';
+      if (autoAdvance && questionType === QUESTION_TYPES.MULTIPLE_CHOICE) {
+        setTimeout(() => {
+          if (currentQuestionIndex < questions.length - 1) {
+            goToQuestion(currentQuestionIndex + 1);
+          }
+        }, 300);
       }
-    }, [answers, getQuestionExplanation]);
 
-    // Handle answer selection with WebSocket and Redis persistence
-    const handleAnswer = useCallback((questionId, value, questionType) => {
-      setAnswers(prev => {
-        const newAnswers = {
-          ...prev,
-          [questionId]: value
-        };
+      return newAnswers;
+    });
+  }, [questionStartTime, saveAnswers, isConnected, currentQuestionIndex, questions.length, sendAnswerUpdate]);
 
-        // Track time spent on question
-        const now = Date.now();
-        const timeSpentMs = now - questionStartTime;
-        const updatedTimeSpent = (timeSpent[questionId] || 0) + Math.floor(timeSpentMs / 1000);
+  // Navigation
+  const goToQuestion = (index) => {
+    if (index >= 0 && index < questions.length) {
+      setCurrentQuestionIndex(index);
+      saveAnswers();
+    }
+  };
 
-        // Update local state
-        setTimeSpent(prev => ({
-          ...prev,
-          [questionId]: updatedTimeSpent
-        }));
+  const handleNext = () => {
+    if (!isLastQuestion) {
+      goToQuestion(currentQuestionIndex + 1);
+    } else {
+      setShowSubmitConfirm(true);
+    }
+  };
 
-        // Send real-time update via WebSocket
-        if (isConnected) {
-          sendAnswerUpdate(questionId, {
-            answer: value,
-            timestamp: now,
-            timeSpent: updatedTimeSpent
-          });
-        }
+  const handlePrevious = () => goToQuestion(currentQuestionIndex - 1);
 
-        // Reset question timer
-        setQuestionStartTime(now);
+  // Toggle flag for review
+  const toggleFlagQuestion = useCallback((questionId) => {
+    setFlaggedQuestions(prev => {
+      const updated = { ...prev, [questionId]: !prev[questionId] };
 
-        // Auto-save after answering with debounce
-        saveAnswers();
+      if (attemptId) {
+        fetch(`${apiBaseUrl}/${attemptId}/flags`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ flaggedQuestions: updated })
+        }).catch(console.error);
+      }
 
-        // Auto-advance to next question if enabled
-        const autoAdvance = localStorage.getItem('autoAdvance') === 'true';
-        if (autoAdvance && questionType === QUESTION_TYPES.MULTIPLE_CHOICE) {
-          setTimeout(() => {
-            if (currentQuestionIndex < questions.length - 1) {
-              goToQuestion(currentQuestionIndex + 1);
-            }
-          }, 300);
-        }
+      return updated;
+    });
+  }, [attemptId, apiBaseUrl]);
 
-        return newAnswers;
+  // Track time spent on each question
+  useEffect(() => {
+    if (!currentQuestion?.id) return;
+
+    const questionId = currentQuestion.id;
+    const startTime = Date.now();
+
+    return () => {
+      const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
+      setTimeSpent(prev => ({
+        ...prev,
+        [questionId]: (prev[questionId] || 0) + timeElapsed
+      }));
+    };
+  }, [currentQuestion?.id]);
+
+  // Initialize test on component mount
+  useEffect(() => {
+    initializeTest();
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
+      if (questionTimerRef.current) clearTimeout(questionTimerRef.current);
+    };
+  }, [initializeTest]);
+
+
+  // Handle test submission with confirmation and WebSocket cleanup
+  const handleSubmit = async () => {
+    // Check for unanswered questions
+    const unanswered = questions.filter(q => !answers[q.id]).length;
+
+    if (unanswered > 0) {
+      setShowSubmitConfirm(true);
+    } else {
+      await confirmSubmit();
+    }
+  };
+
+  // Handle confirmed test submission with Redis cleanup
+  const confirmSubmit = async () => {
+    setShowSubmitConfirm(false);
+
+    if (!attemptId) {
+      console.error('Submission failed: Missing attemptId');
+      toast({
+        title: 'Error',
+        description: 'Test session invalid. Please refresh the page.',
+        variant: 'destructive',
       });
-    }, [questionStartTime, saveAnswers, isConnected, currentQuestionIndex, questions.length, sendAnswerUpdate]);
+      setIsSubmitting(false);
+      return;
+    }
 
-    // Navigation
-    const goToQuestion = (index) => {
-      if (index >= 0 && index < questions.length) {
-        setCurrentQuestionIndex(index);
-        saveAnswers();
+    try {
+      setIsSubmitting(true);
+
+      // Cancel any pending auto-save to avoid race conditions
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
-    };
 
-    const handleNext = () => {
-      if (!isLastQuestion) {
-        goToQuestion(currentQuestionIndex + 1);
-      } else {
-        setShowSubmitConfirm(true);
-      }
-    };
-
-    const handlePrevious = () => goToQuestion(currentQuestionIndex - 1);
-
-    // Toggle flag for review
-    const toggleFlagQuestion = useCallback((questionId) => {
-      setFlaggedQuestions(prev => {
-        const updated = { ...prev, [questionId]: !prev[questionId] };
-
-        if (attemptId) {
-          fetch(`${apiBaseUrl}/${attemptId}/flags`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ flaggedQuestions: updated })
-          }).catch(console.error);
-        }
-
-        return updated;
+      // Send final answers to server
+      const response = await fetch(`${apiBaseUrl}/${attemptId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          endTime: new Date().toISOString(),
+          answers,
+          timeSpent,
+          flaggedQuestions,
+          connectionStatus // Include connection status for analytics
+        })
       });
-    }, [attemptId, apiBaseUrl]);
 
-    // Track time spent on each question
-    useEffect(() => {
-      if (!currentQuestion?.id) return;
+      if (!response.ok) {
+        console.error(`Submit failed with status: ${response.status} ${response.statusText}`);
+        const text = await response.text();
+        console.error('Submit response body:', text);
 
-      const questionId = currentQuestion.id;
-      const startTime = Date.now();
-
-      return () => {
-        const timeElapsed = Math.floor((Date.now() - startTime) / 1000);
-        setTimeSpent(prev => ({
-          ...prev,
-          [questionId]: (prev[questionId] || 0) + timeElapsed
-        }));
-      };
-    }, [currentQuestion?.id]);
-
-    // Initialize test on component mount
-    useEffect(() => {
-      initializeTest();
-
-      return () => {
-        if (timerRef.current) clearInterval(timerRef.current);
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
-        if (questionTimerRef.current) clearTimeout(questionTimerRef.current);
-      };
-    }, [initializeTest]);
-
-
-    // Handle test submission with confirmation and WebSocket cleanup
-    const handleSubmit = async () => {
-      // Check for unanswered questions
-      const unanswered = questions.filter(q => !answers[q.id]).length;
-
-      if (unanswered > 0) {
-        setShowSubmitConfirm(true);
-      } else {
-        await confirmSubmit();
+        let message = 'Submission failed';
+        try {
+          const json = JSON.parse(text);
+          message = json.message || json.error || message;
+        } catch (e) {
+          // use text or default
+        }
+        throw new Error(message);
       }
-    };
 
-    // Handle confirmed test submission with Redis cleanup
-    const confirmSubmit = async () => {
-      setShowSubmitConfirm(false);
+      const results = await response.json();
 
-      if (isSubmitting) return;
-
+      // Clean up Redis session
       try {
-        setIsSubmitting(true);
-
-        // Final save before submission
-        await saveAnswers();
-
-        // Send final answers to server
-        const response = await fetch(`${apiBaseUrl}/${attemptId}/submit`, {
+        await fetch(`${apiBaseUrl}/${attemptId}/cleanup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            endTime: new Date().toISOString(),
-            answers,
-            timeSpent,
-            flaggedQuestions,
-            connectionStatus // Include connection status for analytics
-          })
         });
+      } catch (cleanupError) {
+        console.error('Cleanup failed, but continuing...', cleanupError);
+      }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Submission failed');
-        }
+      // Update UI state
+      setTestResults(results);
+      setShowTestResults(true);
 
-        const results = await response.json();
+      // Scroll to results
+      if (mainContentRef.current) {
+        mainContentRef.current.scrollIntoView({ behavior: 'smooth' });
+      }
 
-        // Clean up Redis session
+      // Calculate performance metrics in the background
+      const calculatePerformance = async () => {
         try {
-          await fetch(`${apiBaseUrl}/${attemptId}/cleanup`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          });
-        } catch (cleanupError) {
-          console.error('Cleanup failed, but continuing...', cleanupError);
-        }
+          if (analyzePerformance) {
+            // Use the results from submission which contains full context
+            const analysis = await analyzePerformance(results);
 
-        // Update UI state
-        setTestResults(results);
-        setShowTestResults(true);
-
-        // Scroll to results
-        if (mainContentRef.current) {
-          mainContentRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-
-        // Calculate performance metrics in the background
-        const calculatePerformance = async () => {
-          try {
-            if (analyzePerformance) {
-              const analysis = await analyzePerformance(answers, questions);
+            if (analysis) {
               setPerformanceAnalysis(analysis);
 
               // Generate study plan based on performance
-              if (generateStudyPlan) {
+              if (generateStudyPlan && analysis.weakAreas) {
                 const plan = await generateStudyPlan(analysis.weakAreas);
                 setStudyPlan(plan);
               }
@@ -519,77 +589,75 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
                 setPersonalizedTips(tips);
               }
             }
-          } catch (error) {
-            console.error('Error calculating performance:', error);
           }
-        };
-
-        // Don't await this to avoid blocking UI
-        calculatePerformance();
-
-        // Notify parent component if provided
-        if (onComplete) {
-          onComplete(results);
+        } catch (error) {
+          console.error('Error calculating performance:', error);
         }
+      };
 
-        // Track test completion
-        if (window.gtag) {
-          window.gtag('event', 'test_completed', {
-            test_id: test?.id,
-            test_name: test?.title,
-            score: results.score,
-            correct_answers: results.correctAnswers,
-            total_questions: results.totalQuestions,
-            time_spent: Math.round((test?.durationMinutes * 60 - timeLeft) / 60) // in minutes
-          });
-        }
+      // Don't await this to avoid blocking UI
+      calculatePerformance();
 
-        // Show success message
+      // Notify parent component if provided
+      if (onComplete) {
+        onComplete(results);
+      }
+
+      // Track test completion
+      if (window.gtag) {
+        window.gtag('event', 'test_completed', {
+          test_id: test?.id,
+          test_name: test?.title,
+          score: results.score,
+          correct_answers: results.correctAnswers,
+          total_questions: results.totalQuestions,
+          time_spent: Math.round((test?.durationMinutes * 60 - timeLeft) / 60) // in minutes
+        });
+      }
+
+      // Show success message
+      toast({
+        title: 'Test Submitted!',
+        description: 'Your test has been successfully submitted.',
+        variant: 'default',
+      });
+
+    } catch (error) {
+      console.error('Test submission failed:', error);
+      toast({
+        title: 'Submission Error',
+        description: error.message || 'Failed to submit test. Please try again.',
+        variant: 'destructive',
+      });
+
+      // Attempt to save progress for recovery
+      try {
+        await saveAnswers();
         toast({
-          title: 'Test Submitted!',
-          description: 'Your test has been successfully submitted.',
+          title: 'Progress Saved',
+          description: 'Your progress has been saved. You can continue where you left off.',
           variant: 'default',
         });
-
-      } catch (error) {
-        console.error('Test submission failed:', error);
-        toast({
-          title: 'Submission Error',
-          description: error.message || 'Failed to submit test. Please try again.',
-          variant: 'destructive',
-        });
-
-        // Attempt to save progress for recovery
-        try {
-          await saveAnswers();
-          toast({
-            title: 'Progress Saved',
-            description: 'Your progress has been saved. You can continue where you left off.',
-            variant: 'default',
-          });
-        } catch (saveError) {
-          console.error('Failed to save progress:', saveError);
-        }
-      } finally {
-        setIsSubmitting(false);
+      } catch (saveError) {
+        console.error('Failed to save progress:', saveError);
       }
-    };
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-    // Handle auto-submit when time runs out
-    const handleAutoSubmit = useCallback(() => {
+  // Handle auto-submit when time runs out
+  // Handle auto-submit when time runs out
+  const handleAutoSubmit = useCallback(async () => {
+    try {
+      setIsSubmitting(true);
       toast({
         title: 'Time\'s up!',
         description: 'Your test has been automatically submitted.',
       });
-      confirmSubmit();
-    }, [answers, timeSpent, attemptId]);
-    try {
-      await handleSubmit();
 
-      toast({
-        title: 'Test Auto-Submitted',
-        description: 'Your test has been automatically submitted as the time has run out.',
-      });
+      await confirmSubmit();
+
     } catch (error) {
       console.error('Auto-submit failed:', error);
       toast({
@@ -600,7 +668,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     } finally {
       setIsSubmitting(false);
     }
-  }, [handleSubmit, isSubmitting]);
+  }, [confirmSubmit]);
 
   // Check if an option is selected
   const isOptionSelected = (questionId, optionValue, questionType) => {
@@ -735,7 +803,33 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
 
   // Render question based on type
   const renderQuestion = (question) => {
-    const { id, type, options } = question;
+    const { id, type } = question;
+    let { options } = question;
+
+    // Parse options if string
+    if (typeof options === 'string') {
+      try {
+        options = JSON.parse(options);
+      } catch (e) {
+        console.error("Failed to parse options for question", id, e);
+        options = [];
+      }
+    }
+
+    // Ensure options is an array
+    if (!Array.isArray(options)) {
+      options = [];
+    }
+
+    // Normalize options to have value and label
+    const formattedOptions = options.map((opt, idx) => {
+      if (typeof opt === 'string') return { label: opt, value: opt };
+      return {
+        label: opt.label || opt.text || `Option ${idx + 1}`,
+        value: opt.value || opt.id || opt.text || String(idx)
+      };
+    });
+
     const currentAnswer = answers[id] || '';
 
     switch (type) {
@@ -747,7 +841,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
             onValueChange={(value) => handleAnswer(id, value, type)}
             className="space-y-3"
           >
-            {options?.map((option, idx) => (
+            {formattedOptions.map((option, idx) => (
               <div key={idx} className="flex items-center space-x-3">
                 <RadioGroupItem
                   value={option.value}
@@ -768,7 +862,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       case QUESTION_TYPES.MULTIPLE_RESPONSE:
         return (
           <div className="space-y-3">
-            {options?.map((option, idx) => (
+            {formattedOptions.map((option, idx) => (
               <div key={idx} className="flex items-start space-x-3">
                 <Checkbox
                   id={`${id}-${idx}`}
@@ -984,7 +1078,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
             Cancel
           </Button>
           <Button
-            onClick={handleSubmit}
+            onClick={confirmSubmit}
             disabled={isSubmitting}
           >
             {isSubmitting ? (
@@ -1086,14 +1180,32 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     );
   }
 
-  // Show error state if no questions
+  // Show empty state if questions validly loaded but empty
+  if (questions.length === 0 && !isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
+        <div className="bg-yellow-100 p-4 rounded-full">
+          <AlertCircle className="h-8 w-8 text-yellow-600" />
+        </div>
+        <h2 className="text-xl font-semibold">Test is Empty</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          This test has no questions yet. Please contact your administrator.
+        </p>
+        <Button onClick={() => window.location.reload()} variant="outline">
+          Refresh Page
+        </Button>
+      </div>
+    );
+  }
+
+  // Show error state if currentQuestion is missing but questions exist (shouldn't happen)
   if (!currentQuestion) {
     return (
       <Alert variant="destructive">
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Error loading test</AlertTitle>
         <AlertDescription>
-          We couldn't load the test questions. Please try refreshing the page.
+          We couldn't load the current question. Please try refreshing the page.
         </AlertDescription>
       </Alert>
     );

@@ -10,44 +10,60 @@ export async function GET(request, { params }) {
   const session = await auth();
 
   try {
-    const test = await prisma.test.findUnique({
-      where: { id: testId },
-      include: {
-        olympiad: {
-          select: {
-            id: true,
-            name: true,
-          },
+    // Configure query include
+    const includeConfig = {
+      olympiad: {
+        select: {
+          id: true,
+          name: true,
         },
-        testQuestions: {
-          include: {
-            question: {
-              include: {
-                topic: {
-                  select: {
-                    id: true,
-                    name: true,
-                    subject: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
+      },
+      testQuestions: {
+        include: {
+          question: {
+            include: {
+              topic: {
+                select: {
+                  id: true,
+                  name: true,
+                  subject: {
+                    select: {
+                      id: true,
+                      name: true,
                     },
                   },
                 },
               },
             },
           },
-          orderBy: {
-            sequence: 'asc',
-          },
         },
-        _count: {
-          select: {
-            attempts: true,
-          },
+        orderBy: {
+          sequence: 'asc',
         },
       },
+      _count: {
+        select: {
+          attempts: true,
+        },
+      },
+    };
+
+    if (session?.user?.id) {
+      includeConfig.attempts = {
+        where: {
+          userId: session.user.id
+        },
+        select: {
+          id: true,
+          status: true,
+          submittedAt: true
+        }
+      };
+    }
+
+    const test = await prisma.test.findUnique({
+      where: { id: testId },
+      include: includeConfig,
     });
 
     if (!test) {
@@ -75,11 +91,25 @@ export async function GET(request, { params }) {
       }
     }
 
+    // Determine user status
+    let userStatus = 'NOT_STARTED';
+    if (session?.user?.id && test.attempts && test.attempts.length > 0) {
+      const hasSubmitted = test.attempts.some(a => a.status === 'submitted');
+      const hasInProgress = test.attempts.some(a => a.status === 'in_progress');
+
+      if (hasSubmitted) {
+        userStatus = 'COMPLETED';
+      } else if (hasInProgress) {
+        userStatus = 'IN_PROGRESS';
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         ...test,
         isPurchased,
+        userStatus,
       },
     });
   } catch (error) {
@@ -222,13 +252,10 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Prevent deletion if test has attempts
-    if (test._count.attempts > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Cannot delete a test that has attempts' },
-        { status: 400 }
-      );
-    }
+    // Delete all attempts associated with the test
+    await prisma.testAttempt.deleteMany({
+      where: { testId },
+    });
 
     // Delete test questions first (due to foreign key constraint)
     await prisma.testQuestion.deleteMany({

@@ -43,6 +43,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import {
@@ -59,7 +61,14 @@ export default function TestsManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [tests, setTests] = useState([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [editingTest, setEditingTest] = useState(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
+  const [testToDelete, setTestToDelete] = useState(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchTests = async () => {
     try {
@@ -92,6 +101,84 @@ export default function TestsManagementPage() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleEditTest = async (testId) => {
+    try {
+      setIsFetchingDetails(true);
+      const res = await fetch(`/api/tests/${testId}`);
+      const data = await res.json();
+
+      if (data.success) {
+        // Need to parse date strings back to Date objects for the form
+        const testData = {
+          ...data.data,
+          startTime: data.data.startTime ? new Date(data.data.startTime) : undefined,
+          endTime: data.data.endTime ? new Date(data.data.endTime) : undefined,
+          duration: data.data.durationMinutes,
+          maxAttempts: data.data.allowMultipleAttempts ? 0 : 1,
+          isScheduled: !!data.data.startTime,
+        };
+        setEditingTest(testData);
+        setIsEditModalOpen(true);
+      } else {
+        throw new Error(data.error || 'Failed to fetch test details');
+      }
+    } catch (error) {
+      console.error('Failed to fetch test details', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load test details.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsFetchingDetails(false);
+    }
+  };
+
+  const handleDeleteClick = (test) => {
+    setTestToDelete(test);
+    setIsDeleteOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!testToDelete) return;
+
+    try {
+      setIsDeleting(true);
+      const res = await fetch(`/api/tests/${testToDelete.id}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: 'Test deleted successfully.',
+        });
+        setIsDeleteOpen(false); // Close first on success
+        fetchTests();
+      } else {
+        throw new Error(data.error || 'Failed to delete test');
+      }
+    } catch (error) {
+      console.error('Failed to delete test', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete test.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      // Only clear testToDelete if we closed the modal (success case) or if we want to reset fully.
+      // But keeping it open on error allows retry (though safely handling retry is complex if it was a false partial failure). 
+      // For now, consistent with previous logic, we keep the modal open on error so user can see it failed, 
+      // but if we closed it on success, we should clear it.
+      if (!isDeleteOpen) { // Note: isDeleteOpen might still be true here if we didn't close it in success block
+        // actually, state updates are batched/async. checking isDeleteOpen here reads the render-time value.
+        // Better to clear testToDelete when the dialog is closed via onOpenChange or success.
+      }
     }
   };
 
@@ -169,6 +256,41 @@ export default function TestsManagementPage() {
                   setIsCreateModalOpen(false);
                   fetchTests();
                 }} />
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+              <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Edit Test Settings</DialogTitle>
+                </DialogHeader>
+                {editingTest && (
+                  <TestForm
+                    test={editingTest}
+                    onSuccess={() => {
+                      setIsEditModalOpen(false);
+                      setEditingTest(null);
+                      fetchTests();
+                    }}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Delete Test</DialogTitle>
+                  <DialogDescription>
+                    Are you sure you want to delete "{testToDelete?.name}"? This action cannot be undone.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0">
+                  <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+                  <Button variant="destructive" onClick={confirmDelete} disabled={isDeleting}>
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </Button>
+                </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
@@ -341,13 +463,28 @@ export default function TestsManagementPage() {
                                 className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer"
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  handleEditTest(test.id);
+                                }}
+                              >
+                                <SettingsIcon className="size-4 text-foreground" /> <span>Test Settings</span>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   router.push(`/admin/tests/${test.id}`);
                                 }}
                               >
                                 <Edit className="size-4 text-emerald-500" /> <span>Manage Questions</span>
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500">
-                                <Trash2 className="size-4" /> <span>Suspend Test</span>
+                              <DropdownMenuItem
+                                className="gap-2 rounded-xl scale-95 hover:scale-100 transition-transform cursor-pointer text-red-500 focus:text-red-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClick(test);
+                                }}
+                              >
+                                <Trash2 className="size-4" /> <span>Delete Test</span>
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

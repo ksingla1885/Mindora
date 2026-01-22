@@ -109,11 +109,15 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
       difficulty: 'medium',
       marks: 1,
       isActive: true,
+      subjectId: '',
+      classId: '',
+      text: '',
       options: [
         { id: '1', text: '', isCorrect: false },
         { id: '2', text: '', isCorrect: false },
       ],
       multipleAnswers: false,
+      topic: '',
       tags: [],
     },
   });
@@ -304,16 +308,44 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
     );
   }
 
+  // Handle form validation errors
+  const onError = (errors) => {
+    console.log('Form Errors:', errors);
+
+    // Check which tab has errors
+    const contentFields = ['text', 'options', 'modelAnswer', 'blanks', 'matchingPairs', 'correctAnswer', 'gradingRubric', 'wordLimit'];
+    const generalFields = ['subjectId', 'classId', 'type', 'difficulty', 'marks', 'topic', 'tags'];
+
+    const hasContentErrors = Object.keys(errors).some(key => contentFields.includes(key) || key.startsWith('options'));
+    const hasGeneralErrors = Object.keys(errors).some(key => generalFields.includes(key));
+
+    if (hasGeneralErrors) {
+      setActiveTab('general');
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields in the General tab.",
+        variant: "destructive"
+      });
+    } else if (hasContentErrors) {
+      setActiveTab('content');
+      toast({
+        title: "Validation Error",
+        description: "Please fill in the Question Text and Options in the Content tab.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit, onError)} className="space-y-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList>
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="content" disabled={!form.formState.isDirty && !question}>
+            <TabsTrigger value="content">
               Content
             </TabsTrigger>
-            <TabsTrigger value="settings" disabled={!form.formState.isDirty && !question}>
+            <TabsTrigger value="settings">
               Settings
             </TabsTrigger>
           </TabsList>
@@ -393,15 +425,16 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
                       if (!selectedClass) return true;
 
                       const name = subject.name.toLowerCase();
-                      const isClass11 = selectedClass.name.includes('11');
-                      const isClass12 = selectedClass.name.includes('12');
+                      const className = selectedClass.name.toLowerCase();
 
-                      if (isClass11) {
-                        return ['physics', 'chemistry', 'mathematics', 'astronomy'].includes(name);
+                      if (className.includes('11') || className.includes('12')) {
+                        return ['physics', 'chemistry', 'mathematics', 'astronomy', 'biology', 'computer science', 'english'].some(s => name.includes(s));
                       }
-                      if (isClass12) {
-                        return ['physics', 'chemistry', 'mathematics'].includes(name);
+
+                      if (className.includes('9') || className.includes('10')) {
+                        return ['science', 'mathematics', 'english', 'social science', 'hindi', 'computer'].some(s => name.includes(s));
                       }
+
                       return true;
                     });
 
@@ -439,7 +472,7 @@ export function QuestionForm({ question, onSubmit, isSubmitting = false }) {
                     <FormItem>
                       <FormLabel>Topic (Optional)</FormLabel>
                       <FormControl>
-                        <Input placeholder="E.g., Algebra, Thermodynamics" {...field} />
+                        <Input placeholder="E.g., Algebra, Thermodynamics" {...field} value={field.value || ''} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

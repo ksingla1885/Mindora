@@ -44,23 +44,40 @@ export async function POST(request) {
 
     Provide a detailed, educational explanation suitable for a student.`;
 
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: 'You are a helpful tutor. Explain the question and answer in a clear, educational way.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 500,
-    });
+    // Check if API key is configured
+    const apiKey = process.env.OPENAI_API_KEY;
+    const isMock = !apiKey || apiKey === 'your_api_key_here';
 
-    const explanation = completion.choices[0].message.content;
+    let explanation;
+
+    if (isMock) {
+      explanation = `[Simulated Explanation]
+       
+       This is a mock explanation because the OpenAI API key is not configured.
+       
+       The correct answer is correct because it matches the definition provided in the study materials.
+       
+       Concept: ${question.topic?.name || 'General Knowledge'}
+       Key Point: Understanding this concept is crucial for solving similar problems.`;
+    } else {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful tutor. Explain the question and answer in a clear, educational way.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.5,
+        max_tokens: 500,
+      });
+
+      explanation = completion.choices[0].message.content;
+    }
 
     return NextResponse.json({
       success: true,

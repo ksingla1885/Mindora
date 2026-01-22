@@ -1,11 +1,10 @@
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 
 export async function GET(request, { params }) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -14,10 +13,10 @@ export async function GET(request, { params }) {
   }
 
   try {
-    const { attemptId } = params;
+    const { attemptId } = await params;
 
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         userId: session.user.id,
       },
@@ -51,7 +50,7 @@ export async function GET(request, { params }) {
           id: attempt.id,
           status: attempt.status,
           score: attempt.score,
-          maxScore: attempt.maxScore,
+          maxScore: attempt.metadata?.maxScore || 0,
           submittedAt: attempt.submittedAt,
           finishedAt: attempt.finishedAt,
           test: {
@@ -69,7 +68,7 @@ export async function GET(request, { params }) {
         status: attempt.status,
         startedAt: attempt.startedAt,
         answers: attempt.answers || {},
-        currentQuestionIndex: attempt.currentQuestionIndex || 0,
+        currentQuestionIndex: attempt.metadata?.currentQuestionIndex || 0,
         test: {
           id: attempt.test.id,
           title: attempt.test.title,
@@ -99,8 +98,8 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -109,12 +108,12 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    const { attemptId } = params;
-    const { answers, currentQuestionIndex } = await request.json();
+    const { attemptId } = await params;
+    const { answers, currentQuestionIndex, timeSpentSeconds } = await request.json();
 
     // Verify the attempt exists and belongs to the user
     const existingAttempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         userId: session.user.id,
         submittedAt: null,
@@ -123,20 +122,32 @@ export async function PATCH(request, { params }) {
     });
 
     if (!existingAttempt) {
+      console.error(`Attempt not found or already submitted: ${attemptId}, User: ${session.user.id}`);
       return NextResponse.json(
         { error: 'Test attempt not found or already submitted' },
         { status: 404 }
       );
     }
 
-    // Update the attempt with new answers and/or current question index
+    const attemptUpdateData = {
+      answers: answers !== undefined ? answers : undefined,
+      metadata: {
+        ...(existingAttempt.metadata || {}),
+        ...(currentQuestionIndex !== undefined ? { currentQuestionIndex } : {}),
+        lastSavedAt: new Date().toISOString(),
+      },
+    };
+
+    if (timeSpentSeconds !== undefined) {
+      const parsedTime = parseInt(timeSpentSeconds);
+      if (!isNaN(parsedTime)) {
+        attemptUpdateData.timeSpentSeconds = parsedTime;
+      }
+    }
+
     const updatedAttempt = await prisma.testAttempt.update({
       where: { id: attemptId },
-      data: {
-        answers: answers !== undefined ? answers : undefined,
-        currentQuestionIndex: currentQuestionIndex !== undefined ? currentQuestionIndex : undefined,
-        updatedAt: new Date(),
-      },
+      data: attemptUpdateData,
     });
 
     return NextResponse.json({
@@ -153,8 +164,8 @@ export async function PATCH(request, { params }) {
 }
 
 export async function DELETE(request, { params }) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -163,11 +174,11 @@ export async function DELETE(request, { params }) {
   }
 
   try {
-    const { attemptId } = params;
+    const { attemptId } = await params;
 
     // Verify the attempt exists and belongs to the user
     const existingAttempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         userId: session.user.id,
         submittedAt: null,

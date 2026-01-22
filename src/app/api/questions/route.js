@@ -89,11 +89,12 @@ export async function POST(request) {
 
   try {
     const body = await request.json();
+    console.log('[API] Creating question. Body:', JSON.stringify(body, null, 2));
 
     // Validate required fields
-    if (!body.text || !body.topicId || !body.type) {
+    if (!body.text || (!body.topicId && !body.topic) || !body.type) {
       return NextResponse.json(
-        { success: false, error: 'Text, topicId, and type are required' },
+        { success: false, error: 'Text, type, and either topicId or topic name are required' },
         { status: 400 }
       );
     }
@@ -107,15 +108,56 @@ export async function POST(request) {
         );
       }
 
+      // If correctAnswer is missing, try to find it in options
       if (body.correctAnswer === undefined || body.correctAnswer === null) {
-        return NextResponse.json(
-          { success: false, error: 'Correct answer is required for MCQs' },
-          { status: 400 }
-        );
+        const correctOption = body.options.find(opt => opt.isCorrect);
+        if (correctOption) {
+          body.correctAnswer = correctOption.text; // Or ID if you prefer, but text is safer if IDs aren't stable
+        } else {
+          return NextResponse.json(
+            { success: false, error: 'Correct answer is required for MCQs' },
+            { status: 400 }
+          );
+        }
       }
 
       // Convert options array to JSON string for storage
       body.options = JSON.stringify(body.options);
+    }
+
+    // Handle topicId or create topic from subjectId + topic name
+    let finalTopicId = body.topicId;
+
+    if (!finalTopicId && body.subjectId && body.topic) {
+      // Try to find existing topic by name and subject
+      const existingTopic = await prisma.topic.findFirst({
+        where: {
+          subjectId: body.subjectId,
+          name: { equals: body.topic, mode: 'insensitive' }
+        }
+      });
+
+      if (existingTopic) {
+        finalTopicId = existingTopic.id;
+      } else {
+        // Create new topic
+        const newTopic = await prisma.topic.create({
+          data: {
+            name: body.topic,
+            subjectId: body.subjectId,
+            difficulty: 'medium' // Default difficulty
+          }
+        });
+        finalTopicId = newTopic.id;
+      }
+    }
+
+    // Validate we have a topicId
+    if (!finalTopicId) {
+      return NextResponse.json(
+        { success: false, error: 'Topic ID is required, or valid Subject ID and Topic Name must be provided' },
+        { status: 400 }
+      );
     }
 
     // Create the question
@@ -129,7 +171,7 @@ export async function POST(request) {
         difficulty: body.difficulty || 'medium',
         marks: body.marks || 1,
         topic: {
-          connect: { id: body.topicId },
+          connect: { id: finalTopicId },
         },
       },
       include: {

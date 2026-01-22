@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 const prisma = new PrismaClient();
 
 // GET /api/tests/[testId]/attempts/[attemptId] - Get attempt details
 export async function GET(request, { params }) {
   const { testId, attemptId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -19,7 +18,7 @@ export async function GET(request, { params }) {
 
   try {
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         testId,
         userId: session.user.id,
@@ -72,8 +71,8 @@ export async function GET(request, { params }) {
 // PATCH /api/tests/[testId]/attempts/[attemptId] - Save or submit test attempt
 export async function PATCH(request, { params }) {
   const { testId, attemptId } = params;
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { success: false, error: 'Unauthorized' },
@@ -83,7 +82,7 @@ export async function PATCH(request, { params }) {
 
   try {
     const { answers, submit = false } = await request.json();
-    
+
     if (!answers || typeof answers !== 'object') {
       return NextResponse.json(
         { success: false, error: 'Invalid answers format' },
@@ -93,7 +92,7 @@ export async function PATCH(request, { params }) {
 
     // Get the attempt
     const attempt = await prisma.testAttempt.findUnique({
-      where: { 
+      where: {
         id: attemptId,
         testId,
         userId: session.user.id,
@@ -127,7 +126,7 @@ export async function PATCH(request, { params }) {
     const now = new Date();
     const timeElapsed = Math.floor((now - attempt.startedAt) / 1000 / 60); // in minutes
     const timeRemaining = attempt.test.durationMinutes - timeElapsed;
-    
+
     if (timeRemaining <= 0) {
       // Auto-submit if time is up
       return handleTestSubmission(attemptId, attempt.details, true);
@@ -178,20 +177,20 @@ export async function PATCH(request, { params }) {
     return handleTestSubmission(attemptId, updatedDetails, false);
   } catch (error) {
     console.error('Error saving test attempt:', error);
-    
+
     if (error.code === 'P2025') {
       return NextResponse.json(
         { success: false, error: 'Attempt not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: submit 
-          ? 'Failed to submit test attempt' 
-          : 'Failed to save test attempt' 
+      {
+        success: false,
+        error: submit
+          ? 'Failed to submit test attempt'
+          : 'Failed to save test attempt'
       },
       { status: 500 }
     );
@@ -206,7 +205,7 @@ async function handleTestSubmission(attemptId, attemptDetails, isAutoSubmit = fa
   let score = 0;
   let correctAnswers = 0;
   let totalQuestions = attemptDetails.questions.length;
-  
+
   // Grade each question
   const gradedQuestions = await Promise.all(
     attemptDetails.questions.map(async (question) => {

@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function POST(request, { params }) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -58,7 +57,7 @@ export async function POST(request, { params }) {
       const question = testQuestion.question;
       const userAnswer = answers[index]?.answer || null;
       const isCorrect = userAnswer === question.correctAnswer;
-      
+
       if (isCorrect) {
         score += testQuestion.marks || 1;
         correctAnswers++;
@@ -179,7 +178,7 @@ async function updateRanks(subjectId) {
   });
 
   // Update ranks in a transaction
-  const updates = entries.map((entry, index) => 
+  const updates = entries.map((entry, index) =>
     prisma.leaderboard.update({
       where: { id: entry.id },
       data: { rank: index + 1 },
