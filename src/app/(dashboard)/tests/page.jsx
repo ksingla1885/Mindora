@@ -16,7 +16,8 @@ import {
     Clock,
     List,
     BarChart2,
-    GraduationCap
+    GraduationCap,
+    History
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -83,15 +84,15 @@ const WeeklyTestsPage = () => {
                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white dark:bg-[#1a2332] p-2 rounded-xl border border-slate-200 dark:border-[#232f48] shadow-sm">
                         {/* Dropdowns */}
                         <div className="flex flex-wrap gap-2 p-1">
-                            <button className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
+                            <button suppressHydrationWarning={true} className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
                                 <p className="text-slate-700 dark:text-white text-sm font-medium">Subject</p>
                                 <ChevronDown className="w-5 h-5 text-slate-500 dark:text-white group-hover:rotate-180 transition-transform" />
                             </button>
-                            <button className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
+                            <button suppressHydrationWarning={true} className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
                                 <p className="text-slate-700 dark:text-white text-sm font-medium">Class</p>
                                 <ChevronDown className="w-5 h-5 text-slate-500 dark:text-white group-hover:rotate-180 transition-transform" />
                             </button>
-                            <button className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
+                            <button suppressHydrationWarning={true} className="group flex h-9 shrink-0 items-center justify-center gap-x-2 rounded-lg bg-slate-100 dark:bg-[#232f48] hover:bg-slate-200 dark:hover:bg-[#2d3b55] pl-4 pr-3 transition-colors border border-transparent hover:border-slate-300 dark:hover:border-slate-600">
                                 <p className="text-slate-700 dark:text-white text-sm font-medium">Olympiad</p>
                                 <ChevronDown className="w-5 h-5 text-slate-500 dark:text-white group-hover:rotate-180 transition-transform" />
                             </button>
@@ -101,7 +102,11 @@ const WeeklyTestsPage = () => {
 
                         {/* Toggle & Reset */}
                         <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end px-1">
-                            <button className="text-sm font-medium text-slate-500 dark:text-[#92a4c9] hover:text-primary dark:hover:text-white underline underline-offset-4">
+                            <button
+                                suppressHydrationWarning={true}
+                                onClick={() => setActiveTab("Free")}
+                                className="text-sm font-medium text-slate-500 dark:text-[#92a4c9] hover:text-primary dark:hover:text-white underline underline-offset-4"
+                            >
                                 Reset
                             </button>
                             <div className="flex h-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-[#232f48] p-1 border border-slate-200 dark:border-transparent">
@@ -147,7 +152,8 @@ const WeeklyTestsPage = () => {
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredTests.map((test) => {
-                                const isCompleted = !test.allowMultipleAttempts && test.attempts && test.attempts.length > 0;
+                                const hasInProgress = test.attempts?.some(a => a.status?.toLowerCase() === 'in_progress');
+                                const isCompleted = !test.allowMultipleAttempts && test.attempts && test.attempts.length > 0 && !hasInProgress;
 
                                 return (
                                     <Link
@@ -208,6 +214,10 @@ const WeeklyTestsPage = () => {
                                                     <div className="flex items-center gap-2">
                                                         <GraduationCap className="w-[18px] h-[18px]" />
                                                         <span>Class {test.class}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <History className="w-[18px] h-[18px]" />
+                                                        <span>{test.allowMultipleAttempts ? "Unlimited Attempts" : "1 Attempt"}</span>
                                                     </div>
                                                 </div>
 

@@ -26,9 +26,7 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground mt-1">Welcome back, {adminName}. Here's what's happening with your platform today.</p>
         </div>
         <div className="flex gap-2">
-          <Button className="bg-primary hover:bg-primary/90 text-white text-sm font-bold rounded-lg px-6 py-2.5 transition-all shadow-md hover:shadow-lg shadow-primary/20 hover:-translate-y-0.5 active:scale-95">
-            Create New Test
-          </Button>
+
           <Button variant="outline" className="bg-background dark:bg-surface-dark border-border hover:bg-accent text-foreground text-sm font-medium rounded-lg px-5 py-2.5 transition-all hover:-translate-y-0.5 active:scale-95">
             Generate Report
           </Button>

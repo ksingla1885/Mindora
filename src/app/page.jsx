@@ -553,6 +553,17 @@ const DeveloperSection = () => {
         <p className="text-sm font-light leading-7 text-justify text-muted-foreground">
           Mindora is a solo-built project engineered by Ketan, a Full-Stack & DevOps-oriented developer with a strong focus on building scalable, reliable, and learner-centric digital platforms. Designed using Next.js with Supabase as the core data layer, Mindora reflects his commitment to modern engineering practices, clean architecture, and real-world problem solving. Inspired by personal learning challenges and the academic gaps students commonly face, Ketan set out to create a structured, accessible, and high-impact preparation platform that helps students learn smarter and progress with confidence.
         </p>
+
+        <div className="flex gap-4 mt-8">
+          <Link href="https://github.com/ksingla1885" target="_blank" className="p-3 rounded-full bg-muted/50 border border-border hover:bg-primary/10 hover:text-primary hover:scale-110 transition-all duration-300 group">
+            <Github className="w-5 h-5 group-hover:rotate-12 transition-transform" />
+            <span className="sr-only">GitHub</span>
+          </Link>
+          <Link href="https://www.linkedin.com/in/ketan-kumar-521249279/" target="_blank" className="p-3 rounded-full bg-muted/50 border border-border hover:bg-primary/10 hover:text-primary hover:scale-110 transition-all duration-300 group">
+            <Linkedin className="w-5 h-5 group-hover:-rotate-12 transition-transform" />
+            <span className="sr-only">LinkedIn</span>
+          </Link>
+        </div>
       </div>
     </section>
   )

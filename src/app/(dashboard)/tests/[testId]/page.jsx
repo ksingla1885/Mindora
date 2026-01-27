@@ -103,12 +103,14 @@ export default function TestPage() {
   // Check if test is completed based on server status or attempt analysis
   // Logic: if not allowMultipleAttempts and status is COMPLETED
   const userStatus = test.userStatus || 'NOT_STARTED';
-  // Fallback to local check if userStatus not yet available (e.g. from list API only?) 
-  // actually we just added it to details API.
+  // Fallback to local check if userStatus not yet available
   const userAttempts = test.attempts || [];
-  const hasSubmittedAttempt = userAttempts.some(a => a.status === 'submitted');
 
-  const isCompleted = !test.allowMultipleAttempts && (userStatus === 'COMPLETED' || hasSubmittedAttempt);
+  const hasInProgress = userAttempts.some(a => a.status?.toLowerCase() === 'in_progress');
+  const hasAnyAttempt = userAttempts.length > 0;
+
+  // Lock if: Single attempt allowed AND has attempts AND no active attempt to resume
+  const isCompleted = !test.allowMultipleAttempts && hasAnyAttempt && !hasInProgress;
 
   // If test is running, render TestTaker
   if (hasStarted && !needsPayment) {

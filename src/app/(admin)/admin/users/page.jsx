@@ -98,11 +98,11 @@ export default function UsersPage() {
       user.email?.toLowerCase().includes(searchLower) ||
       user.id?.toLowerCase().includes(searchLower);
 
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
+    const matchesRole = selectedRole === 'all' || user.role?.toLowerCase() === selectedRole.toLowerCase();
     const matchesStatus = selectedStatus === 'all' ||
       (selectedStatus === 'active' ? user.emailVerified : !user.emailVerified);
     // Use loose equality or string conversion for class comparison to handle number/string differences
-    const matchesClass = selectedClass === 'all' || String(user.class) === String(selectedClass);
+    const matchesClass = selectedClass === 'all' || String(user.class || '') === String(selectedClass);
 
     return matchesSearch && matchesRole && matchesStatus && matchesClass;
   });
@@ -356,9 +356,7 @@ export default function UsersPage() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <button className="flex items-center justify-center size-11 shrink-0 rounded-xl border border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:bg-muted transition-all">
-            <Download className="size-5" />
-          </button>
+
         </div>
       </div>
 
@@ -493,27 +491,25 @@ export default function UsersPage() {
                                 <span className="font-medium">View Profile</span>
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild className="rounded-lg gap-3 cursor-pointer p-3">
-                              <Link href={`/admin/users/${user.id}/edit`}>
-                                <Edit className="size-4 text-green-500" />
-                                <span className="font-medium">Edit Details</span>
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="rounded-lg gap-3 cursor-pointer p-3"
-                              onClick={() => handleResetPassword(user.email)}
-                            >
-                              <Key className="size-4 text-amber-500" />
-                              <span className="font-medium">Reset Password</span>
-                            </DropdownMenuItem>
+
                             <DropdownMenuSeparator className="bg-border" />
-                            <DropdownMenuItem
-                              className="rounded-lg gap-3 cursor-pointer p-3 text-red-500 focus:text-red-500 focus:bg-red-500/10"
-                              onClick={() => handleSingleAction(user.id, 'deactivate')}
-                            >
-                              <Trash2 className="size-4" />
-                              <span className="font-medium">Block Access</span>
-                            </DropdownMenuItem>
+                            {user.emailVerified ? (
+                              <DropdownMenuItem
+                                className="rounded-lg gap-3 cursor-pointer p-3 text-red-500 focus:text-red-500 focus:bg-red-500/10"
+                                onClick={() => handleSingleAction(user.id, 'deactivate')}
+                              >
+                                <Trash2 className="size-4" />
+                                <span className="font-medium">Block Access</span>
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                className="rounded-lg gap-3 cursor-pointer p-3 text-emerald-500 focus:text-emerald-500 focus:bg-emerald-500/10"
+                                onClick={() => handleSingleAction(user.id, 'activate')}
+                              >
+                                <CheckCircle2 className="size-4" />
+                                <span className="font-medium">Unblock Access</span>
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </td>

@@ -90,12 +90,15 @@ export async function POST(request, { params }) {
       );
     }
 
+    // Restriction removed to allow admins to add questions to active tests if needed.
+    /*
     if (test._count.attempts > 0) {
       return NextResponse.json(
         { success: false, error: 'Cannot modify a test that has attempts' },
         { status: 400 }
       );
     }
+    */
 
     // Get current max sequence to append new questions
     const lastQuestion = await prisma.testQuestion.findFirst({

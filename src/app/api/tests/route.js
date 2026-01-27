@@ -81,9 +81,34 @@ export async function GET(request) {
       prisma.test.count({ where }),
     ]);
 
+    // Calculate unique participants count for the fetched tests
+    const testIds = tests.map(t => t.id);
+
+    // Group by testId and userId to find unique combinations
+    const uniqueAttempts = await prisma.testAttempt.groupBy({
+      by: ['testId', 'userId'],
+      where: {
+        testId: {
+          in: testIds
+        }
+      }
+    });
+
+    // Count distinct users per testId
+    const participantCounts = {};
+    uniqueAttempts.forEach(group => {
+      participantCounts[group.testId] = (participantCounts[group.testId] || 0) + 1;
+    });
+
+    // Merge counts into tests
+    const testsWithCounts = tests.map(test => ({
+      ...test,
+      participantCount: participantCounts[test.id] || 0
+    }));
+
     return NextResponse.json({
       success: true,
-      data: tests,
+      data: testsWithCounts,
       meta: {
         total,
         page,
@@ -177,7 +202,7 @@ export async function POST(request) {
       categories: body.categories || [],
       instructions: body.instructions,
       passingScore: body.passingScore ? parseFloat(body.passingScore) : null,
-      allowMultipleAttempts: body.maxAttempts !== 1, // Simple mapping for now
+      allowMultipleAttempts: body.allowMultipleAttempts !== undefined ? body.allowMultipleAttempts : (body.maxAttempts !== 1 && body.maxAttempts !== "1"),
     };
 
     if (body.olympiadId) {

@@ -6,7 +6,9 @@ export async function POST(request) {
     try {
         const session = await auth();
 
-        if (!session || session.user.role !== 'ADMIN') {
+        const userRole = session?.user?.role?.toLowerCase();
+
+        if (!session || userRole !== 'admin') {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
@@ -46,6 +48,7 @@ export async function POST(request) {
                     },
                     data: {
                         emailVerified: null,
+                        verificationToken: null,
                     },
                 });
                 break;

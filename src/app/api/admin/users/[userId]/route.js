@@ -14,7 +14,7 @@ export async function GET(request, { params }) {
       );
     }
 
-    const { userId } = params;
+    const { userId } = await params;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -67,7 +67,7 @@ export async function PUT(request, { params }) {
       );
     }
 
-    const { userId } = params;
+    const { userId } = await params;
     const { name, email, role, class: userClass, profileMeta } = await request.json();
 
     const updatedUser = await prisma.user.update({
@@ -121,7 +121,7 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    const { userId } = params;
+    const { userId } = await params;
 
     // Prevent deleting your own account
     if (session.user.id === userId) {

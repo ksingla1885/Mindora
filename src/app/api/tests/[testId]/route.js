@@ -155,12 +155,15 @@ export async function PATCH(request, { params }) {
       );
     }
 
-    // Prevent updating if test has attempts
+    // Prevent updating critical fields if test has attempts
     if (existingTest._count.attempts > 0) {
-      return NextResponse.json(
-        { success: false, error: 'Cannot update a test that has attempts' },
-        { status: 400 }
-      );
+      // Allow metadata updates, but prevent changing duration (affects fairness)
+      if (body.durationMinutes && body.durationMinutes !== existingTest.durationMinutes) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot change duration of a test that has attempts' },
+          { status: 400 }
+        );
+      }
     }
 
     // Build update data

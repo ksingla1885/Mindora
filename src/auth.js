@@ -1,4 +1,4 @@
-import NextAuth from "next-auth"
+import NextAuth, { CredentialsSignin } from "next-auth"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/prisma"
 import CredentialsProvider from "next-auth/providers/credentials"
@@ -10,6 +10,10 @@ import { sendVerificationEmail } from "@/lib/email"
 // Generate a random token for email verification and password reset
 const generateToken = () => {
     return randomBytes(32).toString('hex')
+}
+
+class BlockedError extends CredentialsSignin {
+    code = "user_blocked"
 }
 
 export const authOptions = {
@@ -67,7 +71,12 @@ export const authOptions = {
 
                 // Check if email is verified
                 if (!user.emailVerified) {
-                    // Resend verification email if not verified
+                    // unexpected: if token is null, user is BLOCKED by admin
+                    if (!user.verificationToken) {
+                        throw new BlockedError()
+                    }
+
+                    // Resend verification email if not verified and token exists
                     if (process.env.NODE_ENV !== 'test') {
                         try {
                             await sendVerificationEmail(user, user.verificationToken)
@@ -75,7 +84,7 @@ export const authOptions = {
                             console.error("Failed to resend verification email:", error)
                         }
                     }
-                    throw new Error('Please verify your email before logging in. A new verification email has been sent.')
+                    throw new CredentialsSignin('Please verify your email before logging in. A new verification email has been sent.')
                 }
 
                 const passwordMatch = await bcrypt.compare(credentials.password, user.password)

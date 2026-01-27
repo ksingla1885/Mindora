@@ -88,7 +88,7 @@ export default function TestsManagementPage() {
           time: t.startTime ? new Date(t.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
           price: t.price ? `₹${t.price}` : 'Free',
           status: t.isPublished ? (new Date(t.endTime) < new Date() ? 'Completed' : (new Date(t.startTime) <= new Date() ? 'LIVE' : 'Scheduled')) : 'Draft',
-          participants: t._count?.attempts || 0,
+          participants: t.participantCount || 0,
           participantsTrend: null
         })));
       }

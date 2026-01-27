@@ -94,7 +94,7 @@ export function TestForm({ test, onSuccess }) {
       isPaid: test?.isPaid ?? false,
       price: test?.price || 0,
       passingScore: test?.passingScore || 40,
-      maxAttempts: test?.maxAttempts || 1,
+      maxAttempts: test?.maxAttempts ?? 1,
       instructions: test?.instructions || '',
       tags: test?.tags || [],
       startTime: test?.startTime,

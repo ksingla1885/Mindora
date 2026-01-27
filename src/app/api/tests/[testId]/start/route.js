@@ -79,7 +79,8 @@ export async function POST(request, { params }) {
       }
 
       // Check if user has reached max attempts
-      if (test.maxAttempts) {
+      // If allowMultipleAttempts is false (default), strictly limit to 1 attempt.
+      if (!test.allowMultipleAttempts) {
         const attemptCount = await prisma.testAttempt.count({
           where: {
             testId,
@@ -87,9 +88,9 @@ export async function POST(request, { params }) {
           },
         });
 
-        if (attemptCount >= test.maxAttempts) {
+        if (attemptCount >= 1) {
           return NextResponse.json(
-            { error: 'Maximum number of attempts reached' },
+            { error: 'Maximum number of attempts reached. This test only allows a single attempt.' },
             { status: 403 }
           );
         }

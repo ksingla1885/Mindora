@@ -98,7 +98,11 @@ export default async function DashboardPage() {
         status: 'submitted',
       },
       include: {
-        test: true,
+        test: {
+          include: {
+            testQuestions: true,
+          }
+        },
       },
       orderBy: {
         submittedAt: 'desc',
@@ -109,18 +113,24 @@ export default async function DashboardPage() {
     console.warn("Database connection failed, using empty fallback data for recent scores.");
   }
 
-  const recentScores = recentAttempts.map(attempt => ({
-    test: attempt.test.title,
-    score: attempt.score || 0,
-    total: 100, // Assuming 100 for now
-    rank: null, // Rank data not yet available
-    date: attempt.submittedAt ? attempt.submittedAt.toISOString() : new Date().toISOString(),
-  }));
+  const recentScores = recentAttempts.map(attempt => {
+    const totalMarks = attempt.test.testQuestions?.reduce((sum, q) => sum + (q.marks || 1), 0) || 0;
+
+    return {
+      test: attempt.test.title,
+      score: attempt.score || 0,
+      total: totalMarks,
+      rank: null,
+      date: attempt.submittedAt ? attempt.submittedAt.toISOString() : new Date().toISOString(),
+      testId: attempt.test.id,
+      attemptId: attempt.id
+    };
+  });
 
   // Stats Data
   const stats = {
     totalTests: recentAttempts.length,
-    averageScore: recentScores.length > 0 ? Math.round(recentScores.reduce((a, b) => a + b.score, 0) / recentScores.length) : 0,
+    averageScore: recentScores.length > 0 ? Math.round(recentScores.reduce((a, b) => a + (b.score / (b.total || 1)) * 100, 0) / recentScores.length) : 0,
     accuracy: 0,
     globalRank: 0
   };
@@ -290,14 +300,16 @@ export default async function DashboardPage() {
                   </thead>
                   <tbody className="divide-y divide-border">
                     {recentScores.map((score, idx) => (
-                      <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-[#252f3e]">
+                      <tr key={idx} className="hover:bg-accent transition-colors">
                         <td className="px-6 py-4 font-medium text-foreground">{score.test}</td>
-                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">
+                        <td className="px-6 py-4 text-foreground">
                           <span className="font-bold">{score.score}</span>/{score.total}
                         </td>
-                        <td className="px-6 py-4 text-[#111318] dark:text-gray-300">{score.rank ? `#${score.rank}` : '-'}</td>
+                        <td className="px-6 py-4 text-foreground">{score.rank ? `#${score.rank}` : '-'}</td>
                         <td className="px-6 py-4 text-right">
-                          <a href="#" className="text-primary font-medium hover:underline">View Analysis</a>
+                          <Link href={`/tests/${score.testId}/results/${score.attemptId}`} className="text-primary font-medium">
+                            View Analysis
+                          </Link>
                         </td>
                       </tr>
                     ))}

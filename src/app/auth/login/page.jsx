@@ -91,10 +91,22 @@ export default function LoginPage() {
 
         <CardContent className="space-y-4">
           {status === 'error' && (
-            <div className="flex items-center gap-2 p-3 text-sm text-red-700 bg-red-100 rounded-md">
-              <AlertCircle className="w-4 h-4" />
-              <span>{error}</span>
-            </div>
+            (error.includes('blocked') || error.includes('user_blocked')) ? (
+              <div className="flex flex-col items-center justify-center p-4 bg-red-50 rounded-xl border border-red-100 animate-in fade-in zoom-in duration-300">
+                <div className="text-4xl mb-2 animate-bounce">🙈</div>
+                <p className="text-center font-medium text-red-600 text-sm">
+                  This account has been blocked for undefined period of time
+                </p>
+                <div className="w-full bg-red-200 h-1 mt-3 rounded-full overflow-hidden">
+                  <div className="bg-red-500 h-full w-1/3 animate-[shimmer_2s_infinite]"></div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 text-sm text-red-700 bg-red-100 rounded-md">
+                <AlertCircle className="w-4 h-4" />
+                <span>{error}</span>
+              </div>
+            )
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
