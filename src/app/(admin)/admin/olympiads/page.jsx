@@ -11,7 +11,9 @@ import {
     FileText,
     AlertCircle,
     Megaphone,
-    Loader2
+    Loader2,
+    Paperclip,
+    Download
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
@@ -49,6 +51,9 @@ export default function OlympiadUpdatesPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDiaologOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [file, setFile] = useState(null);
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [deleteId, setDeleteId] = useState(null);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -56,6 +61,7 @@ export default function OlympiadUpdatesPage() {
         content: '',
         type: 'UPDATE', // UPDATE, NOTICE, RESULT
         olympiadId: '',
+        documentUrl: '',
     });
 
     useEffect(() => {
@@ -78,24 +84,50 @@ export default function OlympiadUpdatesPage() {
     };
 
     const handleSubmit = async () => {
-        if (!formData.title || !formData.content) {
-            toast.error('Please fill in required fields');
+        if (!formData.title) {
+            toast.error('Title is required');
             return;
         }
 
         try {
             setIsSubmitting(true);
+
+            let uploadedUrl = '';
+            if (file) {
+                const uploadFormData = new FormData();
+                uploadFormData.append('file', file);
+                uploadFormData.append('type', 'documents');
+
+                const uploadRes = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: uploadFormData,
+                });
+
+                if (!uploadRes.ok) {
+                    const errorData = await uploadRes.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'File upload failed');
+                }
+                const uploadData = await uploadRes.json();
+                uploadedUrl = uploadData.url;
+            }
+
+            const payload = {
+                ...formData,
+                documentUrl: uploadedUrl || formData.documentUrl
+            };
+
             const res = await fetch('/api/admin/olympiads/updates', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) throw new Error('Failed to create update');
 
             toast.success('Update published successfully');
             setIsDialogOpen(false);
-            setFormData({ title: '', content: '', type: 'UPDATE', olympiadId: '' });
+            setFormData({ title: '', content: '', type: 'UPDATE', olympiadId: '', documentUrl: '' });
+            setFile(null);
             fetchUpdates();
         } catch (error) {
             console.error(error);
@@ -105,18 +137,23 @@ export default function OlympiadUpdatesPage() {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this update?')) return;
+    const handleDelete = (id) => {
+        setDeleteId(id);
+        setIsDeleteDialogOpen(true);
+    };
 
+    const confirmDelete = async () => {
         try {
-            const res = await fetch(`/api/admin/olympiads/updates/${id}`, {
+            const res = await fetch(`/api/admin/olympiads/updates/${deleteId}`, {
                 method: 'DELETE',
             });
 
             if (!res.ok) throw new Error('Failed to delete');
 
             toast.success('Update deleted');
-            setUpdates(updates.filter(u => u.id !== id));
+            setUpdates(updates.filter(u => u.id !== deleteId));
+            setIsDeleteDialogOpen(false);
+            setDeleteId(null);
         } catch (error) {
             console.error(error);
             toast.error('Failed to delete update');
@@ -191,11 +228,23 @@ export default function OlympiadUpdatesPage() {
                             <div className="grid gap-2">
                                 <label className="text-sm font-medium">Content</label>
                                 <Textarea
-                                    placeholder="Enter the detailed content of the update..."
+                                    placeholder="Enter the detailed content of the update (optional)..."
                                     className="min-h-[150px]"
                                     value={formData.content}
                                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                                 />
+                            </div>
+
+                            <div className="grid gap-2">
+                                <label className="text-sm font-medium">Document (Optional)</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="file"
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                        className="cursor-pointer"
+                                    />
+                                    {/* Helper text or icon could go here */}
+                                </div>
                             </div>
                         </div>
                         <DialogFooter>
@@ -204,6 +253,24 @@ export default function OlympiadUpdatesPage() {
                                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Publish
                             </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-red-500">
+                                <AlertCircle className="h-5 w-5" />
+                                Delete Update
+                            </DialogTitle>
+                            <DialogDescription className="py-2">
+                                Are you sure you want to delete this update? This action cannot be undone.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancel</Button>
+                            <Button variant="destructive" onClick={confirmDelete}>Delete</Button>
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
@@ -239,9 +306,21 @@ export default function OlympiadUpdatesPage() {
 
                                         <div>
                                             <h3 className="text-xl font-bold text-foreground mb-2">{update.title}</h3>
-                                            <p className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed">
+                                            <p className="text-muted-foreground whitespace-pre-wrap text-sm leading-relaxed mb-3">
                                                 {update.content}
                                             </p>
+
+                                            {update.documentUrl && (
+                                                <a
+                                                    href={update.documentUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline bg-primary/5 px-3 py-2 rounded-lg border border-primary/10 transition-colors hover:bg-primary/10"
+                                                >
+                                                    <Paperclip className="h-4 w-4" />
+                                                    View Attached Document
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
 
@@ -264,6 +343,6 @@ export default function OlympiadUpdatesPage() {
                     ))
                 )}
             </div>
-        </div>
+        </div >
     );
 }

@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 export async function GET(req) {
     try {
         const session = await auth();
-        if (!session || (session.user.role !== 'ADMIN' && session.user.role !== 'TEACHER')) {
+        if (!session) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
@@ -38,17 +38,18 @@ export async function POST(req) {
         }
 
         const body = await req.json();
-        const { title, content, type, olympiadId } = body;
+        const { title, content, type, olympiadId, documentUrl } = body;
 
-        if (!title || !content || !type) {
+        if (!title || !type) {
             return new NextResponse('Missing required fields', { status: 400 });
         }
 
         const update = await prisma.olympiadUpdate.create({
             data: {
                 title,
-                content,
+                content: content || '',
                 type,
+                documentUrl,
                 olympiadId: olympiadId || null,
                 date: new Date(),
             },

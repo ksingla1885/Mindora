@@ -1,11 +1,65 @@
 'use client';
-
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Trophy, Bell } from 'lucide-react';
+import {
+    Trophy,
+    Bell,
+    Sparkles,
+    Clock,
+    ChevronRight,
+    ExternalLink,
+    FileText,
+    Megaphone,
+    AlertCircle,
+    Loader2,
+    Paperclip
+} from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-// No static data - will be fetched from API
-const notices = [];
+// Helper to format date
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+};
+
+const mapUpdateToNotice = (update) => {
+    const isNotice = update.type === 'NOTICE';
+    const isResult = update.type === 'RESULT';
+
+    let color = "text-blue-500";
+    let border = "border-blue-500/20";
+    let glow = "group-hover:shadow-blue-500/10";
+    let icon = Megaphone;
+
+    if (isNotice) {
+        color = "text-amber-500";
+        border = "border-amber-500/20";
+        glow = "group-hover:shadow-amber-500/10";
+        icon = AlertCircle;
+    } else if (isResult) {
+        color = "text-emerald-500";
+        border = "border-emerald-500/20";
+        glow = "group-hover:shadow-emerald-500/10";
+        icon = Trophy;
+    }
+
+    return {
+        id: update.id,
+        title: update.title,
+        description: update.content,
+        date: formatDate(update.date),
+        priority: isNotice ? 'High' : (isResult ? 'Medium' : 'Low'),
+        category: update.type,
+        icon: icon,
+        color: color,
+        border: border,
+        glow: glow,
+        documentUrl: update.documentUrl
+    };
+};
 
 // --- Components ---
 
@@ -62,6 +116,20 @@ const FeaturedNotice = ({ notice }) => {
                     <notice.icon className="w-10 h-10 opacity-80" />
                 </div>
             </div>
+
+            {notice.documentUrl && (
+                <div className="mt-6 flex">
+                    <a
+                        href={notice.documentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm font-semibold transition-colors"
+                    >
+                        <Paperclip className="w-4 h-4" />
+                        Download Attachment
+                    </a>
+                </div>
+            )}
         </motion.div>
     );
 };
@@ -142,14 +210,56 @@ const TimelineItem = ({ notice, index, isLast }) => {
                         )}
                     </div>
                 </div>
+                {notice.documentUrl && (
+                    <div className="mt-2 ml-1">
+                        <a
+                            href={notice.documentUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline opacity-80 hover:opacity-100"
+                        >
+                            <Paperclip className="w-3 h-3" />
+                            View Attachment
+                        </a>
+                    </div>
+                )}
             </div>
         </motion.div>
     );
 };
 
 export default function OlympiadNoticesPage() {
-    // Check if there are any notices
+    const [notices, setNotices] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchUpdates = async () => {
+            try {
+                const res = await fetch('/api/admin/olympiads/updates');
+                if (res.ok) {
+                    const data = await res.json();
+                    const formattedNotices = data.map(mapUpdateToNotice);
+                    setNotices(formattedNotices);
+                }
+            } catch (error) {
+                console.error("Failed to fetch notices", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchUpdates();
+    }, []);
+
     const hasNotices = notices.length > 0;
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 animate-fade-in">

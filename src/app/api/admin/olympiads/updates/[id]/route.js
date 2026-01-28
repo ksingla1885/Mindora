@@ -10,7 +10,7 @@ export async function DELETE(req, { params }) {
             return new NextResponse('Unauthorized', { status: 401 });
         }
 
-        const { id } = params;
+        const { id } = await params;
 
         await prisma.olympiadUpdate.delete({
             where: { id },

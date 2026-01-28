@@ -748,6 +748,7 @@ model OlympiadUpdate {
   title       String
   content     String   @db.Text
   type        String   @default("UPDATE") // UPDATE, NOTICE, RESULT
+  documentUrl String?  @map("document_url")
   date        DateTime @default(now())
   olympiadId  String?  @map("olympiad_id")
   createdAt   DateTime @default(now()) @map("created_at")
