@@ -58,6 +58,7 @@ model Olympiad {
   createdBy        String               @map("created_by")
   registrations    OlympiadRegistration[]
   tests            Test[]
+  updates          OlympiadUpdate[]
   
   @@map("olympiads")
 }
@@ -66,7 +67,9 @@ model Subject {
   id          String   @id @default(cuid())
   name        String
   description String?
+  class       String?
   topics      Topic[]
+  dpps        DailyPracticeProblem[]
   
   @@map("subjects")
 }
@@ -468,6 +471,7 @@ model Question {
   testQuestions   TestQuestion[]
   discussions     Discussion[]
   questionAnalytics QuestionAnalytics[]
+  dppQuestions    DPPQuestion[]
   
   @@map("questions")
 }
@@ -737,4 +741,48 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("sessions")
+}
+
+model OlympiadUpdate {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  type        String   @default("UPDATE") // UPDATE, NOTICE, RESULT
+  date        DateTime @default(now())
+  olympiadId  String?  @map("olympiad_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  olympiad    Olympiad? @relation(fields: [olympiadId], references: [id])
+
+  @@map("olympiad_updates")
+}
+
+model DailyPracticeProblem {
+  id          String   @id @default(cuid())
+  title       String?
+  date        DateTime @default(now())
+  class       String
+  subjectId   String   @map("subject_id")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  questions   DPPQuestion[]
+  
+  @@map("daily_practice_problems")
+}
+
+model DPPQuestion {
+  id          String   @id @default(cuid())
+  dppId       String   @map("dpp_id")
+  questionId  String   @map("question_id")
+  order       Int      @default(0)
+  
+  dpp         DailyPracticeProblem @relation(fields: [dppId], references: [id])
+  question    Question @relation(fields: [questionId], references: [id])
+
+  @@unique([dppId, questionId])
+  @@map("dpp_questions")
 }

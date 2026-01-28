@@ -44,6 +44,8 @@ export default function AdminSidebar() {
     { name: 'Payments', href: '/admin/payments', icon: Banknote },
     { name: 'Leaderboard', href: '/admin/leaderboard', icon: Trophy },
     { name: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+    { name: 'Olympiads', href: '/admin/olympiads', icon: Trophy },
+    { name: 'DPP', href: '/admin/dpp', icon: FileText },
     { name: 'AI Logs', href: '/admin/ai-logs', icon: Bot },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
   ];
