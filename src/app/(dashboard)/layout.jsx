@@ -3,13 +3,26 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { MainNav } from "@/components/main-nav";
 
-import { redirect } from "next/navigation";
+import { redirect, useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Search, Bell, Menu, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({ children }) {
     const { data: session, status } = useSession();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const { replace } = useRouter();
+
+    const handleSearch = (term) => {
+        const params = new URLSearchParams(searchParams);
+        if (term) {
+            params.set('search', term);
+        } else {
+            params.delete('search');
+        }
+        replace(`${pathname}?${params.toString()}`);
+    }
 
     if (status === "loading") {
         return null;
@@ -53,6 +66,8 @@ export default function DashboardLayout({ children }) {
                             placeholder="Search for tests, topics, or notes..."
                             type="text"
                             suppressHydrationWarning
+                            onChange={(e) => handleSearch(e.target.value)}
+                            defaultValue={searchParams.get('search')?.toString()}
                         />
                     </div>
 

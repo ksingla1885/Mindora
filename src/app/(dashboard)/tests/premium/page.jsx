@@ -17,11 +17,93 @@ import {
 
 import { cn } from "@/lib/cn";
 import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// No static data - will be fetched from API
-const PREMIUM_TESTS = [];
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+
+const CLASS_SUBJECTS = {
+    '9': ['Mathematics', 'Science'],
+    '10': ['Mathematics', 'Science'],
+    '11': ['Physics', 'Chemistry', 'Mathematics', 'Astronomy'],
+    '12': ['Physics', 'Chemistry', 'Mathematics', 'Astronomy'],
+};
 
 export default function PremiumTestsPage() {
+    const { data: session } = useSession();
+    const [premiumTests, setPremiumTests] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchTests = async () => {
+            try {
+                const res = await fetch('/api/tests?isPaid=true&isPublished=true');
+                const data = await res.json();
+                if (data.success) {
+                    setPremiumTests(data.data.map(t => ({
+                        id: t.id,
+                        title: t.title,
+                        tags: [t.subject, `Class ${t.class}`, t.olympiad?.name || 'Olympiad'],
+                        duration: `${t.durationMinutes} mins`,
+                        questions: `${t._count?.testQuestions || 0} Questions`,
+                        difficulty: t.difficulty || 'Medium',
+                        price: t.price,
+                        originalPrice: Math.floor(t.price * 1.25), // Mock original price for discount effect
+                        status: new Date(t.startTime) > new Date() ? 'Starts Soon' : 'Live Now',
+                        statusColor: new Date(t.startTime) > new Date() ? 'ring-red-500/20 text-red-400 bg-red-900/10' : 'ring-green-500/20 text-green-400 bg-green-900/10',
+                        bgColor: 'bg-card', // Simplify or randomize if needed
+                        icon: 'functions', // Default or map from subject
+                        features: ['Detailed Ranking', 'Performance Analysis', 'Video Solutions'],
+                        action: 'Unlock Now',
+                        isPurchased: false // TODO: Check with user purchases
+                    })));
+                }
+            } catch (error) {
+                console.error("Failed to fetch premium tests", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchTests();
+    }, []);
+
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams.get('search')?.toLowerCase() || '';
+
+    // Filter States
+    const [selectedSubject, setSelectedSubject] = useState('All');
+    const [selectedOlympiad, setSelectedOlympiad] = useState('All');
+    const [showLiveOnly, setShowLiveOnly] = useState(false);
+
+    // Derived unique options
+    const userClass = session?.user?.class;
+    const availableSubjects = userClass ? CLASS_SUBJECTS[userClass] : null;
+
+    // If we have a class map, use it. Otherwise fall back to what's in the tests.
+    const subjects = ['All', ...(availableSubjects || [...new Set(premiumTests.map(t => t.tags[0]))])];
+
+    const displayedTests = premiumTests.filter(test => {
+        // Search Filter
+        const matchesSearch = !searchQuery || (
+            test.title.toLowerCase().includes(searchQuery) ||
+            test.tags.some(tag => tag.toLowerCase().includes(searchQuery))
+        );
+
+        // Dropdown Filters
+        const matchesSubject = selectedSubject === 'All' || test.tags[0] === selectedSubject;
+        const matchesOlympiad = selectedOlympiad === 'All' || (test.tags[2] === selectedOlympiad);
+
+        // Toggle Filter
+        const matchesLive = !showLiveOnly || test.status === 'Live Now';
+
+        return matchesSearch && matchesSubject && matchesOlympiad && matchesLive;
+    });
     return (
         <div className="flex-1 flex justify-center py-8 px-4 lg:px-8 bg-background-light dark:bg-background-dark min-h-screen">
             <div className="w-full max-w-[1200px] flex flex-col gap-8">
@@ -44,25 +126,49 @@ export default function PremiumTestsPage() {
                             <Filter className="w-5 h-5" />
                             Filter by:
                         </div>
-                        {['Subject', 'Class', 'Olympiad', 'Price Range'].map((filter) => (
-                            <button key={filter} className="group flex h-9 items-center gap-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 hover:bg-accent transition-all">
-                                <span className="text-foreground text-sm font-medium">{filter}</span>
-                                <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-                            </button>
-                        ))}
-                        <button className="group flex h-9 items-center gap-2 rounded-lg bg-primary/10 border border-primary/20 px-3 hover:bg-primary/20 transition-all">
-                            <span className="text-primary text-sm font-medium">Upcoming / Live</span>
-                            <Check className="w-4 h-4 text-primary" />
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button className={cn("group flex h-9 items-center gap-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 hover:bg-accent transition-all", selectedSubject !== 'All' && "border-primary/50 bg-primary/5 text-primary")}>
+                                    <span className="text-sm font-medium">{selectedSubject === 'All' ? 'Subject' : selectedSubject}</span>
+                                    <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                {subjects.map(s => (
+                                    <DropdownMenuItem key={s} onClick={() => setSelectedSubject(s)}>
+                                        {s}
+                                        {selectedSubject === s && <Check className="ml-auto w-4 h-4" />}
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        <button
+                            onClick={() => setShowLiveOnly(!showLiveOnly)}
+                            className={cn(
+                                "group flex h-9 items-center gap-2 rounded-lg border px-3 transition-all",
+                                showLiveOnly
+                                    ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
+                                    : "bg-card border-border hover:border-primary/50 hover:bg-accent text-foreground"
+                            )}
+                        >
+                            <span className="text-sm font-medium">Live Only</span>
+                            {showLiveOnly && <Check className="w-4 h-4" />}
                         </button>
                         <div className="ml-auto hidden md:block text-sm text-muted-foreground">
-                            Showing <span className="text-foreground font-bold">{PREMIUM_TESTS.length}</span> tests
+                            Showing <span className="text-foreground font-bold">{displayedTests.length}</span> tests
                         </div>
                     </div>
                 </section>
 
                 {/* Test Cards Grid */}
                 <section>
-                    {PREMIUM_TESTS.length === 0 ? (
+                    {loading ? (
+                        <div className="flex justify-center py-20">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                        </div>
+                    ) : displayedTests.length === 0 ? (
                         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
                             <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
                                 <Lock className="w-10 h-10 text-muted-foreground/50" />
@@ -74,7 +180,7 @@ export default function PremiumTestsPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {PREMIUM_TESTS.map((test) => (
+                            {displayedTests.map((test) => (
                                 <div key={test.id} className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 transition-all duration-300">
 
                                     {/* Glow Effect */}
@@ -204,28 +310,7 @@ export default function PremiumTestsPage() {
                     )}
                 </section>
 
-                {/* Trust Section */}
-                <section className="mt-8 flex flex-wrap items-center justify-center gap-x-12 gap-y-6 rounded-xl border border-border bg-card/50 p-6">
-                    <div className="flex items-center gap-3">
-                        <div className="flex -space-x-3">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="h-8 w-8 rounded-full ring-2 ring-card bg-gray-600"></div>
-                                // Placeholder avatars, real ones can be images
-                            ))}
-                        </div>
-                        <p className="text-sm font-medium text-muted-foreground">Trusted by <span className="text-foreground font-bold">50,000+ Students</span></p>
-                    </div>
-                    <div className="h-8 w-px bg-border hidden md:block"></div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Lock className="w-5 h-5 text-green-500" />
-                        <span className="text-sm font-medium">100% Secure Payment</span>
-                    </div>
-                    <div className="h-8 w-px bg-border hidden md:block"></div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Check className="w-5 h-5 text-blue-500" />
-                        <span className="text-sm font-medium">7-Day Refund Policy</span>
-                    </div>
-                </section>
+
 
             </div>
         </div>

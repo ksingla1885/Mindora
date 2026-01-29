@@ -162,7 +162,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
 
         if (!attemptRes.ok) {
           const errorData = await attemptRes.json().catch(() => ({}));
-          throw new Error(errorData.message || 'Failed to start test attempt');
+          throw new Error(errorData.error || errorData.message || 'Failed to start test attempt');
         }
 
         const response = await attemptRes.json();
@@ -786,8 +786,8 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
             >
               {showAnalytics ? 'Hide Analytics' : 'Show Detailed Analytics'}
             </Button>
-            <Button onClick={() => router.push('/dashboard')}>
-              Back to Dashboard
+            <Button onClick={() => router.push(test?.isPaid ? '/tests/premium' : '/dashboard')}>
+              {test?.isPaid ? 'Back to Premium Tests' : 'Back to Dashboard'}
             </Button>
           </CardFooter>
         </Card>

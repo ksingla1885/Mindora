@@ -105,7 +105,9 @@ export async function POST(request) {
         where: {
           testId,
           userId,
-          status: 'captured',
+          status: {
+            in: ['captured', 'CAPTURED'],
+          },
         },
       });
 
@@ -123,7 +125,7 @@ export async function POST(request) {
         testId,
         userId,
         startedAt: new Date(),
-        status: 'started',
+        status: 'in_progress',
       },
     });
 

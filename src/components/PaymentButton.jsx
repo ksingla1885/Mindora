@@ -5,12 +5,17 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FiCreditCard, FiLoader, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { MockPaymentModal } from './MockPaymentModal';
 
 export default function PaymentButton({ testId, price, disabled = false, buttonText = 'Buy Now' }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
+
+  // Mock Modal State
+  const [showMockModal, setShowMockModal] = useState(false);
+  const [mockOrderData, setMockOrderData] = useState(null);
 
   const loadRazorpay = () => {
     return new Promise((resolve) => {
@@ -37,18 +42,10 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
     setPaymentStatus(null);
 
     try {
-      // 1. Load Razorpay script
-      const isRazorpayLoaded = await loadRazorpay();
-      if (!isRazorpayLoaded) {
-        throw new Error('Failed to load payment gateway');
-      }
-
-      // 2. Create order on our server
+      // 1. Create order on server
       const response = await fetch('/api/payments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ testId }),
       });
 
@@ -59,7 +56,21 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
 
       const orderData = await response.json();
 
-      // 3. Open Razorpay checkout
+      // 2. Check Mock Mode
+      if (orderData.isMock) {
+        // Stop generic loading, open modal
+        setIsLoading(false);
+        setMockOrderData(orderData);
+        setShowMockModal(true);
+        return;
+      }
+
+      // 3. Real Payment Mode
+      const isRazorpayLoaded = await loadRazorpay();
+      if (!isRazorpayLoaded) {
+        throw new Error('Failed to load payment gateway');
+      }
+
       const options = {
         key: orderData.key,
         amount: orderData.amount,
@@ -67,42 +78,7 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
         name: orderData.name,
         description: orderData.description,
         order_id: orderData.orderId,
-        handler: async function (response) {
-          // Handle successful payment
-          try {
-            // Verify payment on our server
-            const verifyResponse = await fetch('/api/payments', {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-              }),
-            });
-
-            const result = await verifyResponse.json();
-
-            if (!verifyResponse.ok) {
-              throw new Error(result.error || 'Payment verification failed');
-            }
-
-            setPaymentStatus('success');
-            toast.success('Payment successful! You can now take the test.');
-            
-            // Refresh the page to update UI
-            setTimeout(() => {
-              window.location.reload();
-            }, 1500);
-
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            setPaymentStatus('failed');
-            toast.error(error.message || 'Payment verification failed');
-          }
-        },
+        handler: (response) => handleSuccess(response),
         prefill: orderData.prefill,
         theme: orderData.theme,
         modal: {
@@ -123,13 +99,59 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
     } catch (error) {
       console.error('Payment error:', error);
       setPaymentStatus('failed');
-      toast.error(error.message || 'Failed to process payment');
-    } finally {
       setIsLoading(false);
+      toast.error(error.message || 'Failed to process payment');
     }
   };
 
-  // If payment was successful, show success state
+  const handleSuccess = async (response) => {
+    try {
+      setIsLoading(true); // Ensure loading is shown during verification
+
+      const verifyResponse = await fetch('/api/payments', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: response.razorpay_order_id,
+          paymentId: response.razorpay_payment_id,
+          signature: response.razorpay_signature,
+        }),
+      });
+
+      const result = await verifyResponse.json();
+
+      if (!verifyResponse.ok) {
+        throw new Error(result.error || 'Payment verification failed');
+      }
+
+      setPaymentStatus('success');
+      toast.success('Payment successful! You can now take the test.');
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+
+    } catch (error) {
+      console.error('Payment verification error:', error);
+      setPaymentStatus('failed');
+      setIsLoading(false);
+      toast.error(error.message || 'Payment verification failed');
+    }
+  };
+
+  const finalizeMockPayment = () => {
+    if (!mockOrderData) return;
+
+    handleSuccess({
+      razorpay_order_id: mockOrderData.orderId,
+      razorpay_payment_id: `pay_mock_${Date.now()}`,
+      razorpay_signature: 'mock_signature_verified'
+    });
+    setShowMockModal(false);
+  };
+
   if (paymentStatus === 'success') {
     return (
       <div className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600">
@@ -139,57 +161,62 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
     );
   }
 
-  // If payment failed, show retry button
-  if (paymentStatus === 'failed') {
-    return (
-      <button
-        type="button"
-        onClick={handlePayment}
-        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-        disabled={isLoading || disabled}
-      >
-        {isLoading ? (
-          <>
-            <FiLoader className="animate-spin mr-2 h-4 w-4" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <FiXCircle className="mr-2 h-4 w-4" />
-            Payment Failed - Try Again
-          </>
-        )}
-      </button>
-    );
-  }
-
-  // Default state - show payment button
   return (
-    <button
-      type="button"
-      onClick={handlePayment}
-      className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
-        isLoading || disabled
-          ? 'bg-indigo-300 cursor-not-allowed'
-          : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-      }`}
-      disabled={isLoading || disabled}
-    >
-      {isLoading ? (
-        <>
-          <FiLoader className="animate-spin mr-2 h-4 w-4" />
-          Processing...
-        </>
+    <>
+      <MockPaymentModal
+        isOpen={showMockModal}
+        onClose={() => setShowMockModal(false)}
+        onSuccess={finalizeMockPayment}
+        amount={price}
+        testTitle={mockOrderData?.description?.replace('Payment for test: ', '') || 'Test Access'}
+      />
+
+      {paymentStatus === 'failed' ? (
+        <button
+          type="button"
+          onClick={handlePayment}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          disabled={isLoading || disabled}
+        >
+          {isLoading ? (
+            <>
+              <FiLoader className="animate-spin mr-2 h-4 w-4" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <FiXCircle className="mr-2 h-4 w-4" />
+              Payment Failed - Try Again
+            </>
+          )}
+        </button>
       ) : (
-        <>
-          <FiCreditCard className="mr-2 h-4 w-4" />
-          {buttonText} ({new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR',
-            minimumFractionDigits: 0,
-          }).format(price)})
-        </>
+        <button
+          type="button"
+          onClick={handlePayment}
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isLoading || disabled
+            ? 'bg-indigo-300 cursor-not-allowed'
+            : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
+            }`}
+          disabled={isLoading || disabled}
+        >
+          {isLoading ? (
+            <>
+              <FiLoader className="animate-spin mr-2 h-4 w-4" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <FiCreditCard className="mr-2 h-4 w-4" />
+              {buttonText} ({new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                minimumFractionDigits: 0,
+              }).format(price)})
+            </>
+          )}
+        </button>
       )}
-    </button>
+    </>
   );
 }

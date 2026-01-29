@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
-
-const prisma = new PrismaClient();
 
 // GET /api/tests/[testId] - Get a single test with questions
 export async function GET(request, { params }) {
@@ -104,12 +102,72 @@ export async function GET(request, { params }) {
       }
     }
 
+    // Aggregated Sales Velocity (Last 7 Days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const salesVelocityData = await prisma.payment.groupBy({
+      by: ['createdAt'],
+      where: {
+        testId: testId,
+        status: 'CAPTURED',
+        createdAt: {
+          gte: sevenDaysAgo
+        }
+      },
+      _count: {
+        id: true
+      },
+    });
+
+    // Format for chart (Day Label + Count)
+    const salesMap = {};
+    salesVelocityData.forEach(item => {
+      const dateStr = item.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
+      salesMap[dateStr] = (salesMap[dateStr] || 0) + item._count.id;
+    });
+
+    const salesVelocity = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateKey = d.toISOString().split('T')[0];
+      const dayLabel = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      salesVelocity.push({
+        date: dayLabel,
+        count: salesMap[dateKey] || 0
+      });
+    }
+
+    // Recent Buyers (Last 5)
+    const recentBuyersRaw = await prisma.payment.findMany({
+      where: {
+        testId: testId,
+        status: 'CAPTURED'
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        user: { select: { name: true, email: true } }
+      }
+    });
+
+    const recentBuyers = recentBuyersRaw.map(p => ({
+      initials: p.user.name ? p.user.name.substring(0, 2).toUpperCase() : '??',
+      name: p.user.name || 'Anonymous',
+      amount: `₹${p.amount}`,
+      bg: 'bg-emerald-500/10',
+      text: 'text-emerald-500'
+    }));
+
     return NextResponse.json({
       success: true,
       data: {
         ...test,
         isPurchased,
         userStatus,
+        salesVelocity,
+        recentBuyers
       },
     });
   } catch (error) {
@@ -118,8 +176,6 @@ export async function GET(request, { params }) {
       { success: false, error: 'Failed to fetch test' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -220,8 +276,6 @@ export async function PATCH(request, { params }) {
       { success: false, error: 'Failed to update test' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
@@ -288,7 +342,5 @@ export async function DELETE(request, { params }) {
       { success: false, error: 'Failed to delete test' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }

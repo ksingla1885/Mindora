@@ -66,9 +66,14 @@ export default function TestPage() {
   const handleTestComplete = (results) => {
     console.log('Test completed:', results);
     // Refresh router to update server data/cache
-    router.refresh();
-    // Redirect to the main tests page (Weekly Olympiad Tests)
-    router.push('/tests');
+    router.refresh(); // optional, often good to keep
+
+    // Redirect based on test type
+    if (test?.isPaid) {
+      router.push('/tests/premium');
+    } else {
+      router.push('/tests');
+    }
   };
 
   if (loading || status === 'loading') {

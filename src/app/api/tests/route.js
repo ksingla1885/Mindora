@@ -32,8 +32,22 @@ export async function GET(request) {
       }
     }
 
+    // Filter by subject
+    const subjectFilter = searchParams.get('subject');
+    if (subjectFilter) {
+      // Perform case-insensitive search if needed, but usually exact match is fine
+      // or if your DB stores lowercase, convert here. 
+      // Assuming exact match for now based on previous code usage
+      where.subject = subjectFilter;
+    }
+
     if (isPublished !== null) {
       where.isPublished = isPublished === 'true';
+    }
+
+    const isPaid = searchParams.get('isPaid');
+    if (isPaid !== null) {
+      where.isPaid = isPaid === 'true';
     }
 
     // Get current user session to check for their attempts

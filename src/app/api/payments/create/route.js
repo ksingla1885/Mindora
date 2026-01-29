@@ -1,12 +1,11 @@
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import prisma from '@/lib/prisma';
 import { createOrder } from '@/lib/payment';
 
 export async function POST(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return NextResponse.json(
       { error: 'Unauthorized' },
@@ -21,8 +20,8 @@ export async function POST(request) {
     // Verify test exists and get price
     const test = await prisma.test.findUnique({
       where: { id: testId },
-      select: { 
-        id: true, 
+      select: {
+        id: true,
         price: true,
         title: true,
         isPaid: true,
@@ -114,7 +113,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Payment creation error:', error);
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Failed to create payment',
         details: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },

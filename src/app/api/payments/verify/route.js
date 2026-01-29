@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { verifyRazorpaySignature } from '@/lib/razorpay-verify';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
@@ -15,7 +14,7 @@ export async function POST(request) {
 
   try {
     // 1. Authenticate the request
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       console.error('Unauthorized payment verification attempt');
       return NextResponse.json(
@@ -34,9 +33,9 @@ export async function POST(request) {
 
     if (!orderId || !paymentId || !signature) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required parameters: orderId, paymentId, and signature are required' 
+        {
+          success: false,
+          error: 'Missing required parameters: orderId, paymentId, and signature are required'
         },
         { status: 400 }
       );
@@ -61,7 +60,7 @@ export async function POST(request) {
     const isSignatureValid = verifyRazorpaySignature(orderId, paymentId, signature);
     if (!isSignatureValid) {
       console.error('Invalid Razorpay signature');
-      
+
       // Log failed verification attempt
       await logPaymentAttempt({
         orderId,
@@ -81,10 +80,10 @@ export async function POST(request) {
     // 5. Get test details
     const test = await prisma.test.findUnique({
       where: { id: testId },
-      select: { 
-        id: true, 
-        price: true, 
-        title: true, 
+      select: {
+        id: true,
+        price: true,
+        title: true,
         duration: true,
         subjectId: true,
         chapters: true,
@@ -126,25 +125,25 @@ export async function POST(request) {
             chapters: test.chapters,
           },
         },
-        include: { 
-          test: { 
-            select: { 
+        include: {
+          test: {
+            select: {
               title: true,
               subject: {
                 select: { name: true }
               }
-            } 
-          } 
+            }
+          }
         },
       }),
-      
+
       // Grant or update test access
       prisma.testAccess.upsert({
-        where: { 
-          userId_testId: { 
-            userId, 
-            testId 
-          } 
+        where: {
+          userId_testId: {
+            userId,
+            testId
+          }
         },
         update: {
           paymentId: paymentId,
@@ -222,8 +221,8 @@ export async function POST(request) {
     }
 
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to process payment verification',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },

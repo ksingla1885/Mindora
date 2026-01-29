@@ -1,6 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link'; // Added Link
+import { useState, useEffect, useCallback } from 'react';
+import { PaidTestForm } from './_components/paid-test-form';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 import {
     Plus,
     Search,
@@ -26,6 +36,7 @@ import {
     BarChart3,
     Eye,
     Settings as SettingsIcon,
+    List, // Added List icon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -36,21 +47,176 @@ import { cn } from '@/lib/cn';
 export default function PaidTestsManagementPage() {
     const [selectedTest, setSelectedTest] = useState(null);
 
-    const stats = [
+    // Converted to state
+    const [stats, setStats] = useState([
         { label: 'Total Paid Tests', value: '0', trend: 'No tests', trendUp: null, icon: Package, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
         { label: 'Active Paid Tests', value: '0', trend: 'None', trendUp: null, icon: Zap, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
         { label: 'Total Revenue', value: '₹0', trend: 'No sales', trendUp: null, icon: IndianRupee, color: 'text-emerald-500', highlighted: false, bgColor: 'bg-emerald-500/10' },
         { label: 'Revenue (Month)', value: '₹0', trend: 'No data', trendUp: null, icon: Calendar, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
         { label: 'Conversion Rate', value: '0%', trend: 'No data', trendUp: null, icon: Percent, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
-    ];
+    ]);
 
-    const tests = [];
+    const { toast } = useToast();
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [tests, setTests] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [selectedClass, setSelectedClass] = useState('');
+    const [selectedSubject, setSelectedSubject] = useState('');
+
+    // Edit & Delete State
+    const [editingTest, setEditingTest] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [testToDelete, setTestToDelete] = useState(null);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleEdit = async (testId) => {
+        try {
+            const res = await fetch(`/api/tests/${testId}`);
+            const data = await res.json();
+            if (data.success) {
+                const t = data.data;
+                setEditingTest({
+                    ...t,
+                    startTime: t.startTime ? new Date(t.startTime) : undefined,
+                    endTime: t.endTime ? new Date(t.endTime) : undefined,
+                });
+                setIsEditModalOpen(true);
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to load test details.',
+                variant: 'destructive',
+            });
+        }
+    };
+
+    const handleDelete = async () => {
+        if (!testToDelete) return;
+        setIsDeleting(true);
+        try {
+            const res = await fetch(`/api/tests/${testToDelete.id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                toast({ title: 'Success', description: 'Test deleted successfully.' });
+                setIsDeleteOpen(false);
+                fetchTests();
+            } else {
+                throw new Error(data.error || 'Failed to delete');
+            }
+        } catch (error) {
+            toast({
+                title: 'Error',
+                description: 'Failed to delete test.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const fetchTests = useCallback(async () => {
+        try {
+            setIsLoading(true);
+
+            const params = new URLSearchParams();
+            params.append('isPaid', 'true');
+            if (selectedClass) params.append('class', selectedClass);
+            if (selectedSubject) params.append('subject', selectedSubject);
+
+            const res = await fetch(`/api/tests?${params.toString()}`);
+            const data = await res.json();
+            if (data.success) {
+                const fetchedTests = data.data;
+
+                // Calculate Stats
+                const totalTests = fetchedTests.length;
+                const activeTests = fetchedTests.filter(t => t.isPublished && (!t.startTime || new Date(t.startTime) <= new Date())).length;
+                const totalRevenue = fetchedTests.reduce((acc, t) => acc + ((t.participantCount || 0) * (t.price || 0)), 0);
+
+                // Update Stats State
+                setStats(prevStats => {
+                    const newStats = [...prevStats];
+                    newStats[0].value = totalTests.toString();
+                    newStats[0].trend = `${totalTests} total`;
+
+                    newStats[1].value = activeTests.toString();
+                    newStats[1].trend = `${activeTests} live`;
+
+                    newStats[2].value = `₹${totalRevenue.toLocaleString()}`;
+                    newStats[2].trend = 'Lifetime';
+
+                    return newStats;
+                });
+
+                setTests(fetchedTests.map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    subject: t.subject || 'General',
+                    olympiad: t.olympiad?.name || 'N/A',
+                    price: t.price ? `₹${t.price}` : 'Free',
+                    originalPrice: null,
+                    discount: 'No Discount',
+                    status: t.isPublished ? (t.startTime && new Date(t.startTime) > new Date() ? 'Scheduled' : 'Live') : 'Draft',
+                    purchases: t.participantCount || 0,
+                    revenue: `₹${((t.participantCount || 0) * (t.price || 0)).toLocaleString()}`,
+                    todayPurchases: 0,
+                    startTime: t.startTime ? new Date(t.startTime).toLocaleDateString() : 'N/A',
+                    selected: false
+                })));
+            }
+        } catch (error) {
+            console.error('Failed to fetch tests', error);
+            toast({
+                title: 'Error',
+                description: 'Failed to load paid tests.',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    }, [selectedClass, selectedSubject, toast]);
+
+    useEffect(() => {
+        fetchTests();
+    }, [fetchTests]);
+
+    const handleRowClick = async (test) => {
+        try {
+            // First set basic details to show drawer immediately
+            setSelectedTest(test);
+
+            // Then fetch detailed analytics
+            const res = await fetch(`/api/tests/${test.id}`);
+            const data = await res.json();
+
+            if (data.success) {
+                // Merge new data with existing basic data
+                setSelectedTest(prev => ({
+                    ...prev,
+                    ...data.data,
+                    salesVelocity: data.data.salesVelocity || [], // Expecting array of { date, count }
+                    recentBuyers: data.data.recentBuyers || []
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch test details", error);
+            toast({
+                title: 'Error',
+                description: 'Could not load detailed analytics.',
+                variant: 'destructive',
+            });
+        }
+    };
 
     return (
         <div className="flex flex-col h-full bg-background text-foreground overflow-hidden">
             <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:px-12 lg:py-8 scroll-smooth pb-24 md:pb-6 no-scrollbar">
+                {/* ... existing header ... */}
                 {/* Breadcrumbs & Header */}
                 <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4 mb-6 md:mb-8">
+                    {/* ... (keep existing header content) ... */}
                     <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
                             <span className="hidden md:inline">Dashboard</span>
@@ -66,10 +232,58 @@ export default function PaidTestsManagementPage() {
                         <Button variant="outline" size="icon" className="hidden sm:flex rounded-lg border-border bg-card text-foreground">
                             <Bell className="size-5" />
                         </Button>
-                        <Button className="bg-emerald-500 hover:bg-emerald-600 text-black font-black shadow-lg shadow-emerald-500/20 px-6 h-11 transition-all hover:scale-[1.02]">
-                            <Plus className="mr-2 size-5" />
-                            Create Paid Test
-                        </Button>
+                        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                            <DialogTrigger asChild>
+                                <Button className="bg-emerald-500 hover:bg-emerald-600 text-black font-black shadow-lg shadow-emerald-500/20 px-6 h-11 transition-all hover:scale-[1.02]">
+                                    <Plus className="mr-2 size-5" />
+                                    Create Paid Test
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>Create New Paid Test</DialogTitle>
+                                </DialogHeader>
+                                <PaidTestForm onSuccess={() => {
+                                    setIsCreateModalOpen(false);
+                                    fetchTests();
+                                }} />
+                            </DialogContent>
+                        </Dialog>
+
+                        <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                                <DialogHeader>
+                                    <DialogTitle>Edit Paid Test</DialogTitle>
+                                </DialogHeader>
+                                {editingTest && (
+                                    <PaidTestForm
+                                        test={editingTest}
+                                        onSuccess={() => {
+                                            setIsEditModalOpen(false);
+                                            setEditingTest(null);
+                                            fetchTests();
+                                        }}
+                                    />
+                                )}
+                            </DialogContent>
+                        </Dialog>
+
+                        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Delete Test</DialogTitle>
+                                </DialogHeader>
+                                <div className="py-4">
+                                    <p>Are you sure you want to delete <b>{testToDelete?.title}</b>? This action cannot be undone.</p>
+                                </div >
+                                <div className="flex justify-end gap-2">
+                                    <Button variant="outline" onClick={() => setIsDeleteOpen(false)} disabled={isDeleting}>Cancel</Button>
+                                    <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
+                                        {isDeleting ? 'Deleting...' : 'Delete'}
+                                    </Button>
+                                </div >
+                            </DialogContent>
+                        </Dialog>
                     </div>
                 </div>
 
@@ -83,7 +297,7 @@ export default function PaidTestsManagementPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: i * 0.05 }}
                                 className={cn(
-                                    "bg-card rounded-2xl p-6 border border-border shadow-sm w-[260px] md:w-auto flex-shrink-0 transition-all hover:shadow-md",
+                                    "bg-card rounded-2xl p-6 border border-border shadow-sm w-[260px] md:w-auto flex-shrink-0 transition-all hover:shadow-md cursor-pointer",
                                     stat.highlighted && "ring-2 ring-emerald-500/20 border-emerald-500/30"
                                 )}
                             >
@@ -123,11 +337,31 @@ export default function PaidTestsManagementPage() {
                                 </div>
                                 <div className="hidden lg:flex gap-3">
                                     <div className="relative">
-                                        <select className="h-11 px-4 bg-muted/50 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground focus:bg-background focus:ring-2 focus:ring-emerald-500/10 outline-none cursor-pointer min-w-[160px] appearance-none">
+                                        <select
+                                            value={selectedClass}
+                                            onChange={(e) => setSelectedClass(e.target.value)}
+                                            className="h-11 px-4 bg-muted/50 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground focus:bg-background focus:ring-2 focus:ring-emerald-500/10 outline-none cursor-pointer min-w-[100px] appearance-none"
+                                        >
+                                            <option value="">Class</option>
+                                            <option value="9">Class 9</option>
+                                            <option value="10">Class 10</option>
+                                            <option value="11">Class 11</option>
+                                            <option value="12">Class 12</option>
+                                        </select>
+                                    </div>
+                                    <div className="relative">
+                                        <select
+                                            value={selectedSubject}
+                                            onChange={(e) => setSelectedSubject(e.target.value)}
+                                            className="h-11 px-4 bg-muted/50 border-none rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground focus:bg-background focus:ring-2 focus:ring-emerald-500/10 outline-none cursor-pointer min-w-[160px] appearance-none"
+                                        >
                                             <option value="">Subject</option>
-                                            <option value="math">Mathematics</option>
-                                            <option value="science">Science</option>
-                                            <option value="english">English</option>
+                                            <option value="Mathematics">Mathematics</option>
+                                            <option value="Science">Science</option>
+                                            <option value="Physics">Physics</option>
+                                            <option value="Chemistry">Chemistry</option>
+                                            <option value="Astronomy">Astronomy</option>
+                                            <option value="English">English</option>
                                         </select>
                                     </div>
                                     <div className="relative">
@@ -142,10 +376,10 @@ export default function PaidTestsManagementPage() {
                             </div>
                         </div>
                         <div className="flex items-center gap-3 w-full lg:w-auto justify-end mt-2 lg:mt-0 border-t lg:border-t-0 border-border pt-3 lg:pt-0">
-                            <Button variant="ghost" className="h-11 px-5 rounded-xl font-bold text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5">
+                            <Button variant="ghost" className="h-11 px-5 rounded-xl font-bold text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 cursor-pointer">
                                 <Download className="size-4 mr-2" /> Export
                             </Button>
-                            <Button className="h-11 bg-black dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-[10px] px-6 rounded-xl hover:opacity-90">
+                            <Button className="h-11 bg-black dark:bg-white text-white dark:text-black font-black uppercase tracking-widest text-[10px] px-6 rounded-xl hover:opacity-90 cursor-pointer">
                                 <Tag className="size-4 mr-2" /> Bulk Discount
                             </Button>
                         </div>
@@ -155,6 +389,7 @@ export default function PaidTestsManagementPage() {
                 {/* Tests Table */}
                 {tests.length === 0 ? (
                     <div className="bg-card border border-border rounded-2xl p-20">
+                        {/* ... keep empty state ... */}
                         <div className="flex flex-col items-center justify-center text-center">
                             <div className="p-6 bg-muted/30 rounded-full mb-6">
                                 <IndianRupee className="size-16 text-muted-foreground/30" />
@@ -163,7 +398,10 @@ export default function PaidTestsManagementPage() {
                             <p className="text-muted-foreground max-w-md mb-6">
                                 Start monetizing your olympiad tests. Create your first paid test to begin generating revenue.
                             </p>
-                            <Button className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold shadow-lg shadow-emerald-500/20">
+                            <Button
+                                onClick={() => setIsCreateModalOpen(true)}
+                                className="gap-2 bg-emerald-500 hover:bg-emerald-600 text-black font-bold shadow-lg shadow-emerald-500/20 cursor-pointer"
+                            >
                                 <Plus className="size-5" />
                                 Create First Paid Test
                             </Button>
@@ -175,7 +413,7 @@ export default function PaidTestsManagementPage() {
                             <table className="w-full text-left border-collapse min-w-[950px]">
                                 <thead className="bg-muted/40 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                                     <tr>
-                                        <th className="p-5 pl-8 w-12"><input type="checkbox" className="rounded border-border bg-background" /></th>
+                                        <th className="p-5 pl-8 w-12"><input type="checkbox" className="rounded border-border bg-background cursor-pointer" /></th>
                                         <th className="p-5">Test Details</th>
                                         <th className="p-5">Price Config</th>
                                         <th className="p-5 text-center">Status</th>
@@ -188,14 +426,15 @@ export default function PaidTestsManagementPage() {
                                     {tests.map((test, i) => (
                                         <tr
                                             key={test.id}
-                                            onClick={() => setSelectedTest(test)}
+                                            onClick={() => handleRowClick(test)}
                                             className={cn(
                                                 "group hover:bg-emerald-500/5 transition-all cursor-pointer",
                                                 test.selected && "bg-emerald-500/[0.03] border-l-2 border-l-emerald-500"
                                             )}
                                         >
+                                            {/* ... keep row content ... */}
                                             <td className="p-5 pl-8" onClick={(e) => e.stopPropagation()}>
-                                                <input type="checkbox" checked={test.selected} readOnly className="rounded border-border text-emerald-500 focus:ring-emerald-500 bg-background" />
+                                                <input type="checkbox" checked={test.selected} readOnly className="rounded border-border text-emerald-500 focus:ring-emerald-500 bg-background cursor-pointer" />
                                             </td>
                                             <td className="p-5">
                                                 <div className="flex flex-col gap-1.5">
@@ -254,13 +493,41 @@ export default function PaidTestsManagementPage() {
                                             <td className="p-5 font-black text-base text-foreground tracking-tighter">{test.revenue}</td>
                                             <td className="p-5 pr-8 text-right">
                                                 <div className="flex items-center justify-end gap-1">
+                                                    <Link href={`/admin/tests/${test.id}`} passHref>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-9 w-9 rounded-xl text-muted-foreground hover:text-indigo-500 hover:bg-indigo-500/5 transition-all"
+                                                            title="Manage Questions"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                            <List className="size-4" />
+                                                        </Button>
+                                                    </Link>
                                                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/5 transition-all">
                                                         <Eye className="size-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/5 transition-all">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-blue-500 hover:bg-blue-500/5 transition-all"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleEdit(test.id);
+                                                        }}
+                                                    >
                                                         <Edit className="size-4" />
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-all">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/5 transition-all"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setTestToDelete(test);
+                                                            setIsDeleteOpen(true);
+                                                        }}
+                                                    >
                                                         <Trash2 className="size-4" />
                                                     </Button>
                                                 </div>
@@ -285,6 +552,7 @@ export default function PaidTestsManagementPage() {
             <AnimatePresence>
                 {selectedTest && (
                     <>
+                        {/* ... keep overlay ... */}
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
@@ -317,6 +585,7 @@ export default function PaidTestsManagementPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                                {/* ... keep buttons ... */}
                                 <div className="flex gap-3">
                                     <Button className="flex-1 h-12 bg-emerald-500 hover:bg-emerald-600 text-black font-black uppercase tracking-widest text-[11px] shadow-lg shadow-emerald-500/20 transition-all active:scale-95">
                                         Publish Changes
@@ -331,6 +600,7 @@ export default function PaidTestsManagementPage() {
 
                                 {/* Pricing Config Section */}
                                 <div className="flex flex-col gap-4 p-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.03] relative overflow-hidden">
+                                    {/* ... keep pricing section ... */}
                                     <div className="absolute top-0 right-0 p-3 opacity-10">
                                         <IndianRupee className="size-12 text-emerald-500" />
                                     </div>
@@ -343,7 +613,7 @@ export default function PaidTestsManagementPage() {
                                     <div className="grid grid-cols-2 gap-4 relative z-10">
                                         <div className="flex flex-col gap-1.5">
                                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Base Rate (₹)</span>
-                                            <Input defaultValue={selectedTest.price.replace('₹', '')} className="h-10 px-4 bg-background font-black text-base border-emerald-500/20 focus:ring-emerald-500/10 rounded-xl text-foreground" />
+                                            <Input defaultValue={String(selectedTest.price || '0').replace('₹', '')} className="h-10 px-4 bg-background font-black text-base border-emerald-500/20 focus:ring-emerald-500/10 rounded-xl text-foreground" />
                                         </div>
                                         <div className="flex flex-col gap-1.5">
                                             <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Discount Mode</span>
@@ -360,30 +630,45 @@ export default function PaidTestsManagementPage() {
                                     </div>
                                 </div>
 
-                                {/* Performance Chart Mockup */}
+                                {/* Performance Chart Dynamic */}
                                 <div className="space-y-4">
                                     <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Sales Velocity</h3>
                                     <div className="h-36 w-full rounded-2xl bg-muted/30 border border-border relative overflow-hidden flex items-end justify-between px-3 pb-3">
                                         <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
                                             <div className="h-full w-full bg-[radial-gradient(circle_at_center,var(--primary)_1px,transparent_1px)] bg-[size:20px_20px]" />
                                         </div>
-                                        {[30, 45, 35, 60, 50, 75, 90].map((h, i) => (
-                                            <motion.div
-                                                key={i}
-                                                initial={{ height: 0 }}
-                                                animate={{ height: `${h}%` }}
-                                                className="w-[11%] bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-lg relative group transition-all hover:scale-x-110 cursor-pointer"
-                                            >
-                                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 shadow-xl z-20">
-                                                    {Math.floor(h / 5)}
-                                                </div>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-                                    <div className="flex justify-between text-[9px] font-black text-muted-foreground uppercase tracking-widest px-1">
-                                        <span>Oct 24</span>
-                                        <span>Growth Cycle</span>
-                                        <span>Oct 30</span>
+
+                                        {/* Dynamic Bars */}
+                                        {selectedTest.salesVelocity && selectedTest.salesVelocity.length > 0 ? (
+                                            selectedTest.salesVelocity.map((day, i) => {
+                                                const maxVal = Math.max(...selectedTest.salesVelocity.map(d => d.count)) || 1;
+                                                const height = Math.max(10, Math.min(100, (day.count / maxVal) * 90)); // Scaled
+
+                                                return (
+                                                    <motion.div
+                                                        key={i}
+                                                        initial={{ height: 0 }}
+                                                        animate={{ height: `${height}%` }}
+                                                        className="w-[11%] flex flex-col items-center justify-end gap-1 group relative cursor-pointer"
+                                                    >
+                                                        <div
+                                                            className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-lg shadow-sm group-hover:from-emerald-500 group-hover:to-emerald-300 transition-all"
+                                                            style={{ height: '100%' }}
+                                                        >
+                                                            {/* Tooltip */}
+                                                            <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 shadow-xl z-20 whitespace-nowrap">
+                                                                {day.count} Sales
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase">{day.date}</span>
+                                                    </motion.div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
+                                                No sales data available
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -392,12 +677,20 @@ export default function PaidTestsManagementPage() {
                                     <div className="flex justify-between items-center">
                                         <h3 className="text-xs font-black text-foreground uppercase tracking-widest">Live Feed (Recent)</h3>
                                     </div>
-                                    <div className="flex flex-col items-center justify-center py-8 text-center">
-                                        <div className="p-4 bg-muted/30 rounded-full mb-4">
-                                            <IndianRupee className="size-10 text-muted-foreground/30" />
-                                        </div>
-                                        <p className="text-xs font-bold text-muted-foreground">No recent purchases</p>
-                                        <p className="text-[10px] text-muted-foreground/60 mt-1">Buyer activity will appear here</p>
+                                    <div className="flex flex-col gap-3">
+                                        {selectedTest.recentBuyers && selectedTest.recentBuyers.length > 0 ? (
+                                            selectedTest.recentBuyers.map((buyer, idx) => (
+                                                <BuyerRow key={idx} {...buyer} />
+                                            ))
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center py-8 text-center">
+                                                <div className="p-4 bg-muted/30 rounded-full mb-4">
+                                                    <IndianRupee className="size-10 text-muted-foreground/30" />
+                                                </div>
+                                                <p className="text-xs font-bold text-muted-foreground">No recent purchases</p>
+                                                <p className="text-[10px] text-muted-foreground/60 mt-1">Buyer activity will appear here</p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
