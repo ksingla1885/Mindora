@@ -229,7 +229,7 @@ export default async function DashboardPage() {
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">No Active Challenge</h3>
                   <p className="mt-1 text-sm text-[#616f89] dark:text-gray-300">Check back later for new problems.</p>
                 </div>
-                <button disabled className="flex w-fit items-center gap-2 rounded-lg bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white cursor-not-allowed dark:bg-gray-700">
+                <button disabled type="button" suppressHydrationWarning className="flex w-fit items-center gap-2 rounded-lg bg-gray-300 px-5 py-2.5 text-sm font-semibold text-white cursor-not-allowed dark:bg-gray-700">
                   <IconPlayArrow className="h-[18px] w-[18px]" />
                   Start Practice
                 </button>
@@ -272,7 +272,11 @@ export default async function DashboardPage() {
                     )}>
                       {test.type}
                     </span>
-                    <button className="rounded-lg bg-white border border-[#dbdfe6] px-4 py-2 text-sm font-semibold text-[#111318] hover:bg-gray-50 dark:bg-transparent dark:text-white dark:border-gray-600 dark:hover:bg-gray-800">
+                    <button
+                      type="button"
+                      suppressHydrationWarning
+                      className="rounded-lg bg-white border border-[#dbdfe6] px-4 py-2 text-sm font-semibold text-[#111318] hover:bg-gray-50 dark:bg-transparent dark:text-white dark:border-gray-600 dark:hover:bg-gray-800"
+                    >
                       Register
                     </button>
                   </div>

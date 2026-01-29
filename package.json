@@ -58,6 +58,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.23.26",
     "ioredis": "^5.8.2",
+    "js-confetti": "^0.13.1",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.548.0",

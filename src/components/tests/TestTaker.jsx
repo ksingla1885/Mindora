@@ -558,14 +558,9 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
         console.error('Cleanup failed, but continuing...', cleanupError);
       }
 
-      // Update UI state
-      setTestResults(results);
-      setShowTestResults(true);
-
-      // Scroll to results
-      if (mainContentRef.current) {
-        mainContentRef.current.scrollIntoView({ behavior: 'smooth' });
-      }
+      // Redirect to success page
+      router.push(`/test-submitted?testId=${test?.id || ''}&attemptId=${results.id || attemptId}`);
+      return;
 
       // Calculate performance metrics in the background
       const calculatePerformance = async () => {
