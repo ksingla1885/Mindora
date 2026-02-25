@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import os from 'os';
 import fs from 'fs/promises';
 
@@ -41,7 +40,7 @@ async function updateMetrics() {
   try {
     const cpuUsage = await getCpuUsage();
     const diskUsage = await getDiskUsage();
-    
+
     metricsData = {
       ...metricsData,
       timestamp: Date.now(),
@@ -69,10 +68,10 @@ async function getCpuUsage() {
   const stats1 = await getCpuAverage();
   await new Promise(resolve => setTimeout(resolve, 1000));
   const stats2 = await getCpuAverage();
-  
+
   const idleDiff = stats2.idle - stats1.idle;
   const totalDiff = stats2.total - stats1.total;
-  
+
   return Math.min(100, Math.max(0, 100 - (idleDiff / totalDiff) * 100));
 }
 
@@ -81,14 +80,14 @@ function getCpuAverage() {
     const cpus = os.cpus();
     let totalIdle = 0;
     let totalTick = 0;
-    
+
     cpus.forEach((cpu) => {
       for (let type in cpu.times) {
         totalTick += cpu.times[type];
       }
       totalIdle += cpu.times.idle;
     });
-    
+
     resolve({ idle: totalIdle / cpus.length, total: totalTick / cpus.length });
   });
 }
@@ -101,7 +100,7 @@ async function getDiskUsage() {
     const total = 500 * 1024 * 1024 * 1024; // 500GB total
     const free = 320 * 1024 * 1024 * 1024;  // 320GB free
     const used = total - free;
-    
+
     return {
       total: Math.floor(total / (1024 * 1024 * 1024)),
       free: Math.floor(free / (1024 * 1024 * 1024)),
@@ -120,8 +119,8 @@ async function getDiskUsage() {
 }
 
 export async function GET(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   // Check if user is admin
   if (!session || session.user.role !== 'ADMIN') {
     return NextResponse.json(
@@ -133,10 +132,10 @@ export async function GET(request) {
   // Get query parameters
   const { searchParams } = new URL(request.url);
   const timeRange = searchParams.get('range') || '24h';
-  
+
   // In a real app, you'd filter metrics based on the time range
   // For this demo, we'll just return the current metrics
-  
+
   return NextResponse.json({
     success: true,
     data: {

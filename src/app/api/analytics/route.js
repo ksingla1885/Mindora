@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { AnalyticsService } from '@/services/analytics/analytics.service';
 
 // Get test analytics
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },

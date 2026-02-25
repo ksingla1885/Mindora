@@ -1,10 +1,9 @@
 import { getEnhancedDPPStats } from '@/services/dpp/dpp.service';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,

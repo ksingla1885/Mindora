@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -11,7 +10,7 @@ const limiter = rateLimit({
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to view orders' },
@@ -88,14 +87,14 @@ export async function GET(request) {
     });
   } catch (error) {
     console.error('Error fetching orders:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
       { status: 500 }
@@ -105,7 +104,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to create an order' },
@@ -131,9 +130,9 @@ export async function POST(request) {
     const testIds = items.map(item => item.testId);
     const tests = await prisma.test.findMany({
       where: { id: { in: testIds } },
-      select: { 
-        id: true, 
-        title: true, 
+      select: {
+        id: true,
+        title: true,
         price: true,
         isPublished: true,
       },
@@ -143,7 +142,7 @@ export async function POST(request) {
     const invalidTests = items.some(
       item => !tests.find(t => t.id === item.testId && t.isPublished)
     );
-    
+
     if (invalidTests) {
       return NextResponse.json(
         { error: 'One or more tests are not available' },
@@ -158,10 +157,10 @@ export async function POST(request) {
     for (const item of items) {
       const test = tests.find(t => t.id === item.testId);
       if (!test) continue;
-      
+
       const itemTotal = test.price * item.quantity;
       subtotal += itemTotal;
-      
+
       orderItems.push({
         testId: test.id,
         title: test.title,
@@ -174,16 +173,16 @@ export async function POST(request) {
     // Apply coupon if provided
     let discount = 0;
     let couponApplied = null;
-    
+
     if (coupon) {
       // In a real app, validate the coupon against your database
       const validCoupons = {
         'WELCOME10': { discount: 0.1, type: 'percentage' },
         'SAVE20': { discount: 20, type: 'fixed' },
       };
-      
+
       const couponData = validCoupons[coupon.toUpperCase()];
-      
+
       if (couponData) {
         couponApplied = coupon.toUpperCase();
         if (couponData.type === 'percentage') {
@@ -277,14 +276,14 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Error creating order:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to create order' },
       { status: 500 }

@@ -128,7 +128,7 @@ export async function POST(req) {
                     data: {
                         dppId: dpp.id,
                         questionId: newQuestion.id,
-                        order: order++,
+                        sequence: order++,
                     },
                 });
 

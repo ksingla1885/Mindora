@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { GamificationService } from '@/services/gamification/GamificationService';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -16,9 +15,9 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date') || new Date();
-    
+
     const challenges = await GamificationService.getDailyChallenges(session.user.id, new Date(date));
-    
+
     return NextResponse.json({ challenges });
   } catch (error) {
     console.error('Error fetching challenges:', error);
@@ -31,7 +30,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -40,7 +39,7 @@ export async function POST(request) {
     }
 
     const body = await request.json();
-    
+
     const challenge = await prisma.dailyChallenge.create({
       data: {
         title: body.title,

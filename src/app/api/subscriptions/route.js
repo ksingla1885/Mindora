@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import subscriptionService from '@/services/payment/subscription.service';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -16,7 +15,7 @@ const limiter = rateLimit({
  */
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -27,7 +26,7 @@ export async function GET(request) {
     // Apply rate limiting
     const identifier = session.user.email;
     const { success } = await limiter.check(10, identifier); // 10 requests per minute
-    
+
     if (!success) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -36,7 +35,7 @@ export async function GET(request) {
     }
 
     const subscription = await subscriptionService.getActiveSubscription(session.user.id);
-    
+
     return NextResponse.json({
       subscription,
       plans: subscriptionService.PLANS,
@@ -56,7 +55,7 @@ export async function GET(request) {
  */
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -65,7 +64,7 @@ export async function POST(request) {
     }
 
     const { planId, paymentMethodId } = await request.json();
-    
+
     if (!planId || !paymentMethodId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -76,7 +75,7 @@ export async function POST(request) {
     // Apply rate limiting
     const identifier = session.user.email;
     const { success } = await limiter.check(5, identifier); // 5 requests per minute
-    
+
     if (!success) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -106,7 +105,7 @@ export async function POST(request) {
  */
 export async function PATCH(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -115,7 +114,7 @@ export async function PATCH(request) {
     }
 
     const { planId, prorate = true } = await request.json();
-    
+
     if (!planId) {
       return NextResponse.json(
         { error: 'Missing planId' },
@@ -126,7 +125,7 @@ export async function PATCH(request) {
     // Apply rate limiting
     const identifier = session.user.email;
     const { success } = await limiter.check(5, identifier); // 5 requests per minute
-    
+
     if (!success) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -156,7 +155,7 @@ export async function PATCH(request) {
  */
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -169,7 +168,7 @@ export async function DELETE(request) {
     // Apply rate limiting
     const identifier = session.user.email;
     const { success } = await limiter.check(3, identifier); // 3 requests per minute
-    
+
     if (!success) {
       return NextResponse.json(
         { error: 'Too many requests' },
@@ -182,9 +181,9 @@ export async function DELETE(request) {
       atPeriodEnd
     );
 
-    return NextResponse.json({ 
-      message: atPeriodEnd 
-        ? 'Subscription will be cancelled at the end of the billing period' 
+    return NextResponse.json({
+      message: atPeriodEnd
+        ? 'Subscription will be cancelled at the end of the billing period'
         : 'Subscription has been cancelled',
       subscription,
     });

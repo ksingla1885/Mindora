@@ -21,7 +21,7 @@ export async function GET(req, { params }) {
                         question: true,
                     },
                     orderBy: {
-                        order: 'asc',
+                        sequence: 'asc',
                     },
                 },
             },
@@ -121,7 +121,7 @@ export async function PUT(req, { params }) {
                     data: {
                         dppId: id,
                         questionId: newQuestion.id,
-                        order: order++,
+                        sequence: order++,
                     },
                 });
             }

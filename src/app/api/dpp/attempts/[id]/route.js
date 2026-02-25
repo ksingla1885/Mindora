@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function POST(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -18,10 +17,10 @@ export async function POST(request, { params }) {
 
     // Find the DPP assignment
     const assignment = await prisma.dPPAssignment.findUnique({
-      where: { 
+      where: {
         id,
         userId: session.user.id,
-        completed: false, // Can only submit if not already completed
+        status: 'PENDING', // Can only submit if not already completed
       },
       include: {
         question: true,
@@ -37,7 +36,7 @@ export async function POST(request, { params }) {
 
     // Check if the answer is correct
     const isCorrect = checkAnswer(assignment.question, answer);
-    
+
     // Calculate score based on time spent and correctness
     const score = calculateScore(assignment.question, isCorrect, timeSpent);
 
@@ -47,54 +46,33 @@ export async function POST(request, { params }) {
       prisma.dPPAssignment.update({
         where: { id },
         data: {
-          completed: true,
-          completedAt: new Date(),
+          status: 'COMPLETED',
+          submittedAt: new Date(),
           timeSpent,
-          score,
+          isCorrect,
         },
         include: {
           question: true,
         },
       }),
-      
-      // Create or update the answer
-      prisma.dPPAnswer.upsert({
-        where: {
-          assignmentId: id,
-        },
-        update: {
-          userAnswer: Array.isArray(answer) ? answer : [answer],
-          isCorrect,
-          feedback: isCorrect ? 'Correct answer!' : 'Incorrect answer',
-        },
-        create: {
-          assignmentId: id,
-          questionId: assignment.questionId,
-          userId: session.user.id,
-          userAnswer: Array.isArray(answer) ? answer : [answer],
-          isCorrect,
-          feedback: isCorrect ? 'Correct answer!' : 'Incorrect answer',
-        },
-      }),
 
       // Update user's DPP statistics
-      prisma.userDPPStats.upsert({
+      prisma.dPPProgress.upsert({
         where: { userId: session.user.id },
         update: {
-          totalAttempts: { increment: 1 },
-          correctAttempts: isCorrect ? { increment: 1 } : undefined,
-          totalTimeSpent: { increment: timeSpent },
-          lastAttemptedAt: new Date(),
-          currentStreak: isCorrect 
+          totalCompleted: { increment: 1 },
+          correctAnswers: isCorrect ? { increment: 1 } : undefined,
+          lastActiveDate: new Date(),
+          currentStreak: isCorrect
             ? { increment: 1 }
             : 0, // Reset streak on incorrect answer
         },
         create: {
           userId: session.user.id,
-          totalAttempts: 1,
-          correctAttempts: isCorrect ? 1 : 0,
-          totalTimeSpent: timeSpent,
-          lastAttemptedAt: new Date(),
+          totalAssigned: 1,
+          totalCompleted: 1,
+          correctAnswers: isCorrect ? 1 : 0,
+          lastActiveDate: new Date(),
           currentStreak: isCorrect ? 1 : 0,
           longestStreak: isCorrect ? 1 : 0,
         },
@@ -106,15 +84,15 @@ export async function POST(request, { params }) {
       where: {
         dppId: assignment.dppId,
         userId: session.user.id,
-        completed: false,
+        status: 'PENDING',
       },
     });
 
     if (pendingAssignments === 0) {
-      await prisma.dPP.update({
+      await prisma.dailyPracticeProblem.update({
         where: { id: assignment.dppId },
         data: {
-          completed: true,
+          status: 'COMPLETED',
           completedAt: new Date(),
         },
       });
@@ -162,43 +140,43 @@ export async function POST(request, { params }) {
 // Helper function to check if the answer is correct
 function checkAnswer(question, userAnswer) {
   if (!question || !userAnswer) return false;
-  
-  const correctAnswers = Array.isArray(question.correctAnswer) 
-    ? question.correctAnswer 
+
+  const correctAnswers = Array.isArray(question.correctAnswer)
+    ? question.correctAnswer
     : [question.correctAnswer];
-    
+
   const userAnswers = Array.isArray(userAnswer) ? userAnswer : [userAnswer];
-  
+
   if (question.type === 'MULTIPLE_CHOICE' || question.type === 'SUBJECTIVE') {
     // For single-answer questions, check if the answer matches exactly
-    return correctAnswers.some(ca => 
+    return correctAnswers.some(ca =>
       userAnswers.some(ua => String(ua).trim().toLowerCase() === String(ca).trim().toLowerCase())
     );
   } else if (question.type === 'MULTIPLE_SELECT') {
     // For multiple-select questions, all correct answers must be selected and no incorrect ones
     if (userAnswers.length !== correctAnswers.length) return false;
-    
-    return correctAnswers.every(ca => 
+
+    return correctAnswers.every(ca =>
       userAnswers.some(ua => String(ua).trim().toLowerCase() === String(ca).trim().toLowerCase())
     );
   }
-  
+
   return false;
 }
 
 // Helper function to calculate score based on question difficulty and time spent
 function calculateScore(question, isCorrect, timeSpent) {
   if (!isCorrect) return 0;
-  
+
   const baseScores = {
     EASY: 10,
     MEDIUM: 20,
     HARD: 30,
   };
-  
+
   const baseScore = baseScores[question.difficulty] || 10;
   const timePenalty = Math.min(Math.floor(timeSpent / 30), 5); // Max 5 points penalty for time
-  
+
   return Math.max(1, baseScore - timePenalty); // Ensure at least 1 point for correct answer
 }
 
@@ -207,7 +185,7 @@ async function awardDPPCompletion(userId, dppId) {
   // In a real app, this would award XP, badges, or other rewards
   // For now, we'll just log it
   console.log(`User ${userId} completed DPP ${dppId}`);
-  
+
   // Example: Award XP
   await prisma.user.update({
     where: { id: userId },
@@ -215,7 +193,7 @@ async function awardDPPCompletion(userId, dppId) {
       xp: { increment: 50 }, // Award 50 XP for completing a DPP
     },
   });
-  
+
   // Check for badge achievements
   const completedDPPs = await prisma.dPP.count({
     where: {
@@ -223,7 +201,7 @@ async function awardDPPCompletion(userId, dppId) {
       completed: true,
     },
   });
-  
+
   // Example: Award badge for completing 5 DPPs
   if (completedDPPs === 5) {
     await prisma.userBadge.create({
@@ -239,7 +217,7 @@ async function awardDPPCompletion(userId, dppId) {
 // Helper function to update leaderboard
 async function updateLeaderboard(userId, score) {
   if (!score || score <= 0) return;
-  
+
   // Update the leaderboard entry for the user
   await prisma.leaderboard.upsert({
     where: { userId },
@@ -253,7 +231,7 @@ async function updateLeaderboard(userId, score) {
       lastUpdated: new Date(),
     },
   });
-  
+
   // In a real app, you might also update subject/class leaderboards here
 }
 
@@ -261,7 +239,7 @@ async function updateLeaderboard(userId, score) {
 async function sendNotification({ userId, type, title, message, metadata = {} }) {
   // In a real app, this would send a notification via email, push, or in-app
   console.log(`Notification for user ${userId}: ${title} - ${message}`, metadata);
-  
+
   // Store the notification in the database
   await prisma.notification.create({
     data: {
@@ -273,7 +251,7 @@ async function sendNotification({ userId, type, title, message, metadata = {} })
       metadata,
     },
   });
-  
+
   // In a real app, you might also trigger email or push notifications here
 }
 

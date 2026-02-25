@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from './prisma';
 
 // Check if a user has access to a test
@@ -37,8 +36,8 @@ export async function hasTestAccess(userId, testId) {
 // Middleware to protect test pages
 export async function withTestAccess(handler) {
   return async (req, { params }) => {
-    const session = await getServerSession(req, authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return {
         redirect: {
@@ -49,7 +48,7 @@ export async function withTestAccess(handler) {
     }
 
     const hasAccess = await hasTestAccess(session.user.id, params.testId);
-    
+
     if (!hasAccess) {
       // Check if test exists and is paid
       const test = await prisma.test.findUnique({

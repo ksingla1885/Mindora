@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    await getServerSession(authOptions); // Just to check auth, we don't need the session
-    
+    await auth();
+
     const { searchParams } = new URL(request.url);
     const subjectId = searchParams.get('subjectId');
     const classLevel = searchParams.get('classLevel');
@@ -31,7 +30,7 @@ export async function GET(request) {
         // Return paginated results from the snapshot
         const data = JSON.parse(JSON.stringify(snapshot.data));
         const paginatedData = data.slice(offset, offset + limit);
-        
+
         return NextResponse.json({
           leaderboard: paginatedData,
           total: data.length,

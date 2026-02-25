@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { subDays, startOfDay, endOfDay, eachDayOfInterval, format } from 'date-fns';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -110,8 +110,8 @@ export async function GET(request) {
     // Format the data for the chart
     const activityData = days.map((day) => {
       const dateStr = format(day, 'yyyy-MM-dd');
-      const avgScore = dailyScores[dateStr] 
-        ? dailyScores[dateStr].reduce((a, b) => a + b, 0) / dailyScores[dateStr].length 
+      const avgScore = dailyScores[dateStr]
+        ? dailyScores[dateStr].reduce((a, b) => a + b, 0) / dailyScores[dateStr].length
         : null;
 
       return {

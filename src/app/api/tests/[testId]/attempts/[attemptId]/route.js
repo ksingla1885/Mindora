@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
 import { auth } from '@/auth';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
 
 // GET /api/tests/[testId]/attempts/[attemptId] - Get attempt details
 export async function GET(request, { params }) {
@@ -63,12 +61,10 @@ export async function GET(request, { params }) {
       { success: false, error: 'Failed to fetch test attempt' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
-// PATCH /api/tests/[testId]/attempts/[attemptId] - Save or submit test attempt
+// PATCH /api/tests/[testId]/attempts/[attemptId] - Save or auto-submit test attempt
 export async function PATCH(request, { params }) {
   const { testId, attemptId } = params;
   const session = await auth();
@@ -81,14 +77,8 @@ export async function PATCH(request, { params }) {
   }
 
   try {
-    const { answers, submit = false } = await request.json();
-
-    if (!answers || typeof answers !== 'object') {
-      return NextResponse.json(
-        { success: false, error: 'Invalid answers format' },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const { answers, timeSpentSeconds, currentQuestionIndex, submit = false } = body;
 
     // Get the attempt
     const attempt = await prisma.testAttempt.findUnique({
@@ -101,7 +91,6 @@ export async function PATCH(request, { params }) {
         test: {
           select: {
             durationMinutes: true,
-            endTime: true,
           },
         },
       },
@@ -115,87 +104,72 @@ export async function PATCH(request, { params }) {
     }
 
     // Check if already submitted
-    if (attempt.finishedAt) {
+    if (attempt.finishedAt || attempt.status === 'submitted') {
       return NextResponse.json(
         { success: false, error: 'Test already submitted' },
         { status: 400 }
       );
     }
 
-    // Check time limit
-    const now = new Date();
-    const timeElapsed = Math.floor((now - attempt.startedAt) / 1000 / 60); // in minutes
-    const timeRemaining = attempt.test.durationMinutes - timeElapsed;
+    // Update attempt data
+    const updatedData = {
+      updatedAt: new Date(),
+    };
 
-    if (timeRemaining <= 0) {
-      // Auto-submit if time is up
-      return handleTestSubmission(attemptId, attempt.details, true);
-    }
+    if (answers && typeof answers === 'object') {
+      updatedData.answers = answers;
 
-    // Update answers without submitting
-    const updatedDetails = { ...attempt.details };
-    let hasChanges = false;
-
-    // Update answers for each question
-    for (const [questionId, answer] of Object.entries(answers)) {
-      const questionIndex = updatedDetails.questions.findIndex(
-        (q) => q.questionId === questionId
-      );
-
-      if (questionIndex !== -1) {
-        // Only update if answer has changed
-        if (JSON.stringify(updatedDetails.questions[questionIndex].answer) !== JSON.stringify(answer)) {
-          updatedDetails.questions[questionIndex].answer = answer;
-          hasChanges = true;
-        }
+      // Also update the details field for backward compatibility
+      const updatedDetails = { ...(attempt.details || {}) };
+      if (updatedDetails.questions) {
+        updatedDetails.questions = updatedDetails.questions.map(q => {
+          if (answers[q.questionId] !== undefined) {
+            return { ...q, answer: answers[q.questionId] };
+          }
+          return q;
+        });
       }
+      updatedData.details = updatedDetails;
     }
 
-    // Only update if there are changes
-    if (hasChanges) {
-      await prisma.testAttempt.update({
-        where: { id: attemptId },
-        data: {
-          details: updatedDetails,
-          // Auto-save timestamp (not the final submission)
-          updatedAt: now,
-        },
-      });
+    if (timeSpentSeconds !== undefined) {
+      updatedData.timeSpentSeconds = parseInt(timeSpentSeconds);
     }
 
-    // If not submitting, return success with time remaining
-    if (!submit) {
-      return NextResponse.json({
-        success: true,
-        message: 'Answers saved successfully',
-        timeRemaining,
-        autoSaved: hasChanges,
-      });
+    // You could also store currentQuestionIndex in metadata if needed
+    if (currentQuestionIndex !== undefined) {
+      updatedData.details = {
+        ...(updatedData.details || attempt.details || {}),
+        currentQuestionIndex: parseInt(currentQuestionIndex)
+      };
     }
 
-    // Handle test submission
-    return handleTestSubmission(attemptId, updatedDetails, false);
-  } catch (error) {
-    console.error('Error saving test attempt:', error);
+    const updatedAttempt = await prisma.testAttempt.update({
+      where: { id: attemptId },
+      data: updatedData,
+    });
 
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { success: false, error: 'Attempt not found' },
-        { status: 404 }
-      );
-    }
+    // Calculate time remaining
+    const startTime = new Date(attempt.startedAt).getTime();
+    const durationMs = (attempt.test.durationMinutes || 0) * 60 * 1000;
+    const elapsedMs = Date.now() - startTime;
+    const timeRemaining = Math.max(0, Math.floor((durationMs - elapsedMs) / 1000));
 
-    return NextResponse.json(
-      {
-        success: false,
-        error: submit
-          ? 'Failed to submit test attempt'
-          : 'Failed to save test attempt'
+    return NextResponse.json({
+      success: true,
+      message: 'Progress saved',
+      data: {
+        ...updatedAttempt,
+        timeRemaining
       },
+    });
+
+  } catch (error) {
+    console.error('Error saving progress:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal Server Error' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 

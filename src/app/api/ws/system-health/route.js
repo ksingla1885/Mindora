@@ -1,6 +1,5 @@
 import { WebSocketServer } from 'ws';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 
 // In-memory store for active connections
 const connections = new Set();
@@ -43,10 +42,10 @@ function generateMockMetrics() {
       services: [
         { name: 'Web Server', status: 'up', responseTime: 45 + Math.random() * 10 },
         { name: 'Database', status: 'up', responseTime: 12 + Math.random() * 5 },
-        { 
-          name: 'Cache', 
-          status: Math.random() > 0.2 ? 'up' : 'degraded', 
-          responseTime: 8 + Math.random() * 3 
+        {
+          name: 'Cache',
+          status: Math.random() > 0.2 ? 'up' : 'degraded',
+          responseTime: 8 + Math.random() * 3
         },
         { name: 'Background Jobs', status: 'up', responseTime: 2 + Math.random() },
         { name: 'Search', status: Math.random() > 0.8 ? 'down' : 'up', responseTime: Math.random() > 0.8 ? 0 : 15 },
@@ -79,7 +78,7 @@ export default function handler(req, res) {
   }
 
   // Get the session
-  getServerSession(req, res, authOptions)
+  auth()
     .then(session => {
       // Check if user is admin
       if (!session || session.user.role !== 'ADMIN') {
@@ -90,24 +89,24 @@ export default function handler(req, res) {
       if (!res.socket.server.wss) {
         // Create WebSocket server if it doesn't exist
         const wss = new WebSocketServer({ noServer: true });
-        
+
         wss.on('connection', (ws) => {
           // Add to connections set
           connections.add(ws);
           startBroadcasting();
-          
+
           // Send initial data
           ws.send(JSON.stringify({
             type: 'connection',
             status: 'connected',
             message: 'Connected to system health service',
           }));
-          
+
           // Handle messages from client
           ws.on('message', (message) => {
             try {
               const data = JSON.parse(message);
-              
+
               if (data.type === 'request' && data.metric) {
                 // Handle specific metric requests
                 ws.send(JSON.stringify({
@@ -120,13 +119,13 @@ export default function handler(req, res) {
               console.error('Error processing message:', error);
             }
           });
-          
+
           // Handle client disconnection
           ws.on('close', () => {
             connections.delete(ws);
             stopBroadcasting();
           });
-          
+
           // Handle errors
           ws.on('error', (error) => {
             console.error('WebSocket error:', error);
@@ -134,14 +133,14 @@ export default function handler(req, res) {
             stopBroadcasting();
           });
         });
-        
+
         // Store WebSocket server instance
         res.socket.server.wss = wss;
       }
-      
+
       // Handle the upgrade
       const { wss } = res.socket.server;
-      
+
       wss.handleUpgrade(req, req.socket, Buffer.alloc(0), (ws) => {
         wss.emit('connection', ws, req);
       });

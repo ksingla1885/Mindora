@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { promises as fs } from 'fs';
@@ -36,7 +35,7 @@ const validateChallengeData = (challenge) => {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -60,7 +59,7 @@ export async function POST(request) {
       // Handle import
       const fileData = await file.text();
       let items;
-      
+
       try {
         items = JSON.parse(fileData);
         if (!Array.isArray(items)) {
@@ -85,14 +84,14 @@ export async function POST(request) {
         const batch = items.slice(i, i + batchSize);
         const batchPromises = batch.map(async (item, index) => {
           const itemNum = i + index + 1;
-          
+
           try {
             if (type === 'badges') {
               const { valid, error } = validateBadgeData(item);
               if (!valid) {
                 throw new Error(error);
               }
-              
+
               await prisma.badge.upsert({
                 where: { id: item.id || '' },
                 update: {
@@ -120,7 +119,7 @@ export async function POST(request) {
               if (!valid) {
                 throw new Error(error);
               }
-              
+
               const challengeData = {
                 title: item.title,
                 description: item.description,
@@ -132,7 +131,7 @@ export async function POST(request) {
                 endDate: item.endDate ? new Date(item.endDate) : null,
                 isActive: item.isActive !== false
               };
-              
+
               await prisma.challenge.upsert({
                 where: { id: item.id || '' },
                 update: challengeData,
@@ -162,7 +161,7 @@ export async function POST(request) {
     } else if (action === 'export') {
       // Handle export
       let data;
-      
+
       if (type === 'badges') {
         const badges = await prisma.badge.findMany({
           orderBy: { createdAt: 'desc' },
@@ -205,7 +204,7 @@ export async function POST(request) {
 
       // Read the file back and send it as a response
       const fileContent = await fs.readFile(filePath);
-      
+
       // Clean up the temp file
       await fs.unlink(filePath);
 
@@ -235,7 +234,7 @@ export async function POST(request) {
 // Add GET endpoint to get a template for import
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -254,7 +253,7 @@ export async function GET(request) {
     }
 
     let template;
-    
+
     if (type === 'badges') {
       template = [
         {
@@ -295,7 +294,7 @@ export async function GET(request) {
     }
 
     const fileName = `${type}-template.json`;
-    
+
     return new NextResponse(JSON.stringify(template, null, 2), {
       headers: {
         'Content-Type': 'application/json',

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import crypto from 'crypto';
 import prisma from '@/lib/prisma';
+import { sendPaymentConfirmationEmail } from '@/lib/email';
 
 // Initialize Razorpay
 const razorpay = new Razorpay({
@@ -246,16 +247,29 @@ export async function PUT(request) {
     }
 
     // Update payment status to captured
-    await prisma.payment.update({
+    const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: {
         status: 'CAPTURED', // Or 'completed'
         providerPaymentId: paymentId,
       },
+      include: {
+        test: {
+          select: {
+            title: true,
+          },
+        },
+      },
     });
 
-    // TODO: Send email confirmation
-    // TODO: Grant access to the test
+    // Send email confirmation (non-blocking)
+    if (updatedPayment.test) {
+      sendPaymentConfirmationEmail(session.user, {
+        itemName: updatedPayment.test.title,
+        amount: updatedPayment.amount,
+        orderId: updatedPayment.providerOrderId,
+      }).catch(err => console.error('Failed to send payment confirmation email:', err));
+    }
 
     return NextResponse.json({
       success: true,

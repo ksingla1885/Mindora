@@ -1,10 +1,8 @@
 import { S3Client, CreateMultipartUploadCommand, UploadPartCommand, CompleteMultipartUploadCommand, AbortMultipartUploadCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { v4 as uuidv4 } from 'uuid';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import path from 'path';
 
 // Initialize S3 client
@@ -30,7 +28,7 @@ const ALLOWED_FILE_TYPES = {
   'video/quicktime': 'mov',
   'video/x-msvideo': 'avi',
   'video/x-ms-wmv': 'wmv',
-  
+
   // Documents
   'application/pdf': 'pdf',
   'application/msword': 'doc',
@@ -41,7 +39,7 @@ const ALLOWED_FILE_TYPES = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
   'text/plain': 'txt',
   'application/json': 'json',
-  
+
   // Images
   'image/jpeg': 'jpg',
   'image/png': 'png',
@@ -61,7 +59,7 @@ const getFileExtension = (filename) => {
 export async function POST(request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -104,7 +102,7 @@ export async function POST(request) {
       });
 
       const { UploadId } = await s3Client.send(createUploadCommand);
-      
+
       // Store the upload ID and other metadata
       activeUploads.set(UploadId, {
         fileKey,
@@ -174,7 +172,7 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -195,7 +193,7 @@ export async function PUT(request) {
     });
 
     const { Location, Bucket, Key } = await s3Client.send(completeCommand);
-    
+
     // Create a record in the database
     const content = await prisma.contentItem.create({
       data: {
@@ -222,7 +220,7 @@ export async function PUT(request) {
     });
   } catch (error) {
     console.error('Error completing upload:', error);
-    
+
     // Attempt to abort the upload on error
     try {
       const { uploadId, fileKey } = await request.json();
@@ -248,7 +246,7 @@ export async function PUT(request) {
 export async function DELETE(request) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -1,16 +1,13 @@
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 
 /**
  * @param {import('next').NextApiRequest} req
  * @param {import('next').NextApiResponse} res
  */
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
-  
+  const session = await auth(req, res);
+
   // Only allow admin access
   if (!session || session.user.role !== 'ADMIN') {
     return res.status(403).json({ error: 'Unauthorized' });
@@ -90,10 +87,10 @@ export default async function handler(req, res) {
     try {
       const { page = 1, limit = 10, status } = req.query;
       const skip = (parseInt(page) - 1) * parseInt(limit);
-      
+
       const where = {};
       const now = new Date();
-      
+
       if (status === 'upcoming') {
         where.startTime = { gt: now };
       } else if (status === 'ongoing') {
@@ -102,7 +99,7 @@ export default async function handler(req, res) {
       } else if (status === 'completed') {
         where.endTime = { lt: now };
       }
-      
+
       const [schedules, total] = await Promise.all([
         prisma.testSchedule.findMany({
           where,
@@ -122,7 +119,7 @@ export default async function handler(req, res) {
         }),
         prisma.testSchedule.count({ where }),
       ]);
-      
+
       return res.status(200).json({
         data: schedules,
         pagination: {
@@ -142,15 +139,15 @@ export default async function handler(req, res) {
     // Delete a scheduled test
     try {
       const { id } = req.query;
-      
+
       if (!id) {
         return res.status(400).json({ error: 'Schedule ID is required' });
       }
-      
+
       await prisma.testSchedule.delete({
         where: { id },
       });
-      
+
       return res.status(200).json({ success: true });
     } catch (error) {
       console.error('Error deleting scheduled test:', error);

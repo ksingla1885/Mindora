@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 // Helper function to check if the answer is correct
@@ -129,7 +128,7 @@ async function sendNotification({ userId, type, title, message, metadata = {} })
 
 export async function POST(request, { params }) {
     try {
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         if (!session) {
             return NextResponse.json(
                 { error: 'Authentication required' },
@@ -148,7 +147,7 @@ export async function POST(request, { params }) {
                 userId: session.user.id,
                 // We allow resubmission if not completed, or maybe we should check completed?
                 // The original logic checked completed: false.
-                completed: false,
+                status: 'PENDING',
             },
             include: {
                 question: true,
@@ -179,54 +178,33 @@ export async function POST(request, { params }) {
             prisma.dPPAssignment.update({
                 where: { id },
                 data: {
-                    completed: true,
-                    completedAt: new Date(),
+                    status: 'COMPLETED',
+                    submittedAt: new Date(),
                     timeSpent,
-                    score,
+                    isCorrect,
                 },
                 include: {
                     question: true,
                 },
             }),
 
-            // Create or update the answer
-            prisma.dPPAnswer.upsert({
-                where: {
-                    assignmentId: id,
-                },
-                update: {
-                    userAnswer: Array.isArray(answer) ? answer : [answer],
-                    isCorrect,
-                    feedback: isCorrect ? 'Correct answer!' : 'Incorrect answer',
-                },
-                create: {
-                    assignmentId: id,
-                    questionId: assignment.questionId,
-                    userId: session.user.id,
-                    userAnswer: Array.isArray(answer) ? answer : [answer],
-                    isCorrect,
-                    feedback: isCorrect ? 'Correct answer!' : 'Incorrect answer',
-                },
-            }),
-
             // Update user's DPP statistics
-            prisma.userDPPStats.upsert({
+            prisma.dPPProgress.upsert({
                 where: { userId: session.user.id },
                 update: {
-                    totalAttempts: { increment: 1 },
-                    correctAttempts: isCorrect ? { increment: 1 } : undefined,
-                    totalTimeSpent: { increment: timeSpent },
-                    lastAttemptedAt: new Date(),
+                    totalCompleted: { increment: 1 },
+                    correctAnswers: isCorrect ? { increment: 1 } : undefined,
+                    lastActiveDate: new Date(),
                     currentStreak: isCorrect
                         ? { increment: 1 }
                         : 0, // Reset streak on incorrect answer
                 },
                 create: {
                     userId: session.user.id,
-                    totalAttempts: 1,
-                    correctAttempts: isCorrect ? 1 : 0,
-                    totalTimeSpent: timeSpent,
-                    lastAttemptedAt: new Date(),
+                    totalAssigned: 1,
+                    totalCompleted: 1,
+                    correctAnswers: isCorrect ? 1 : 0,
+                    lastActiveDate: new Date(),
                     currentStreak: isCorrect ? 1 : 0,
                     longestStreak: isCorrect ? 1 : 0,
                 },
@@ -238,15 +216,15 @@ export async function POST(request, { params }) {
             where: {
                 dppId: assignment.dppId,
                 userId: session.user.id,
-                completed: false,
+                status: 'PENDING',
             },
         });
 
         if (pendingAssignments === 0) {
-            await prisma.dPP.update({
+            await prisma.dailyPracticeProblem.update({
                 where: { id: assignment.dppId },
                 data: {
-                    completed: true,
+                    status: 'COMPLETED',
                     completedAt: new Date(),
                 },
             });

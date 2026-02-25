@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 // POST /api/gamification/events/participate - Register for an event
 export async function POST(request) {
   try {
     // Check if user is authenticated
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
@@ -17,7 +16,7 @@ export async function POST(request) {
 
     // Parse request body
     const { eventId } = await request.json();
-    
+
     if (!eventId) {
       return NextResponse.json(
         { success: false, error: 'Event ID is required' },
@@ -27,7 +26,7 @@ export async function POST(request) {
 
     // Check if event exists and is active
     const event = await prisma.event.findUnique({
-      where: { 
+      where: {
         id: eventId,
         isActive: true,
       },
@@ -49,12 +48,12 @@ export async function POST(request) {
     // Check if registration is still open
     const now = new Date();
     const registrationEnd = event.registrationEnd ? new Date(event.registrationEnd) : new Date(event.startDate);
-    
+
     if (now > registrationEnd) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Registration for this event has ended' 
+        {
+          success: false,
+          error: 'Registration for this event has ended'
         },
         { status: 400 }
       );
@@ -64,9 +63,9 @@ export async function POST(request) {
     const eventStart = new Date(event.startDate);
     if (now < eventStart) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Event has not started yet' 
+        {
+          success: false,
+          error: 'Event has not started yet'
         },
         { status: 400 }
       );
@@ -75,9 +74,9 @@ export async function POST(request) {
     // Check if user is already registered
     if (event.participants && event.participants.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'You are already registered for this event' 
+        {
+          success: false,
+          error: 'You are already registered for this event'
         },
         { status: 400 }
       );
@@ -125,7 +124,7 @@ export async function POST(request) {
 export async function GET(request) {
   try {
     // Check if user is authenticated
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
@@ -200,11 +199,11 @@ export async function GET(request) {
       const event = participation.event;
       const startDate = new Date(event.startDate);
       const endDate = new Date(event.endDate);
-      
+
       let eventStatus = 'upcoming';
       let statusLabel = '';
       let progress = 0;
-      
+
       if (now < startDate) {
         eventStatus = 'upcoming';
         statusLabel = `Starts in ${Math.ceil((startDate - now) / (1000 * 60 * 60 * 24))} days`;
@@ -219,7 +218,7 @@ export async function GET(request) {
         progress = Math.min((elapsed / totalDuration) * 100, 100);
         statusLabel = `Ends in ${Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))} days`;
       }
-      
+
       return {
         ...participation,
         event: {
@@ -256,7 +255,7 @@ export async function GET(request) {
 export async function PUT(request) {
   try {
     // Check if user is authenticated
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
@@ -266,7 +265,7 @@ export async function PUT(request) {
 
     // Parse request body
     const { eventId, progress, score, completed } = await request.json();
-    
+
     if (!eventId) {
       return NextResponse.json(
         { success: false, error: 'Event ID is required' },
@@ -318,15 +317,15 @@ export async function PUT(request) {
 
     // Prepare update data
     const updateData = {};
-    
+
     if (progress !== undefined) {
       updateData.progress = Math.min(Math.max(progress, 0), 100); // Clamp between 0 and 100
     }
-    
+
     if (score !== undefined) {
       updateData.score = Math.max(score, 0); // Ensure score is not negative
     }
-    
+
     if (completed !== undefined) {
       updateData.completed = completed;
       updateData.completedAt = completed ? new Date() : null;

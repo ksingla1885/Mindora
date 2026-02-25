@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -17,7 +16,7 @@ export async function GET(request, { params }) {
 
     // Find the DPP assignment
     const assignment = await prisma.dPPAssignment.findUnique({
-      where: { 
+      where: {
         id,
         userId: session.user.id,
       },
@@ -28,7 +27,6 @@ export async function GET(request, { params }) {
             subject: true,
           },
         },
-        answer: true,
       },
     });
 
@@ -52,10 +50,10 @@ export async function GET(request, { params }) {
       explanation: assignment.question.explanation,
       solutionImageUrl: assignment.question.solutionImageUrl,
       imageUrl: assignment.question.imageUrl,
-      userAnswer: assignment.answer?.userAnswer,
-      isCorrect: assignment.answer?.isCorrect,
-      feedback: assignment.answer?.feedback,
-      completed: assignment.completed,
+      userAnswer: assignment.userAnswer,
+      isCorrect: assignment.isCorrect,
+      feedback: assignment.metadata?.feedback,
+      completed: assignment.status === 'COMPLETED',
       assignedAt: assignment.assignedAt,
     };
 

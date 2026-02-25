@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
 
@@ -8,7 +7,7 @@ import { hasPermission } from '@/lib/permissions';
 // GET /api/analytics/test?testId=...
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to view analytics' },
@@ -39,7 +38,7 @@ export async function GET(request) {
     // Calculate date range based on timeRange
     const now = new Date();
     let startDate = new Date(0); // Beginning of time
-    
+
     switch (timeRange) {
       case '7d':
         startDate = new Date(now.setDate(now.getDate() - 7));

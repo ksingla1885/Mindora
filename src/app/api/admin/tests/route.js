@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -23,30 +20,30 @@ export async function GET(request) {
     const subjectId = searchParams.get('subjectId') || '';
     const isPublished = searchParams.get('isPublished');
     const isPaid = searchParams.get('isPaid');
-    
+
     const skip = (page - 1) * pageSize;
-    
+
     const where = {};
-    
+
     if (search) {
       where.OR = [
         { title: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } }
       ];
     }
-    
+
     if (subjectId) {
       where.subjectId = subjectId;
     }
-    
+
     if (isPublished !== null) {
       where.isPublished = isPublished === 'true';
     }
-    
+
     if (isPaid !== null) {
       where.isPaid = isPaid === 'true';
     }
-    
+
     const [tests, total] = await Promise.all([
       prisma.test.findMany({
         where,
@@ -72,7 +69,7 @@ export async function GET(request) {
       }),
       prisma.test.count({ where }),
     ]);
-    
+
     return NextResponse.json({
       data: tests.map(test => ({
         ...test,
@@ -85,7 +82,7 @@ export async function GET(request) {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     });
-    
+
   } catch (error) {
     console.error('Error fetching tests:', error);
     return NextResponse.json(
@@ -97,15 +94,15 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
+
     const {
       title,
       description,
@@ -121,7 +118,7 @@ export async function POST(request) {
       instructions,
       questions,
     } = await request.json();
-    
+
     // Validate required fields
     if (!title || !subjectId || !duration || !totalMarks || !startDate || !endDate) {
       return NextResponse.json(
@@ -129,18 +126,18 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
+
     // Validate dates
     const start = new Date(startDate);
     const end = new Date(endDate);
-    
+
     if (isNaN(start.getTime()) || isNaN(end.getTime()) || start >= end) {
       return NextResponse.json(
         { error: 'Invalid date range' },
         { status: 400 }
       );
     }
-    
+
     // Validate passing marks
     if (passingMarks > totalMarks) {
       return NextResponse.json(
@@ -148,7 +145,7 @@ export async function POST(request) {
         { status: 400 }
       );
     }
-    
+
     // Create test
     const test = await prisma.$transaction(async (tx) => {
       // Create the test
@@ -169,7 +166,7 @@ export async function POST(request) {
           createdBy: session.user.id,
         },
       });
-      
+
       // Add questions to the test
       if (Array.isArray(questions) && questions.length > 0) {
         await tx.testQuestion.createMany({
@@ -181,12 +178,12 @@ export async function POST(request) {
           })),
         });
       }
-      
+
       return newTest;
     });
-    
+
     return NextResponse.json(test, { status: 201 });
-    
+
   } catch (error) {
     console.error('Error creating test:', error);
     return NextResponse.json(

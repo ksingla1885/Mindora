@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -21,7 +20,7 @@ export async function GET(request) {
     // Calculate date range based on timeRange
     const now = new Date();
     let startDate = new Date();
-    
+
     switch (timeRange) {
       case '7d':
         startDate.setDate(now.getDate() - 7);
@@ -84,8 +83,8 @@ export async function GET(request) {
     const completedEnrollments = enrollments.filter(
       (e) => e.progress && e.progress.completedAt !== null
     ).length;
-    const completionRate = totalEnrollments > 0 
-      ? (completedEnrollments / totalEnrollments) * 100 
+    const completionRate = totalEnrollments > 0
+      ? (completedEnrollments / totalEnrollments) * 100
       : 0;
 
     // Calculate revenue
@@ -108,8 +107,8 @@ export async function GET(request) {
           title: module.title,
           totalStudents: totalEnrollments,
           completed: moduleEnrollments,
-          completionRate: totalEnrollments > 0 
-            ? (moduleEnrollments / totalEnrollments) * 100 
+          completionRate: totalEnrollments > 0
+            ? (moduleEnrollments / totalEnrollments) * 100
             : 0,
         };
       })

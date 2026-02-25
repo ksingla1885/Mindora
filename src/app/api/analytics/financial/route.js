@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { hasPermission } from '@/lib/permissions';
 
@@ -8,7 +7,7 @@ import { hasPermission } from '@/lib/permissions';
 // GET /api/analytics/financial?startDate=...&endDate=...&groupBy=...
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to view financial analytics' },
@@ -28,11 +27,11 @@ export async function GET(request) {
     const startDateParam = searchParams.get('startDate');
     const endDateParam = searchParams.get('endDate');
     const groupBy = searchParams.get('groupBy') || 'day'; // day, week, month, year
-    
+
     // Set default date range to last 30 days if not specified
     const endDate = endDateParam ? new Date(endDateParam) : new Date();
-    const startDate = startDateParam 
-      ? new Date(startDateParam) 
+    const startDate = startDateParam
+      ? new Date(startDateParam)
       : new Date(new Date().setDate(endDate.getDate() - 30));
 
     // Get financial summary

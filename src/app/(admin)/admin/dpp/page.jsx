@@ -33,6 +33,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 
 export default function DPPPage() {
     const [dpps, setDpps] = useState([]);
@@ -42,6 +50,11 @@ export default function DPPPage() {
     // Filters
     const [classFilter, setClassFilter] = useState('all');
     const [subjectFilter, setSubjectFilter] = useState('all');
+
+    // Delete confirmation
+    const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+    const [dppToDelete, setDppToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     useEffect(() => {
         fetchSubjects();
@@ -84,21 +97,31 @@ export default function DPPPage() {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!confirm('Are you sure you want to delete this DPP? This will delete all associated questions.')) return;
+    const handleDeleteClick = (id) => {
+        setDppToDelete(id);
+        setIsDeleteDialogOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!dppToDelete) return;
 
         try {
-            const res = await fetch(`/api/admin/dpp/${id}`, {
+            setIsDeleting(true);
+            const res = await fetch(`/api/admin/dpp/${dppToDelete}`, {
                 method: 'DELETE',
             });
 
             if (!res.ok) throw new Error('Failed to delete');
 
             toast.success('DPP deleted');
-            setDpps(dpps.filter(d => d.id !== id));
+            setDpps(dpps.filter(d => d.id !== dppToDelete));
+            setIsDeleteDialogOpen(false);
         } catch (error) {
             console.error(error);
             toast.error('Failed to delete DPP');
+        } finally {
+            setIsDeleting(false);
+            setDppToDelete(null);
         }
     };
 
@@ -185,7 +208,7 @@ export default function DPPPage() {
                                                         Edit
                                                     </DropdownMenuItem>
                                                 </Link>
-                                                <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={() => handleDelete(dpp.id)}>
+                                                <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={() => handleDeleteClick(dpp.id)}>
                                                     <Trash2 className="mr-2 h-4 w-4" />
                                                     Delete
                                                 </DropdownMenuItem>
@@ -216,6 +239,42 @@ export default function DPPPage() {
                     </div>
                 )}
             </div>
+
+            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Are you sure you want to delete this DPP?</DialogTitle>
+                        <DialogDescription>
+                            This action cannot be undone. This will permanently delete the practice set
+                            and all of its associated questions for all students.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="gap-2 sm:gap-0">
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsDeleteDialogOpen(false)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            onClick={confirmDelete}
+                            disabled={isDeleting}
+                            className="bg-red-600 hover:bg-red-700 font-bold"
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                'Delete practice set'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -69,12 +69,12 @@ export async function GET(request) {
         (sum, q) => sum + (q._count?.attempts || 0),
         0
       );
-      
+
       // Get test attempts for this subject
       const testAttempts = topics.flatMap((topic) =>
         topic.questions.flatMap((q) => q.attempts || [])
       );
-      
+
       const correctAttempts = testAttempts.filter(
         (a) => a.isCorrect
       ).length;
@@ -155,7 +155,7 @@ export async function GET(request) {
           completion: overallCompletion,
           accuracy: Math.round(
             progressData.reduce((sum, subj) => sum + subj.accuracy, 0) /
-              Math.max(1, progressData.length)
+            Math.max(1, progressData.length)
           ),
           totalTopics,
           completedTopics,

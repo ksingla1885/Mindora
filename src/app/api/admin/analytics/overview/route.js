@@ -1,32 +1,29 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
+
     // Get total students
     const totalStudents = await prisma.user.count({
       where: { role: 'STUDENT' }
     });
-    
+
     // Get total tests
     const totalTests = await prisma.test.count();
-    
+
     // Get total test attempts
     const totalAttempts = await prisma.testAttempt.count();
-    
+
     // Get total revenue (from payments)
     const revenueResult = await prisma.payment.aggregate({
       _sum: {
@@ -36,7 +33,7 @@ export async function GET() {
         status: 'COMPLETED'
       }
     });
-    
+
     // Get recent test attempts
     const recentAttempts = await prisma.testAttempt.findMany({
       take: 5,
@@ -57,11 +54,11 @@ export async function GET() {
         }
       }
     });
-    
+
     // Get test participation data for the last 7 days
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
+
     const participationData = await prisma.$queryRaw`
       SELECT 
         DATE("submittedAt") as date,
@@ -71,7 +68,7 @@ export async function GET() {
       GROUP BY DATE("submittedAt")
       ORDER BY date ASC
     `;
-    
+
     return NextResponse.json({
       stats: {
         totalStudents,
@@ -91,7 +88,7 @@ export async function GET() {
         count: parseInt(item.count)
       }))
     });
-    
+
   } catch (error) {
     console.error('Error fetching admin analytics:', error);
     return NextResponse.json(

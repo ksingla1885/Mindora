@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 // Get all rewards or create a new reward
@@ -8,7 +7,7 @@ import prisma from '@/lib/prisma';
 // GET /api/gamification/rewards
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -30,7 +29,7 @@ export async function POST(request) {
     }
 
     const data = await request.json();
-    
+
     // Validate required fields
     if (!data.name || !data.xpValue) {
       return NextResponse.json(
@@ -65,7 +64,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },

@@ -1,9 +1,6 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { PrismaClient } from '@prisma/client';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 import { createClient } from 'redis';
-
-const prisma = new PrismaClient();
 
 // Initialize Redis client
 const redis = createClient({
@@ -18,8 +15,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method not allowed' });
   }
 
-  const session = await getServerSession(req, res, authOptions);
-  
+  const session = await auth(req, res);
+
   if (!session) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -52,7 +49,7 @@ export default async function handler(req, res) {
     const results = questions.map(question => {
       const isCorrect = answers[question.id] === question.correctAnswer;
       if (isCorrect) correctAnswers++;
-      
+
       return {
         questionId: question.id,
         selectedAnswer: answers[question.id],
@@ -105,7 +102,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Test submission error:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: 'Internal server error',
       error: error.message,
     });

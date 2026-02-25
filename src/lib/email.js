@@ -3,6 +3,9 @@ import { render } from '@react-email/render';
 import { VerificationEmail } from '@/components/emails/VerificationEmail';
 import { ResetPasswordEmail } from '@/components/emails/ResetPasswordEmail';
 
+import { TestResultEmail } from '@/components/emails/TestResultEmail';
+import { PaymentConfirmEmail } from '@/components/emails/PaymentConfirmEmail';
+
 // Configure email transporter
 const getEmailConfig = async () => {
   // If real credentials are provided, use them (works in both dev and prod)
@@ -45,18 +48,25 @@ const getEmailConfig = async () => {
   };
 };
 
-const transporter = nodemailer.createTransport({
-  ...(await getEmailConfig()),
-});
+// Lazy-load transporter to avoid top-level await issues
+let transporter;
 
-// Verify connection configuration
-transporter.verify((error) => {
-  if (error) {
-    console.error('Error with email configuration:', error);
-  } else {
+const getTransporter = async () => {
+  if (transporter) return transporter;
+
+  const config = await getEmailConfig();
+  transporter = nodemailer.createTransport(config);
+
+  // Verify connection configuration
+  try {
+    await transporter.verify();
     console.log('Email server is ready to take our messages');
+  } catch (error) {
+    console.error('Error with email configuration:', error);
   }
-});
+
+  return transporter;
+};
 
 export const sendVerificationEmail = async (user, token) => {
   const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
@@ -65,6 +75,7 @@ export const sendVerificationEmail = async (user, token) => {
     <VerificationEmail username={user.name || 'there'} verificationUrl={verificationUrl} />
   );
 
+  const transporter = await getTransporter();
   const info = await transporter.sendMail({
     from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
     to: user.email,
@@ -86,6 +97,7 @@ export const sendPasswordResetEmail = async (user, token) => {
     <ResetPasswordEmail username={user.name || 'there'} resetUrl={resetUrl} />
   );
 
+  const transporter = await getTransporter();
   const info = await transporter.sendMail({
     from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
     to: user.email,
@@ -101,6 +113,7 @@ export const sendPasswordResetEmail = async (user, token) => {
 };
 
 export const sendPasswordChangedEmail = async (user) => {
+  const transporter = await getTransporter();
   const info = await transporter.sendMail({
     from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
     to: user.email,
@@ -117,3 +130,60 @@ export const sendPasswordChangedEmail = async (user) => {
 
   return info;
 };
+
+export const sendTestResultEmail = async (user, testResult) => {
+  const resultsUrl = `${process.env.NEXTAUTH_URL}/tests/${testResult.testId}/results/${testResult.attemptId}`;
+
+  const emailHtml = render(
+    <TestResultEmail
+      username={user.name || 'there'}
+      testTitle={testResult.testTitle}
+      score={testResult.score}
+      percentage={testResult.percentage}
+      totalQuestions={testResult.totalQuestions}
+      correctCount={testResult.correctCount}
+      resultsUrl={resultsUrl}
+    />
+  );
+
+  const transporter = await getTransporter();
+  const info = await transporter.sendMail({
+    from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
+    to: user.email,
+    subject: `Test Results: ${testResult.testTitle}`,
+    html: emailHtml,
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  }
+
+  return info;
+};
+
+export const sendPaymentConfirmationEmail = async (user, payment) => {
+  const emailHtml = render(
+    <PaymentConfirmEmail
+      username={user.name || 'there'}
+      itemName={payment.itemName}
+      amount={payment.amount}
+      orderId={payment.orderId}
+      date={new Date().toLocaleDateString()}
+    />
+  );
+
+  const transporter = await getTransporter();
+  const info = await transporter.sendMail({
+    from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
+    to: user.email,
+    subject: 'Payment Confirmation - Mindora',
+    html: emailHtml,
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  }
+
+  return info;
+};
+

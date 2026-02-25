@@ -23,6 +23,13 @@ model User {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   profileMeta   Json?     @map("profile_meta")
+  points        Int       @default(0) @map("points")
+  xp           Int       @default(0) @map("xp")
+  level        Int       @default(1) @map("level")
+  currentStreak Int       @default(0) @map("current_streak")
+  longestStreak Int       @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date")
+  lastLogin     DateTime? @map("last_login")
   
   // Relations
   verificationTokens      VerificationToken[]
@@ -40,11 +47,96 @@ model User {
   analyticsEvents         AnalyticsEvent[]
   userTestAnalytics       UserTestAnalytics[]
   analyticsDashboards     AnalyticsDashboard[]
+  dppConfig               DPPConfig?
+  dppAssignments          DPPAssignment[]
+  dppProgress             DPPProgress?
+  certificates            Certificate[]
+  xpHistory               XPHistory[]
+  leaderboardEntries      LeaderboardEntry[]
+  userChallenges          UserChallenge[]
   
   @@index([createdAt])
   @@index([role, createdAt])
   
   @@map("users")
+}
+
+model XPHistory {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  amount    Int
+  source    String
+  newTotal  Int      @map("new_total")
+  createdAt DateTime @default(now()) @map("created_at")
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("xp_history")
+}
+
+model LeaderboardEntry {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  subjectId    String?  @map("subject_id")
+  testCount    Int      @default(0) @map("test_count")
+  totalScore   Int      @default(0) @map("total_score")
+  averageScore Int      @default(0) @map("average_score")
+  lastUpdated  DateTime @default(now()) @map("last_updated")
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject      Subject? @relation(fields: [subjectId], references: [id])
+  
+  @@unique([userId, subjectId])
+  @@map("leaderboard_entries")
+}
+
+model LeaderboardSnapshot {
+  id          String   @id @default(cuid())
+  type        String   // daily, weekly, monthly
+  subjectId   String?  @map("subject_id")
+  classLevel  String?  @map("class_level")
+  data        Json
+  startDate   DateTime @map("start_date")
+  endDate     DateTime @map("end_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@map("leaderboard_snapshots")
+}
+
+model DailyChallenge {
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  type           String   // test_participation, dpp_completion, perfect_score, etc.
+  date           DateTime @default(now())
+  xpReward       Int      @default(0) @map("xp_reward")
+  badgeRewardId  String?  @map("badge_reward_id")
+  subjectId      String?  @map("subject_id")
+  requiredValue  Int      @default(1) @map("required_value")
+  createdAt      DateTime @default(now()) @map("created_at")
+  
+  badgeReward    Badge?   @relation(fields: [badgeRewardId], references: [id])
+  subject        Subject? @relation(fields: [subjectId], references: [id])
+  userChallenges UserChallenge[]
+  
+  @@map("daily_challenges")
+}
+
+model UserChallenge {
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
+  challengeId  String    @map("challenge_id")
+  progress     Int       @default(0)
+  isCompleted  Boolean   @default(false) @map("is_completed")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge    DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, challengeId])
+  @@map("user_challenges")
 }
 
 model Olympiad {
@@ -70,6 +162,8 @@ model Subject {
   class       String?
   topics      Topic[]
   dpps        DailyPracticeProblem[]
+  leaderboardEntries LeaderboardEntry[]
+  dailyChallenges    DailyChallenge[]
   
   @@map("subjects")
 }
@@ -464,6 +558,8 @@ model Question {
   explanation   String?
   difficulty    String?      @default("medium")
   marks         Int          @default(1)
+  isActive      Boolean      @default(true) @map("is_active")
+  attempts      Int          @default(0)
   createdAt     DateTime     @default(now()) @map("created_at")
   updatedAt     DateTime     @updatedAt @map("updated_at")
   
@@ -472,6 +568,7 @@ model Question {
   discussions     Discussion[]
   questionAnalytics QuestionAnalytics[]
   dppQuestions    DPPQuestion[]
+  dppAssignments  DPPAssignment[]
   
   @@map("questions")
 }
@@ -500,6 +597,10 @@ model Test {
   tags                String[]
   categories          String[]
   instructions        String?        @db.Text
+  proctoringEnabled   Boolean        @default(false) @map("proctoring_enabled")
+  faceDetectionEnabled Boolean       @default(false) @map("face_detection_enabled")
+  tabMonitoringEnabled Boolean       @default(false) @map("tab_monitoring_enabled")
+  enforceFullscreen    Boolean        @default(false) @map("enforce_fullscreen")
   createdAt           DateTime       @default(now()) @map("created_at")
   updatedAt           DateTime       @updatedAt @map("updated_at")
   createdBy           String         @map("created_by")
@@ -513,6 +614,7 @@ model Test {
   attempts          TestAttempt[]
   payments          Payment[]
   discussions       Discussion[]
+  certificates      Certificate[]
   
   @@map("tests")
 }
@@ -551,10 +653,12 @@ model TestAttempt {
   userAgent          String?  @map("user_agent")
   answers            Json?    @map("answers") // Store user's answers
   results            Json?    @map("results") // Detailed results and feedback
+  details            Json?    @map("details") // Detailed attempt information
   metadata           Json?    @map("metadata") // Additional metadata
   
   test       Test     @relation(fields: [testId], references: [id])
   user       User     @relation(fields: [userId], references: [id])
+  certificate Certificate?
   
   @@map("test_attempts")
 }
@@ -606,7 +710,8 @@ model Badge {
   iconUrl     String?     @map("icon_url")
   criteria    Json?       // Criteria to earn this badge
   
-  userBadges  UserBadge[]
+  userBadges      UserBadge[]
+  dailyChallenges DailyChallenge[]
   
   @@map("badges")
 }
@@ -763,14 +868,19 @@ model DailyPracticeProblem {
   id          String   @id @default(cuid())
   title       String?
   date        DateTime @default(now())
-  class       String
-  subjectId   String   @map("subject_id")
+  class       String?
+  subjectId   String?  @map("subject_id")
+  userId      String?  @map("user_id") // Optional: if specific to a user
+  totalQuestions Int   @default(0) @map("total_questions")
+  status      String   @default("PENDING") // PENDING, COMPLETED
   isActive    Boolean  @default(true) @map("is_active")
+  completedAt DateTime? @map("completed_at")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  subject     Subject  @relation(fields: [subjectId], references: [id])
+  subject     Subject? @relation(fields: [subjectId], references: [id])
   questions   DPPQuestion[]
+  assignments DPPAssignment[]
   
   @@map("daily_practice_problems")
 }
@@ -779,11 +889,82 @@ model DPPQuestion {
   id          String   @id @default(cuid())
   dppId       String   @map("dpp_id")
   questionId  String   @map("question_id")
-  order       Int      @default(0)
+  sequence    Int      @default(0)
   
   dpp         DailyPracticeProblem @relation(fields: [dppId], references: [id])
   question    Question @relation(fields: [questionId], references: [id])
 
   @@unique([dppId, questionId])
   @@map("dpp_questions")
+}
+
+model DPPConfig {
+  id              String   @id @default(cuid())
+  userId          String   @unique @map("user_id")
+  subjects        String[] // Array of subject IDs
+  topics          String[] // Array of topic IDs
+  difficulty      String[] // easy, medium, hard
+  questionTypes   String[] // MCQ, NUMERICAL, etc.
+  dailyLimit      Int      @default(5) @map("daily_limit")
+  timeOfDay       String   @default("09:00") @map("time_of_day")
+  notifications   Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user            User     @relation(fields: [userId], references: [id])
+
+  @@map("dpp_configs")
+}
+
+model DPPAssignment {
+  id          String    @id @default(cuid())
+  dppId       String?   @map("dpp_id")
+  userId      String    @map("user_id")
+  questionId  String    @map("question_id")
+  status      String    @default("PENDING") // PENDING, COMPLETED, SKIPPED
+  userAnswer  String?   @map("user_answer")
+  isCorrect   Boolean?  @map("is_correct")
+  timeSpent   Int       @default(0) @map("time_spent")
+  submittedAt DateTime? @map("submitted_at")
+  sequence    Int       @default(0)
+  metadata    Json?
+  
+  dpp         DailyPracticeProblem? @relation(fields: [dppId], references: [id])
+  user        User                  @relation(fields: [userId], references: [id])
+  question    Question              @relation(fields: [questionId], references: [id])
+
+  @@map("dpp_assignments")
+}
+
+model DPPProgress {
+  id             String   @id @default(cuid())
+  userId         String   @unique @map("user_id")
+  date           DateTime @default(now())
+  totalAssigned  Int      @default(0) @map("total_assigned")
+  totalCompleted Int      @default(0) @map("total_completed")
+  correctAnswers Int      @default(0) @map("correct_answers")
+  currentStreak  Int      @default(0) @map("current_streak")
+  longestStreak  Int      @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date")
+  
+  user           User     @relation(fields: [userId], references: [id])
+
+  @@map("dpp_progress")
+}
+
+model Certificate {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  testId        String   @map("test_id")
+  attemptId     String   @unique @map("attempt_id")
+  certificateId String   @unique @map("certificate_id")
+  issueDate     DateTime @default(now()) @map("issue_date")
+  pdfUrl        String?  @map("pdf_url")
+  metadata      Json?
+
+  user          User     @relation(fields: [userId], references: [id])
+  test          Test     @relation(fields: [testId], references: [id])
+  attempt       TestAttempt @relation(fields: [attemptId], references: [id])
+
+  @@map("certificates")
 }

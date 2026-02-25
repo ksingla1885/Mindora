@@ -1,7 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { verify } from 'jsonwebtoken';
 
 // This is a placeholder for the WebSocket server instance
@@ -41,7 +40,7 @@ export async function GET(request) {
     // Handle new WebSocket connections
     wss.on('connection', (ws, request) => {
       const session = request.session;
-      
+
       // Store the WebSocket connection with the user ID as the key
       if (session?.user?.id) {
         const userId = session.user.id;
@@ -54,40 +53,40 @@ export async function GET(request) {
         ws.on('message', async (message) => {
           try {
             const data = JSON.parse(message);
-            
+
             // Handle authentication
             if (data.type === 'AUTH') {
               const decoded = await verifyToken(data.token);
               if (decoded && decoded.sub) {
                 ws.userId = decoded.sub;
-                ws.send(JSON.stringify({ 
+                ws.send(JSON.stringify({
                   type: 'AUTH_SUCCESS',
                   data: { userId: decoded.sub }
                 }));
-                
+
                 // Initialize user's subscriptions if not exists
                 if (!subscriptions.has(decoded.sub)) {
                   subscriptions.set(decoded.sub, new Set());
                 }
-                
+
                 // Subscribe to default gamification events
                 Object.values(GAMIFICATION_EVENTS).forEach(event => {
                   subscriptions.get(decoded.sub).add(event);
                 });
-                
+
                 return;
               } else {
                 ws.close(1008, 'Invalid token');
                 return;
               }
             }
-            
+
             // Only process other messages if authenticated
             if (!ws.userId) {
               ws.close(1008, 'Not authenticated');
               return;
             }
-            
+
             // Handle subscription management
             if (data.type === 'SUBSCRIBE' && data.events) {
               const userSubs = subscriptions.get(ws.userId) || new Set();
@@ -95,7 +94,7 @@ export async function GET(request) {
               subscriptions.set(ws.userId, userSubs);
               return;
             }
-            
+
             if (data.type === 'UNSUBSCRIBE' && data.events) {
               const userSubs = subscriptions.get(ws.userId);
               if (userSubs) {
@@ -103,7 +102,7 @@ export async function GET(request) {
               }
               return;
             }
-            
+
           } catch (error) {
             console.error('Error processing message:', error);
             ws.send(JSON.stringify({
@@ -130,22 +129,22 @@ export async function GET(request) {
   }
 
   // Get the session
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   // This is a WebSocket upgrade request, so we need to handle it with the WebSocket server
   if (request.headers.get('upgrade') === 'websocket') {
     // Store the session with the request for later use
     request.session = session;
-    
+
     // Handle the WebSocket upgrade
     const { 0: response, 1: socket, 2: head } = new Response(null, {
       webSocket: null,
     });
-    
+
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit('connection', ws, request);
     });
-    
+
     return response;
   }
 
@@ -161,7 +160,7 @@ export async function GET(request) {
  */
 function broadcast(type, data, includeSelf = false) {
   if (!wss) return;
-  
+
   const message = JSON.stringify({ type, data });
   wss.clients.forEach((client) => {
     if (client.readyState === WebSocket.OPEN && (includeSelf || client !== this)) {
@@ -179,17 +178,17 @@ function broadcast(type, data, includeSelf = false) {
  */
 function sendToUser(userId, type, data) {
   if (!wss || !clients.has(userId)) return false;
-  
+
   const message = JSON.stringify({ type, data });
   let sent = false;
-  
+
   for (const client of clients.get(userId)) {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
       sent = true;
     }
   }
-  
+
   return sent;
 }
 
@@ -201,17 +200,17 @@ function sendToUser(userId, type, data) {
  */
 function broadcastGamificationEvent(eventType, data, targetUserIds = null) {
   if (!wss) return;
-  
+
   const message = JSON.stringify({
     type: eventType,
     data,
     timestamp: new Date().toISOString()
   });
-  
-  const targetUsers = targetUserIds 
+
+  const targetUsers = targetUserIds
     ? Array.isArray(targetUserIds) ? targetUserIds : [targetUserIds]
     : Array.from(subscriptions.keys());
-  
+
   targetUsers.forEach(userId => {
     const userSubs = subscriptions.get(userId);
     if (userSubs && userSubs.has(eventType)) {
@@ -223,39 +222,39 @@ function broadcastGamificationEvent(eventType, data, targetUserIds = null) {
 // Helper function to send a message to a specific user
 function sendToUser(userId, type, data) {
   if (!wss || !clients.has(userId)) return false;
-  
+
   const message = JSON.stringify({ type, data });
   let sent = false;
-  
+
   clients.get(userId).forEach((client) => {
     if (client.readyState === WebSocket.OPEN) {
       client.send(message);
       sent = true;
     }
   });
-  
+
   return sent;
 }
 
 // Export the WebSocket server instance and helper functions
-export { 
-  wss, 
-  broadcast, 
-  sendToUser, 
+export {
+  wss,
+  broadcast,
+  sendToUser,
   broadcastGamificationEvent,
-  GAMIFICATION_EVENTS 
+  GAMIFICATION_EVENTS
 };
 
 // Export gamification event emitters
 export const gamificationEvents = {
   achievementEarned(userId, badge) {
     broadcastGamificationEvent(
-      GAMIFICATION_EVENTS.ACHIEVEMENT_EARNED, 
+      GAMIFICATION_EVENTS.ACHIEVEMENT_EARNED,
       { badge, userId },
       userId
     );
   },
-  
+
   levelUp(userId, { newLevel, xpEarned, totalXp }) {
     broadcastGamificationEvent(
       GAMIFICATION_EVENTS.LEVEL_UP,
@@ -263,7 +262,7 @@ export const gamificationEvents = {
       userId
     );
   },
-  
+
   challengeCompleted(userId, { challenge, reward }) {
     broadcastGamificationEvent(
       GAMIFICATION_EVENTS.CHALLENGE_COMPLETED,
@@ -271,7 +270,7 @@ export const gamificationEvents = {
       userId
     );
   },
-  
+
   streakUpdated(userId, { currentStreak, previousStreak }) {
     broadcastGamificationEvent(
       GAMIFICATION_EVENTS.STREAK_UPDATED,
@@ -279,7 +278,7 @@ export const gamificationEvents = {
       userId
     );
   },
-  
+
   progressUpdated(userId, progressData) {
     broadcastGamificationEvent(
       GAMIFICATION_EVENTS.PROGRESS_UPDATED,
@@ -287,7 +286,7 @@ export const gamificationEvents = {
       userId
     );
   },
-  
+
   leaderboardUpdated(leaderboardData) {
     broadcastGamificationEvent(
       GAMIFICATION_EVENTS.LEADERBOARD_UPDATED,

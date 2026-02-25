@@ -1,10 +1,9 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session?.user?.id) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -29,7 +28,7 @@ export async function GET() {
           rarity: true
         }
       }),
-      
+
       // User's achievements
       prisma.achievement.findMany({
         where: { userId: session.user.id },
@@ -45,7 +44,7 @@ export async function GET() {
           icon: true
         }
       }),
-      
+
       // Leaderboard (top 10 users by points)
       prisma.$queryRaw`
         SELECT 
@@ -114,7 +113,7 @@ export async function GET() {
 
 async function getDailyChallenge(userId) {
   const today = new Date().toISOString().split('T')[0];
-  
+
   const existingChallenge = await prisma.dailyChallenge.findFirst({
     where: {
       userId,
@@ -184,7 +183,7 @@ async function getDailyChallenge(userId) {
       questions: {
         create: questions.map((q, index) => ({
           questionId: q.id,
-          order: index + 1
+          sequence: index + 1
         }))
       }
     },

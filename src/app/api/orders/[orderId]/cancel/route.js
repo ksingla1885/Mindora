@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -11,7 +10,7 @@ const limiter = rateLimit({
 
 export async function POST(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to cancel an order' },
@@ -27,7 +26,7 @@ export async function POST(request, { params }) {
 
     // Get the current order
     const order = await prisma.order.findUnique({
-      where: { 
+      where: {
         id: orderId,
         userId: session.user.id, // Ensure the order belongs to the user
       },
@@ -46,7 +45,7 @@ export async function POST(request, { params }) {
     // Check if order can be cancelled
     if (!['pending', 'processing'].includes(order.status)) {
       return NextResponse.json(
-        { 
+        {
           error: `Cannot cancel order with status: ${order.status}`,
           code: 'ORDER_CANNOT_BE_CANCELLED',
         },
@@ -64,7 +63,7 @@ export async function POST(request, { params }) {
       } catch (error) {
         console.error('Error processing refund:', error);
         return NextResponse.json(
-          { 
+          {
             error: 'Failed to process refund',
             details: error.message,
             code: 'REFUND_FAILED',
@@ -84,8 +83,8 @@ export async function POST(request, { params }) {
             create: [
               {
                 status: 'cancelled',
-                message: refundStatus === 'completed' 
-                  ? 'Order cancelled and refund processed' 
+                message: refundStatus === 'completed'
+                  ? 'Order cancelled and refund processed'
                   : 'Order cancelled',
               },
             ],
@@ -126,16 +125,16 @@ export async function POST(request, { params }) {
     });
   } catch (error) {
     console.error('Error cancelling order:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
-      { 
+      {
         error: 'Failed to cancel order',
         details: error.message,
         code: 'CANCELLATION_FAILED',
@@ -149,10 +148,10 @@ export async function POST(request, { params }) {
 async function processRefund(order) {
   // In a real app, integrate with your payment gateway's refund API
   // This is a simplified example
-  
+
   // Simulate API call to payment gateway
   await new Promise(resolve => setTimeout(resolve, 1000));
-  
+
   // Return status based on a mock condition
   return Math.random() > 0.1 ? 'completed' : 'failed';
 }

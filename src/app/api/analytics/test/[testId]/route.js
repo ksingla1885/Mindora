@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/lib/auth';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 // Helper function to calculate time ranges
 function getDateRange(timeRange) {
   const now = new Date();
-  
+
   switch (timeRange) {
     case '24h':
       return {
@@ -40,8 +37,8 @@ function getDateRange(timeRange) {
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     // Check if user is authenticated
     if (!session) {
       return NextResponse.json(
@@ -90,7 +87,7 @@ export async function GET(request, { params }) {
 
     // Calculate date range for filtering
     const { start: startDate, end: endDate } = getDateRange(timeRange);
-    
+
     // Filter attempts by date range
     const attemptsInRange = test.testAttempts.filter(attempt => {
       const attemptDate = new Date(attempt.completedAt);
@@ -137,7 +134,7 @@ export async function GET(request, { params }) {
   } catch (error) {
     console.error('Error in test analytics API:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Failed to fetch test analytics',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -153,19 +150,19 @@ export async function GET(request, { params }) {
 async function getOverviewData(test, attempts, userId) {
   const totalQuestions = test.questions.length;
   const totalAttempts = attempts.length;
-  
+
   // Calculate average score
   const totalScore = attempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0);
   const averageScore = totalAttempts > 0 ? (totalScore / totalAttempts) * 100 : 0;
-  
+
   // Calculate completion rate
   const completedAttempts = attempts.filter(a => a.status === 'COMPLETED').length;
   const completionRate = totalAttempts > 0 ? (completedAttempts / totalAttempts) * 100 : 0;
-  
+
   // Calculate average time spent
   const totalTimeSpent = attempts.reduce((sum, attempt) => sum + (attempt.timeSpent || 0), 0);
   const averageTimeSpent = totalAttempts > 0 ? Math.round(totalTimeSpent / totalAttempts) : 0;
-  
+
   // Get user rank if userId is provided
   let userRank = null;
   if (userId) {
@@ -174,13 +171,13 @@ async function getOverviewData(test, attempts, userId) {
       .map(a => a.score)
       .filter(Boolean)
       .sort((a, b) => b - a);
-      
-    const userBestScore = userAttempts.length > 0 
-      ? Math.max(...userAttempts.map(a => a.score || 0)) 
+
+    const userBestScore = userAttempts.length > 0
+      ? Math.max(...userAttempts.map(a => a.score || 0))
       : 0;
-      
+
     const rank = userScores.findIndex(score => score <= userBestScore) + 1;
-    
+
     userRank = {
       rank,
       totalParticipants: userScores.length,
@@ -204,7 +201,7 @@ async function getOverviewData(test, attempts, userId) {
 async function getQuestionAnalysis(test, attempts) {
   const questionStats = [];
   const totalAttempts = attempts.length;
-  
+
   // Initialize question stats
   test.questions.forEach((question, index) => {
     questionStats.push({
@@ -223,18 +220,18 @@ async function getQuestionAnalysis(test, attempts) {
       }))
     });
   });
-  
+
   // Process each attempt
   attempts.forEach(attempt => {
     attempt.questionAttempts.forEach(qa => {
       const question = questionStats.find(q => q.questionId === qa.questionId);
       if (!question) return;
-      
+
       question.totalAttempts++;
       question.correctAttempts += qa.isCorrect ? 1 : 0;
-      question.averageTimeSpent = 
+      question.averageTimeSpent =
         ((question.averageTimeSpent * (question.totalAttempts - 1)) + (qa.timeSpent || 0)) / question.totalAttempts;
-      
+
       // Track option selection
       if (qa.selectedOptionId) {
         const option = question.options.find(o => o.id === qa.selectedOptionId);
@@ -242,7 +239,7 @@ async function getQuestionAnalysis(test, attempts) {
       }
     });
   });
-  
+
   // Calculate percentages and format data
   return questionStats.map(q => ({
     ...q,
@@ -250,8 +247,8 @@ async function getQuestionAnalysis(test, attempts) {
     averageTimeSpent: Math.round(q.averageTimeSpent * 10) / 10,
     options: q.options.map(opt => ({
       ...opt,
-      selectionPercentage: q.totalAttempts > 0 
-        ? Math.round((opt.selectedCount / q.totalAttempts) * 100) 
+      selectionPercentage: q.totalAttempts > 0
+        ? Math.round((opt.selectedCount / q.totalAttempts) * 100)
         : 0
     }))
   }));
@@ -261,11 +258,11 @@ async function getAttemptsOverTime(test, attempts, timeRange) {
   // Group attempts by time period
   const timeFormat = timeRange === '24h' ? 'hour' : 'day';
   const formatString = timeRange === '24h' ? 'HH:00' : 'MMM d';
-  
+
   const groupedAttempts = attempts.reduce((acc, attempt) => {
     const date = new Date(attempt.completedAt);
     let key;
-    
+
     if (timeFormat === 'hour') {
       // Group by hour
       date.setMinutes(0, 0, 0);
@@ -275,7 +272,7 @@ async function getAttemptsOverTime(test, attempts, timeRange) {
       date.setHours(0, 0, 0, 0);
       key = date.toISOString().split('T')[0];
     }
-    
+
     if (!acc[key]) {
       acc[key] = {
         date: new Date(key),
@@ -285,17 +282,17 @@ async function getAttemptsOverTime(test, attempts, timeRange) {
         totalScore: 0
       };
     }
-    
+
     acc[key].attempts++;
     if (attempt.status === 'COMPLETED') {
       acc[key].completed++;
       acc[key].totalScore += attempt.score || 0;
       acc[key].averageScore = acc[key].totalScore / acc[key].completed;
     }
-    
+
     return acc;
   }, {});
-  
+
   // Convert to array and sort by date
   return Object.values(groupedAttempts)
     .sort((a, b) => a.date - b.date)
@@ -310,18 +307,18 @@ async function getAttemptsOverTime(test, attempts, timeRange) {
 
 async function getUserPerformance(test, attempts, userId) {
   if (!userId) return null;
-  
+
   const userAttempts = attempts.filter(a => a.userId === userId);
   if (userAttempts.length === 0) return null;
-  
+
   // Calculate user statistics
   const scores = userAttempts.map(a => a.score * 100);
   const totalScore = scores.reduce((sum, score) => sum + score, 0);
   const averageScore = totalScore / scores.length;
-  
+
   // Get best and worst performing questions
   const questionPerformance = {};
-  
+
   userAttempts.forEach(attempt => {
     attempt.questionAttempts.forEach(qa => {
       if (!questionPerformance[qa.questionId]) {
@@ -335,23 +332,23 @@ async function getUserPerformance(test, attempts, userId) {
           timeSpent: 0
         };
       }
-      
+
       questionPerformance[qa.questionId].attempts++;
       questionPerformance[qa.questionId].correct += qa.isCorrect ? 1 : 0;
       questionPerformance[qa.questionId].timeSpent += qa.timeSpent || 0;
     });
   });
-  
+
   // Convert to array and calculate metrics
   const questionStats = Object.values(questionPerformance).map(q => ({
     ...q,
     accuracy: q.attempts > 0 ? Math.round((q.correct / q.attempts) * 100) : 0,
     averageTimeSpent: Math.round((q.timeSpent / q.attempts) * 10) / 10 || 0
   }));
-  
+
   // Sort by accuracy (worst to best)
   questionStats.sort((a, b) => a.accuracy - b.accuracy);
-  
+
   return {
     totalAttempts: userAttempts.length,
     averageScore: Math.round(averageScore * 100) / 100,
@@ -367,25 +364,25 @@ async function getUserPerformance(test, attempts, userId) {
 // Helper function to calculate improvement over time
 function calculateImprovement(attempts) {
   if (attempts.length < 2) return 0;
-  
-  const sortedAttempts = [...attempts].sort((a, b) => 
+
+  const sortedAttempts = [...attempts].sort((a, b) =>
     new Date(a.completedAt) - new Date(b.completedAt)
   );
-  
+
   const firstScore = sortedAttempts[0].score * 100;
   const lastScore = sortedAttempts[sortedAttempts.length - 1].score * 100;
-  
+
   return Math.round(((lastScore - firstScore) / firstScore) * 100) || 0;
 }
 
 // Helper function to analyze time spent distribution
 function analyzeTimeSpent(attempts) {
   if (attempts.length === 0) return [];
-  
+
   const timeSpent = attempts.map(a => a.timeSpent || 0);
   const totalTime = timeSpent.reduce((sum, t) => sum + t, 0);
   const averageTime = totalTime / attempts.length;
-  
+
   // Categorize time spent
   const timeRanges = [
     { range: '0-30s', min: 0, max: 30, count: 0 },
@@ -394,13 +391,13 @@ function analyzeTimeSpent(attempts) {
     { range: '2-5m', min: 120, max: 300, count: 0 },
     { range: '5m+', min: 300, max: Infinity, count: 0 }
   ];
-  
+
   timeSpent.forEach(time => {
-    const range = timeRanges.find(r => time >= r.min && time < r.max) || 
-                 timeRanges[timeRanges.length - 1];
+    const range = timeRanges.find(r => time >= r.min && time < r.max) ||
+      timeRanges[timeRanges.length - 1];
     range.count++;
   });
-  
+
   return timeRanges.map(range => ({
     range: range.range,
     count: range.count,
@@ -413,7 +410,7 @@ function formatDate(date, formatStr) {
   // Simple date formatting function
   const d = new Date(date);
   const pad = num => num.toString().padStart(2, '0');
-  
+
   return formatStr
     .replace('YYYY', d.getFullYear())
     .replace('MM', pad(d.getMonth() + 1))

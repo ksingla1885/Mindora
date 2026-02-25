@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import FolderService from '@/lib/services/folderService';
 
 export async function GET(request, { params }) {
   try {
     const { id } = params;
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -16,14 +15,14 @@ export async function GET(request, { params }) {
     }
 
     const folder = await FolderService.getFolder(id, session.user.id);
-    
+
     if (!folder) {
       return NextResponse.json(
         { error: 'Folder not found' },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json(folder);
   } catch (error) {
     console.error('Error getting folder:', error);
@@ -37,8 +36,8 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = params;
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -48,7 +47,7 @@ export async function PUT(request, { params }) {
 
     const data = await request.json();
     const folder = await FolderService.updateFolder(id, data, session.user.id);
-    
+
     return NextResponse.json(folder);
   } catch (error) {
     console.error('Error updating folder:', error);
@@ -62,8 +61,8 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = params;
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -72,7 +71,7 @@ export async function DELETE(request, { params }) {
     }
 
     await FolderService.deleteFolder(id, session.user.id);
-    
+
     return NextResponse.json(
       { message: 'Folder deleted successfully' },
       { status: 200 }
@@ -80,13 +79,13 @@ export async function DELETE(request, { params }) {
   } catch (error) {
     console.error('Error deleting folder:', error);
     return NextResponse.json(
-      { 
+      {
         error: error.message || 'Failed to delete folder',
         code: error.code
       },
-      { 
-        status: error.message === 'Insufficient permissions' ? 403 : 
-                error.message === 'Cannot delete folder with subfolders' ? 400 : 500 
+      {
+        status: error.message === 'Insufficient permissions' ? 403 :
+          error.message === 'Cannot delete folder with subfolders' ? 400 : 500
       }
     );
   }

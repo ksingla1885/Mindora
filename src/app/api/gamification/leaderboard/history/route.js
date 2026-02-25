@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -21,7 +20,7 @@ export async function GET(request) {
     // Calculate date range based on timeRange
     let startDate = new Date();
     let endDate = new Date();
-    
+
     switch (timeRange) {
       case 'daily':
         startDate.setDate(startDate.getDate() - 30); // Last 30 days

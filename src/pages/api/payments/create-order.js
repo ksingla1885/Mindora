@@ -1,22 +1,19 @@
 import Razorpay from 'razorpay';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-const prisma = new PrismaClient();
-
 /**
  * @param {import('next').NextApiRequest} req
  * @param {import('next').NextApiResponse} res
  */
 export default async function handler(req, res) {
-  const session = await getServerSession(req, res, authOptions);
-  
+  const session = await auth(req, res);
+
   if (!session) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

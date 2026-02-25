@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { AnalyticsService } from '@/services/analytics/analytics.service';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     // Check if user is authenticated and has the right role
     if (!session || !['admin', 'analyst'].includes(session.user.role)) {
       return NextResponse.json(
@@ -54,8 +53,8 @@ export async function GET(request) {
   } catch (error) {
     console.error('Analytics API Error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: 'Failed to fetch analytics data',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       },

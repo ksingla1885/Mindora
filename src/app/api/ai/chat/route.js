@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // Initialize OpenAI client
 // Note: This requires OPENAI_API_KEY in .env
@@ -12,7 +11,7 @@ const openai = new OpenAI({
 export async function POST(req) {
     try {
         // Check authentication
-        const session = await getServerSession(authOptions);
+        const session = await auth();
         if (!session) {
             return NextResponse.json(
                 { error: 'Unauthorized' },

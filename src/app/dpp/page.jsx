@@ -119,11 +119,40 @@ export default function DailyPracticePage() {
     }
   };
 
-  const submitQuiz = () => {
+  const submitQuiz = async () => {
     setTimerActive(false);
-    setIsSubmitted(true);
-    setViewState('feedback');
-    // Here you would typically send the answers to the backend to record the attempt
+    setIsLoading(true);
+
+    try {
+      // Submit each answer one by one
+      const submissionPromises = dppData.questions.map(qItem => {
+        const userAns = answers[qItem.question.id];
+        if (!userAns) return Promise.resolve();
+
+        const answer = qItem.question.type === 'MCQ' || qItem.question.type === 'TRUE_FALSE'
+          ? userAns.selectedOption
+          : userAns.subjective;
+
+        return fetch(`/api/dpp/${qItem.id}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            answer,
+            timeSpent: Math.floor(timeElapsed / dppData.questions.length) // Distributed time
+          })
+        });
+      });
+
+      await Promise.all(submissionPromises);
+
+      setIsSubmitted(true);
+      setViewState('feedback');
+    } catch (error) {
+      console.error("Failed to submit DPP answers", error);
+      alert("Something went wrong while saving your answers. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleConfidenceSubmit = () => {

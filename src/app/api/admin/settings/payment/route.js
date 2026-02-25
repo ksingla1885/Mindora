@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // In-memory storage (replace with database in production)
 let paymentSettings = {
@@ -33,8 +32,8 @@ let paymentSettings = {
 
 // Helper function to check admin access
 async function checkAdminAccess(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return { error: 'Unauthorized', status: 401 };
   }
@@ -65,7 +64,7 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object') {
       return NextResponse.json(
@@ -82,9 +81,9 @@ export async function POST(request) {
       };
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: paymentSettings 
+    return NextResponse.json({
+      success: true,
+      data: paymentSettings
     });
   } catch (error) {
     console.error('Error updating payment settings:', error);

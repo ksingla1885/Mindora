@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,7 +48,7 @@ const profileFormSchema = z.object({
 export function ProfileForm({ user }) {
   const { data: session, update } = useSession();
   const { toast } = useToast();
-  
+
   const form = useForm({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
@@ -76,20 +77,20 @@ export function ProfileForm({ user }) {
 
   const uploadAvatar = async (file) => {
     if (!file) return null;
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       const response = await fetch('/api/upload/avatar', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to upload avatar');
       }
-      
+
       const data = await response.json();
       return data.url;
     } catch (error) {
@@ -101,40 +102,40 @@ export function ProfileForm({ user }) {
   const onSubmit = async (data) => {
     try {
       setIsLoading(true);
-      
+
       // Upload avatar if changed
       let avatarUrl = user?.image;
       if (data.avatar) {
         avatarUrl = await uploadAvatar(data.avatar);
       }
-      
+
       // Prepare update data
       const updateData = {
         name: data.name,
         phone: data.phone,
         ...(avatarUrl && { image: avatarUrl }),
       };
-      
+
       // Update password if provided
       if (data.newPassword && data.currentPassword) {
         updateData.currentPassword = data.currentPassword;
         updateData.newPassword = data.newPassword;
       }
-      
+
       // Update user
-      const response = await fetch('/api/users/me', {
+      const response = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(updateData),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update profile');
       }
-      
+
       // Update session
       const updatedUser = await response.json();
       await update({
@@ -144,7 +145,7 @@ export function ProfileForm({ user }) {
           ...updatedUser,
         },
       });
-      
+
       toast({
         title: 'Profile updated',
         description: 'Your profile has been updated successfully.',

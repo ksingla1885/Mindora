@@ -1,61 +1,59 @@
-
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
 import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import { getTodaysDPP } from '@/services/dpp/dpp.service';
+import { prisma } from '@/lib/prisma';
 
-export async function GET(req) {
+export async function GET() {
     try {
         const session = await auth();
-        if (!session) {
-            return new NextResponse('Unauthorized', { status: 401 });
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { user } = session;
-        console.log("Fetching DPP for user:", user.email, "Class:", user.class);
+        const userId = session.user.id;
 
-        // If user has no class assigned, we might return empty or default
-        // Assuming user.class is a string like "12", "11"
+        // Get today's assignments including completed ones for the full list view
+        const assignments = await getTodaysDPP(userId, true);
 
-        if (!user.class) {
-            // Fallback or error? For now return null to show "No DPP"
+        if (!assignments || assignments.length === 0) {
             return NextResponse.json(null);
         }
 
-        // specific to their class, latest date first
-        const dpp = await prisma.dailyPracticeProblem.findFirst({
-            where: {
-                class: user.class,
-                isActive: true,
-            },
-            orderBy: {
-                date: 'desc',
-            },
-            include: {
-                subject: true,
-                questions: {
-                    include: {
-                        question: true,
-                    },
-                    orderBy: {
-                        order: 'asc',
-                    },
-                },
-            },
+        // Adapt to the frontend expected format for dpp/page.jsx
+        // The frontend expects:
+        // {
+        //   date: string,
+        //   subject: { name: string },
+        //   class: string,
+        //   questions: [ { question: { text: string, type: string, options: {}, correctAnswer: string, explanation: string } } ]
+        // }
+
+        // Fetch the dpp record to get the date (optional, but good for completeness)
+        const dppRecord = await prisma.dailyPracticeProblem.findFirst({
+            where: { userId, status: { in: ['PENDING', 'COMPLETED'] } },
+            orderBy: { date: 'desc' }
         });
 
-        if (!dpp) {
-            // Logic for "No DPP Available"
-            return NextResponse.json(null);
-        }
+        const response = {
+            date: dppRecord?.date || new Date().toISOString(),
+            subject: { name: assignments[0].question.topic.subject.name },
+            class: session.user.classLevel || "General",
+            questions: assignments.map(a => ({
+                id: a.id, // assignment id
+                question: {
+                    id: a.question.id,
+                    text: a.question.text,
+                    type: a.question.type,
+                    options: a.question.options,
+                    correctAnswer: a.question.correctAnswer,
+                    explanation: a.question.explanation
+                }
+            }))
+        };
 
-        // Transform data to match frontend expectations if needed
-        // The frontend expects a "DAILY_PROBLEM" object with specific structure
-        // We might need to adapt the frontend or adapt the response here.
-        // Let's return the raw DPP data and update the frontend to use it.
-
-        return NextResponse.json(dpp);
+        return NextResponse.json(response);
     } catch (error) {
-        console.error('Error fetching student DPP:', error);
-        return new NextResponse('Internal Server Error', { status: 500 });
+        console.error('Error in student DPP API:', error);
+        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
 }

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import {
   getOrCreateDPPConfig,
   updateDPPConfig,
@@ -15,7 +14,7 @@ import {
 // GET /api/dpp - Get today's DPP and user configuration
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -29,10 +28,10 @@ export async function GET(request) {
 
     // Get user's DPP configuration
     const config = await getOrCreateDPPConfig(session.user.id);
-    
+
     // Get today's DPP
     let assignments = await getTodaysDPP(session.user.id, includeCompleted);
-    
+
     // If no assignments and refresh is requested, generate new ones
     if ((!assignments || assignments.length === 0) && refresh) {
       assignments = await generateDPP(session.user.id);
@@ -59,7 +58,7 @@ export async function GET(request) {
 // POST /api/dpp - Generate new DPP assignments
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -84,7 +83,7 @@ export async function POST(request) {
 // PUT /api/dpp - Update DPP configuration
 export async function PUT(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },

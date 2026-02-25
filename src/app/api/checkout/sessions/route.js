@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import Razorpay from 'razorpay';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,7 +12,7 @@ const razorpay = new Razorpay({
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to checkout' },
@@ -50,10 +49,10 @@ export async function POST(request) {
     for (const item of items) {
       const test = tests.find(t => t.id === item.testId);
       if (!test) continue;
-      
+
       const itemTotal = test.price * item.quantity;
       subtotal += itemTotal;
-      
+
       orderItems.push({
         testId: test.id,
         title: test.title,
@@ -66,16 +65,16 @@ export async function POST(request) {
     // Apply coupon if provided
     let discount = 0;
     let couponApplied = null;
-    
+
     if (coupon) {
       // In a real app, validate the coupon against your database
       const validCoupons = {
         'WELCOME10': { discount: 0.1, type: 'percentage' },
         'SAVE20': { discount: 20, type: 'fixed' },
       };
-      
+
       const couponData = validCoupons[coupon.toUpperCase()];
-      
+
       if (couponData) {
         couponApplied = coupon.toUpperCase();
         if (couponData.type === 'percentage') {
@@ -132,7 +131,7 @@ export async function POST(request) {
     // Update order with Razorpay order ID
     await prisma.order.update({
       where: { id: order.id },
-      data: { 
+      data: {
         paymentId: razorpayOrder.id,
         paymentGateway: 'razorpay',
       },

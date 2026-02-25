@@ -65,14 +65,15 @@ export default function TestPage() {
 
   const handleTestComplete = (results) => {
     console.log('Test completed:', results);
-    // Refresh router to update server data/cache
-    router.refresh(); // optional, often good to keep
-
-    // Redirect based on test type
-    if (test?.isPaid) {
-      router.push('/tests/premium');
+    router.refresh();
+    // Redirect to the detailed results page
+    // results.id is the attemptId returned from the submit API
+    if (results?.attemptId || results?.id) {
+      const attemptId = results.attemptId || results.id;
+      router.push(`/tests/${testId}/results/${attemptId}`);
     } else {
-      router.push('/tests');
+      // Fallback: test-submitted page still links to results if params present
+      router.push('/test-submitted?testId=' + testId);
     }
   };
 
@@ -146,6 +147,7 @@ export default function TestPage() {
           test={processedTest}
           questions={questions}
           onComplete={handleTestComplete}
+          apiBaseUrl={`/api/tests/${testId}/attempts`}
         />
       </div>
     );
@@ -242,11 +244,12 @@ export default function TestPage() {
               className={
                 cn(
                   "w-full md:w-auto px-8 text-lg",
-                  isCompleted && "bg-green-600 hover:bg-green-700 cursor-default"
+                  isCompleted && "bg-green-600 hover:bg-green-700 cursor-default",
+                  hasInProgress && "bg-amber-600 hover:bg-amber-700"
                 )}
               disabled={isCompleted}
             >
-              {isCompleted ? 'Test Completed' : 'Start Test'}
+              {isCompleted ? 'Test Completed' : (hasInProgress ? 'Resume Test' : 'Start Test')}
             </Button>
           )}
         </CardFooter>

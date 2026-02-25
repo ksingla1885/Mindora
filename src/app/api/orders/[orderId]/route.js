@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -11,7 +10,7 @@ const limiter = rateLimit({
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to view this order' },
@@ -27,7 +26,7 @@ export async function GET(request, { params }) {
 
     // Get order with related data
     const order = await prisma.order.findUnique({
-      where: { 
+      where: {
         id: orderId,
         userId: session.user.id, // Ensure the order belongs to the user
       },
@@ -63,14 +62,14 @@ export async function GET(request, { params }) {
     return NextResponse.json({ order });
   } catch (error) {
     console.error('Error fetching order:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to fetch order' },
       { status: 500 }
@@ -80,7 +79,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to update this order' },
@@ -97,7 +96,7 @@ export async function PATCH(request, { params }) {
 
     // Get the current order
     const currentOrder = await prisma.order.findUnique({
-      where: { 
+      where: {
         id: orderId,
         userId: session.user.id, // Ensure the order belongs to the user
       },
@@ -187,14 +186,14 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({ order });
   } catch (error) {
     console.error('Error updating order:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to update order' },
       { status: 500 }
@@ -206,7 +205,7 @@ export async function PATCH(request, { params }) {
 async function grantUserAccessToTests(userId, items) {
   // Get unique test IDs
   const testIds = [...new Set(items.map(item => item.testId))];
-  
+
   // Check which tests the user already has access to
   const existingAccess = await prisma.userTest.findMany({
     where: {

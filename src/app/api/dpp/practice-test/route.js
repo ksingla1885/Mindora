@@ -1,12 +1,11 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { generatePracticeTest } from '@/services/dpp/dpp.service';
 import { NextResponse } from 'next/server';
 
 export async function GET(request) {
   try {
     // Verify authentication
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || !session.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },

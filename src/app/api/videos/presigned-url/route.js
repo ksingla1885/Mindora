@@ -1,7 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 
 // Initialize S3 client
@@ -16,8 +15,8 @@ const s3Client = new S3Client({
 // Generate a presigned URL for upload
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -26,7 +25,7 @@ export async function POST(request) {
     }
 
     const { fileName, fileType, folder = 'videos' } = await request.json();
-    
+
     if (!fileName || !fileType) {
       return NextResponse.json(
         { error: 'Missing required fields' },
@@ -36,7 +35,7 @@ export async function POST(request) {
 
     // Generate a unique key for the file
     const fileKey = `${folder}/${Date.now()}-${fileName.replace(/\s+/g, '-').toLowerCase()}`;
-    
+
     // Create a command to put an object in S3
     const command = new PutObjectCommand({
       Bucket: process.env.AWS_S3_BUCKET_NAME,
@@ -71,7 +70,7 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const fileKey = searchParams.get('fileKey');
-    
+
     if (!fileKey) {
       return NextResponse.json(
         { error: 'File key is required' },

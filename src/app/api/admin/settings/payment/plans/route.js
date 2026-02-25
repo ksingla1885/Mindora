@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // In-memory storage (replace with database in production)
 let paymentPlans = [];
 
 // Helper function to check admin access
 async function checkAdminAccess(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return { error: 'Unauthorized', status: 401 };
   }
@@ -39,7 +38,7 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object') {
       return NextResponse.json(
@@ -87,9 +86,9 @@ export async function POST(request) {
 
     paymentPlans.push(newPlan);
 
-    return NextResponse.json({ 
-      success: true, 
-      data: newPlan 
+    return NextResponse.json({
+      success: true,
+      data: newPlan
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating payment plan:', error);
@@ -109,7 +108,7 @@ export async function PUT(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object' || !data.id) {
       return NextResponse.json(
@@ -137,9 +136,9 @@ export async function PUT(request) {
 
     paymentPlans[planIndex] = updatedPlan;
 
-    return NextResponse.json({ 
-      success: true, 
-      data: updatedPlan 
+    return NextResponse.json({
+      success: true,
+      data: updatedPlan
     });
   } catch (error) {
     console.error('Error updating payment plan:', error);
@@ -160,7 +159,7 @@ export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'Plan ID is required' },
@@ -178,9 +177,9 @@ export async function DELETE(request) {
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Plan deleted successfully' 
+      message: 'Plan deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting payment plan:', error);

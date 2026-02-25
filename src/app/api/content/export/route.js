@@ -1,6 +1,5 @@
-import { getServerSession } from 'next-auth/next';
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
-import { authOptions } from '@/lib/auth';
 import { exportContent, generateExportLink, getExportStatus } from '@/lib/content-export-utils';
 
 // Helper function to handle stream response
@@ -8,13 +7,13 @@ function streamToResponse(readable, res, filename, contentType) {
   const headers = new Headers();
   headers.set('Content-Disposition', `attachment; filename="${filename}"`);
   headers.set('Content-Type', contentType);
-  
+
   return new Response(readable, { headers });
 }
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
@@ -82,7 +81,7 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
@@ -105,7 +104,7 @@ export async function GET(request) {
       // For backward compatibility, support direct content ID in query params
       const contentIds = [id];
       const format = searchParams.get('format') || 'json';
-      
+
       try {
         const { filename, stream, type } = await exportContent(contentIds, format);
         return streamToResponse(stream, null, filename, type);

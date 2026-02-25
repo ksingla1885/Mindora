@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import ContentOrganizationService from '@/services/content/contentOrganization.service';
 
 // GET /api/content/organization - Get folder structure
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -37,7 +36,7 @@ export async function GET(request) {
 // POST /api/content/organization - Create a new folder
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -73,7 +72,7 @@ export async function POST(request) {
 // PATCH /api/content/organization - Update a folder
 export async function PATCH(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -109,7 +108,7 @@ export async function PATCH(request) {
 // DELETE /api/content/organization - Delete a folder
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },

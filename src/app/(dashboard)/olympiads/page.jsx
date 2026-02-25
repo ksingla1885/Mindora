@@ -1,6 +1,7 @@
 'use client';
+
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Trophy,
     Bell,
@@ -8,13 +9,15 @@ import {
     Clock,
     ChevronRight,
     ExternalLink,
-    FileText,
     Megaphone,
     AlertCircle,
     Loader2,
-    Paperclip
+    Paperclip,
+    LayoutGrid,
+    MessageSquare
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import OlympiadList from '@/components/olympiads/OlympiadList';
 
 // Helper to format date
 const formatDate = (dateString) => {
@@ -108,7 +111,6 @@ const FeaturedNotice = ({ notice }) => {
                     </div>
                 </div>
 
-                {/* Decorative Icon */}
                 <div className={cn(
                     "hidden md:flex items-center justify-center w-24 h-24 rounded-2xl bg-background/50 border border-border/50 shadow-inner rotate-3 group-hover:rotate-6 transition-transform duration-500",
                     notice.color
@@ -139,11 +141,10 @@ const TimelineItem = ({ notice, index, isLast }) => {
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
+            viewport={{ once: true, margin: "-100px" }}
             transition={{ delay: index * 0.1, duration: 0.5 }}
             className="relative flex gap-8 md:gap-12 group"
         >
-            {/* Timeline Line & Dot */}
             <div className="flex flex-col items-center">
                 <div className={cn(
                     "w-3 h-3 rounded-full border-2 bg-background z-10 transition-all duration-300 group-hover:scale-125 group-hover:bg-primary/20",
@@ -156,16 +157,13 @@ const TimelineItem = ({ notice, index, isLast }) => {
                 )}
             </div>
 
-            {/* Date Column (Desktop) */}
             <div className="hidden md:block w-32 pt-0.5 text-right shrink-0">
                 <span className="text-sm font-mono text-muted-foreground/70 group-hover:text-foreground transition-colors">
                     {notice.date}
                 </span>
             </div>
 
-            {/* Content Card */}
             <div className="flex-1 pb-16">
-                {/* Date (Mobile) */}
                 <div className="md:hidden text-xs font-mono text-muted-foreground mb-2 flex items-center gap-2">
                     <span className={cn("w-1.5 h-1.5 rounded-full", notice.color.replace('text-', 'bg-'))} />
                     {notice.date}
@@ -231,6 +229,7 @@ const TimelineItem = ({ notice, index, isLast }) => {
 export default function OlympiadNoticesPage() {
     const [notices, setNotices] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('explore'); // 'explore' or 'feed'
 
     useEffect(() => {
         const fetchUpdates = async () => {
@@ -253,79 +252,127 @@ export default function OlympiadNoticesPage() {
 
     const hasNotices = notices.length > 0;
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 animate-fade-in">
+        <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 animate-fade-in pb-20">
             {/* Header Section */}
             <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/40">
-                <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+                <div className="max-w-6xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-foreground text-background flex items-center justify-center">
-                            <Trophy className="w-4 h-4" />
+                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                            <Trophy className="w-5 h-5" />
                         </div>
-                        <h1 className="text-lg font-bold tracking-tight">Olympiad Feed</h1>
+                        <h1 className="text-xl font-bold tracking-tight">Olympiad Hub</h1>
                     </div>
-                    <div className="text-xs font-mono text-muted-foreground hidden sm:block">
+
+                    {/* Native Tabs */}
+                    <div className="flex bg-muted p-1 rounded-xl border border-border/50">
+                        <button
+                            onClick={() => setActiveTab('explore')}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300",
+                                activeTab === 'explore'
+                                    ? "bg-white text-primary shadow-sm dark:bg-gray-800"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <LayoutGrid className="w-4 h-4" />
+                            Explore
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('feed')}
+                            className={cn(
+                                "flex items-center gap-2 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300",
+                                activeTab === 'feed'
+                                    ? "bg-white text-primary shadow-sm dark:bg-gray-800"
+                                    : "text-muted-foreground hover:text-foreground"
+                            )}
+                        >
+                            <MessageSquare className="w-4 h-4" />
+                            Notice Feed
+                            {hasNotices && (
+                                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse ml-1" />
+                            )}
+                        </button>
+                    </div>
+
+                    <div className="text-xs font-mono text-muted-foreground hidden lg:block">
                         LATEST_SYNC: {new Date().toISOString().split('T')[0]}
                     </div>
                 </div>
             </div>
 
-            <main className="max-w-5xl mx-auto px-6 py-12">
-                {!hasNotices ? (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6 }}
-                        className="flex flex-col items-center justify-center min-h-[60vh] text-center"
-                    >
-                        <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
-                            <Bell className="w-10 h-10 text-muted-foreground/50" />
-                        </div>
-                        <h2 className="text-2xl font-bold text-foreground mb-3">No Olympiad Notices Yet</h2>
-                        <p className="text-muted-foreground max-w-md leading-relaxed">
-                            There are currently no olympiad notices or updates available. Check back later for important announcements, schedules, and resources.
-                        </p>
-                    </motion.div>
-                ) : (
-                    <>
-                        {/* Featured Section */}
-                        <FeaturedNotice notice={notices[0]} />
-
-                        {/* Timeline Section */}
-                        <div className="relative pl-2 md:pl-0">
-                            <div className="mb-12 flex items-center gap-4">
-                                <h3 className="text-xl font-light text-muted-foreground">Recent Updates</h3>
-                                <div className="h-[1px] flex-1 bg-border/50" />
+            <main className="max-w-6xl mx-auto px-6 py-12">
+                <AnimatePresence mode="wait">
+                    {activeTab === 'explore' ? (
+                        <motion.div
+                            key="explore"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <div className="mb-10 max-w-2xl">
+                                <h2 className="text-3xl font-bold mb-4">Competitions</h2>
+                                <p className="text-muted-foreground leading-relaxed">
+                                    Discover and enroll in upcoming national and international olympiads.
+                                    Mindora provides structured prep for each.
+                                </p>
                             </div>
-
-                            <div className="space-y-0">
-                                {notices.slice(1).map((notice, index) => (
-                                    <TimelineItem
-                                        key={notice.id}
-                                        notice={notice}
-                                        index={index}
-                                        isLast={index === notices.slice(1).length - 1}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* End of Feed Indicator */}
-                            <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/30 gap-2">
-                                <div className="w-1 h-12 bg-gradient-to-b from-border to-transparent" />
-                                <span className="text-xs font-mono uppercase tracking-widest">End of Stream</span>
-                            </div>
-                        </div>
-                    </>
-                )}
+                            <OlympiadList />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key="feed"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {isLoading ? (
+                                <div className="flex flex-col items-center justify-center py-20">
+                                    <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+                                    <p className="text-muted-foreground">Fetching latest announcements...</p>
+                                </div>
+                            ) : !hasNotices ? (
+                                <div className="flex flex-col items-center justify-center py-20 text-center">
+                                    <div className="w-20 h-20 rounded-2xl bg-muted/50 border border-border/50 flex items-center justify-center mb-6">
+                                        <Bell className="w-10 h-10 text-muted-foreground/50" />
+                                    </div>
+                                    <h2 className="text-2xl font-bold text-foreground mb-3">No Olympiad Notices Yet</h2>
+                                    <p className="text-muted-foreground max-w-md leading-relaxed">
+                                        Check back later for important announcements, schedules, and resources.
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    <FeaturedNotice notice={notices[0]} />
+                                    <div className="relative pl-2 md:pl-0">
+                                        <div className="mb-12 flex items-center gap-4">
+                                            <h3 className="text-xl font-light text-muted-foreground">Recent Updates</h3>
+                                            <div className="h-[1px] flex-1 bg-border/50" />
+                                        </div>
+                                        <div className="space-y-0">
+                                            {notices.slice(1).map((notice, index) => (
+                                                <TimelineItem
+                                                    key={notice.id}
+                                                    notice={notice}
+                                                    index={index}
+                                                    isLast={index === notices.slice(1).length - 1}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/30 gap-2">
+                                            <div className="w-1 h-12 bg-gradient-to-b from-border to-transparent" />
+                                            <span className="text-xs font-mono uppercase tracking-widest">End of Stream</span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </main>
         </div>
     );
 }
+

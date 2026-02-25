@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { trackEvent as trackEventService } from '@/lib/analytics';
 
 export async function POST(request) {
   try {
-    const session = await getServerSession();
+    const session = await auth();
     const data = await request.json();
-    
+
     // Validate required fields
     if (!data.eventType) {
       return NextResponse.json(
@@ -30,10 +30,10 @@ export async function POST(request) {
     }
 
     // Add IP address and user agent for additional context
-    const ip = request.headers.get('x-forwarded-for') || 
-               request.headers.get('x-real-ip') || 
-               'unknown';
-    
+    const ip = request.headers.get('x-forwarded-for') ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     // Prepare the event data

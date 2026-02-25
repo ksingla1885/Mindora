@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to sync your cart' },
@@ -14,7 +13,7 @@ export async function POST(request) {
     }
 
     const { items: localItems } = await request.json();
-    
+
     // Get the user's current cart from the database
     let cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
@@ -33,7 +32,7 @@ export async function POST(request) {
 
     // Get test IDs from local storage
     const localTestIds = localItems.map(item => item.testId);
-    
+
     // Get test IDs from database
     const dbTestIds = cart.items.map(item => item.testId);
 
@@ -56,19 +55,19 @@ export async function POST(request) {
     // Perform database operations in a transaction
     const [updatedCart] = await prisma.$transaction([
       // Update existing items
-      ...itemsToUpdate.map(item => 
+      ...itemsToUpdate.map(item =>
         prisma.cartItem.updateMany({
-          where: { 
+          where: {
             cartId: cart.id,
             testId: item.testId,
           },
-          data: { 
+          data: {
             quantity: item.quantity,
             updatedAt: new Date(),
           },
         })
       ),
-      
+
       // Add new items
       ...(itemsToAdd.length > 0 ? [
         prisma.cart.update({
@@ -84,11 +83,11 @@ export async function POST(request) {
           },
           include: { items: true },
         })
-      ] : [prisma.cart.findUnique({ 
+      ] : [prisma.cart.findUnique({
         where: { id: cart.id },
         include: { items: true },
       })]),
-      
+
       // Remove items not in local storage
       ...(itemsToRemove.length > 0 ? [
         prisma.cartItem.deleteMany({

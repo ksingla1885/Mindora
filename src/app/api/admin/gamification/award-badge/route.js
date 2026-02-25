@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { sendNotification } from '@/lib/notifications';
 
 // Award a badge to a user
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -55,7 +54,7 @@ export async function POST(request) {
 
     if (existingBadge) {
       return NextResponse.json(
-        { 
+        {
           error: 'User already has this badge',
           data: existingBadge
         },
@@ -145,10 +144,10 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error awarding badge:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Failed to award badge',
-        details: error.message 
+        details: error.message
       },
       { status: 500 }
     );
@@ -158,7 +157,7 @@ export async function POST(request) {
 // Get all badge awards with filtering
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -182,7 +181,7 @@ export async function GET(request) {
     if (userId) where.userId = userId;
     if (badgeId) where.badgeId = badgeId;
     if (awardedBy) where.awardedBy = awardedBy;
-    
+
     if (startDate || endDate) {
       where.awardedAt = {};
       if (startDate) where.awardedAt.gte = new Date(startDate);

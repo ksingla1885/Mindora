@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import { submitDPPAnswer, DPPError } from '@/services/dpp/dpp.service';
 
 // POST /api/dpp/answer - Submit an answer for a DPP question
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Authentication required' },
@@ -15,7 +14,7 @@ export async function POST(request) {
     }
 
     const { assignmentId, answer, metadata } = await request.json();
-    
+
     if (!assignmentId) {
       return NextResponse.json(
         { error: 'Assignment ID is required' },

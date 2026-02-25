@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import FolderService from '@/lib/services/folderService';
+import { auth } from '@/auth';
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -15,7 +13,7 @@ export async function POST(request) {
 
     const data = await request.json();
     const folder = await FolderService.createFolder(data, session.user.id);
-    
+
     return NextResponse.json(folder, { status: 201 });
   } catch (error) {
     console.error('Error creating folder:', error);
@@ -34,7 +32,7 @@ export async function GET(request) {
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -46,7 +44,7 @@ export async function GET(request) {
       { parentId, search, page, limit },
       session.user.id
     );
-    
+
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error listing folders:', error);

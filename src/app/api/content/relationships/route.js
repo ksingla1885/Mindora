@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import {
   createContentRelationship,
   getContentRelationships,
@@ -11,7 +10,7 @@ import {
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -64,7 +63,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
@@ -127,7 +126,7 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
@@ -169,7 +168,7 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,

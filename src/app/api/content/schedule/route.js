@@ -1,10 +1,9 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { scheduleContent, getContentSchedule, cancelContentSchedule } from '@/lib/content-schedule-utils';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
@@ -46,7 +45,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,
@@ -98,7 +97,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session || session.user.role !== 'ADMIN') {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 403,

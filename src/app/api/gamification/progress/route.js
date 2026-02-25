@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -41,9 +40,9 @@ export async function GET(request) {
         update: {},
       }),
       prisma.userBadge.findMany({
-        where: { 
+        where: {
           userId,
-          isUnlocked: true 
+          isUnlocked: true
         },
         include: {
           badge: true
@@ -72,7 +71,7 @@ export async function GET(request) {
 
     // Calculate XP for next level
     const xpForNextLevel = Math.floor(100 * Math.pow(1.5, user.level - 1));
-    const xpForCurrentLevel = user.level > 1 ? 
+    const xpForCurrentLevel = user.level > 1 ?
       Math.floor(100 * Math.pow(1.5, user.level - 2)) : 0;
     const xpProgress = user.xp - xpForCurrentLevel;
     const xpNeeded = xpForNextLevel - xpForCurrentLevel;
@@ -82,10 +81,10 @@ export async function GET(request) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const lastActive = user.lastActiveDate ? new Date(user.lastActiveDate) : null;
-    const isStreakActive = lastActive && 
+    const isStreakActive = lastActive &&
       (lastActive.getTime() === today.getTime() ||
-       (lastActive.getTime() === today.getTime() - 86400000 && 
-        new Date().getHours() < 4)); // Allow until 4 AM next day
+        (lastActive.getTime() === today.getTime() - 86400000 &&
+          new Date().getHours() < 4)); // Allow until 4 AM next day
 
     // Get leaderboard ranks
     const [overallRank, subjectRanks] = await Promise.all([
@@ -119,8 +118,8 @@ export async function GET(request) {
       },
       stats: {
         ...stats,
-        accuracy: stats.totalQuestionsAttempted > 0 
-          ? Math.round((stats.correctAnswers / stats.totalQuestionsAttempted) * 100) 
+        accuracy: stats.totalQuestionsAttempted > 0
+          ? Math.round((stats.correctAnswers / stats.totalQuestionsAttempted) * 100)
           : 0,
         averageScore: stats.testsCompleted > 0
           ? Math.round(stats.totalScore / stats.testsCompleted)
@@ -154,7 +153,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -163,7 +162,7 @@ export async function POST(request) {
     }
 
     const { action, data } = await request.json();
-    
+
     switch (action) {
       case 'updateStats':
         const { stats } = data;

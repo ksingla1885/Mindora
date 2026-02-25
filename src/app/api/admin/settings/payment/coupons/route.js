@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // In-memory storage (replace with database in production)
 let coupons = [];
 
 // Helper function to check admin access
 async function checkAdminAccess(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return { error: 'Unauthorized', status: 401 };
   }
@@ -39,7 +38,7 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object') {
       return NextResponse.json(
@@ -103,9 +102,9 @@ export async function POST(request) {
 
     coupons.push(newCoupon);
 
-    return NextResponse.json({ 
-      success: true, 
-      data: newCoupon 
+    return NextResponse.json({
+      success: true,
+      data: newCoupon
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating coupon:', error);
@@ -125,7 +124,7 @@ export async function PUT(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object' || !data.id) {
       return NextResponse.json(
@@ -145,8 +144,8 @@ export async function PUT(request) {
 
     // Check if the updated code would conflict with another coupon
     if (data.code && data.code !== coupons[couponIndex].code) {
-      if (coupons.some(coupon => 
-        coupon.id !== data.id && 
+      if (coupons.some(coupon =>
+        coupon.id !== data.id &&
         coupon.code.toLowerCase() === data.code.toLowerCase()
       )) {
         return NextResponse.json(
@@ -161,23 +160,23 @@ export async function PUT(request) {
       ...coupons[couponIndex],
       ...data,
       code: data.code ? data.code.trim() : coupons[couponIndex].code,
-      discountValue: typeof data.discountValue === 'number' 
-        ? Number(data.discountValue.toFixed(2)) 
+      discountValue: typeof data.discountValue === 'number'
+        ? Number(data.discountValue.toFixed(2))
         : coupons[couponIndex].discountValue,
-      maxUses: typeof data.maxUses === 'number' 
-        ? Math.max(1, Math.min(Number(data.maxUses), 1000000)) 
+      maxUses: typeof data.maxUses === 'number'
+        ? Math.max(1, Math.min(Number(data.maxUses), 1000000))
         : coupons[couponIndex].maxUses,
-      minPurchase: typeof data.minPurchase === 'number' 
-        ? Math.max(0, Number(data.minPurchase)) 
+      minPurchase: typeof data.minPurchase === 'number'
+        ? Math.max(0, Number(data.minPurchase))
         : coupons[couponIndex].minPurchase,
       updatedAt: new Date().toISOString(),
     };
 
     coupons[couponIndex] = updatedCoupon;
 
-    return NextResponse.json({ 
-      success: true, 
-      data: updatedCoupon 
+    return NextResponse.json({
+      success: true,
+      data: updatedCoupon
     });
   } catch (error) {
     console.error('Error updating coupon:', error);
@@ -198,7 +197,7 @@ export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'Coupon ID is required' },
@@ -216,9 +215,9 @@ export async function DELETE(request) {
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Coupon deleted successfully' 
+      message: 'Coupon deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting coupon:', error);

@@ -1,6 +1,5 @@
 import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 
@@ -16,8 +15,8 @@ const s3Client = new S3Client({
 // Get list of videos
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -58,8 +57,8 @@ export async function GET(request) {
 // Create a new video record
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -68,7 +67,7 @@ export async function POST(request) {
     }
 
     const data = await request.json();
-    
+
     // Create video record in database
     const video = await prisma.video.create({
       data: {
@@ -98,8 +97,8 @@ export async function POST(request) {
 // Delete a video
 export async function DELETE(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -109,7 +108,7 @@ export async function DELETE(request) {
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'Video ID is required' },
@@ -143,9 +142,9 @@ export async function DELETE(request) {
         Bucket: process.env.AWS_S3_BUCKET_NAME,
         Key: video.fileKey,
       };
-      
+
       await s3Client.send(new DeleteObjectCommand(deleteParams));
-      
+
       // Delete thumbnail if exists
       if (video.thumbnailKey) {
         const deleteThumbnailParams = {

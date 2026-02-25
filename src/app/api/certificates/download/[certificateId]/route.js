@@ -1,25 +1,26 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 import { generateCertificatePDF } from '@/lib/certificateGenerator';
 
-const prisma = new PrismaClient();
-
+/**
+ * GET /api/certificates/download/[attemptId]
+ * Generates and downloads a certificate PDF based on a passed test attempt.
+ */
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    const { certificateId } = params;
-    
+    const session = await auth();
+    const { certificateId } = params; // This is the attemptId in our implementation
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
-    // Get certificate details
-    const certificate = await prisma.certificate.findUnique({
+
+    // Get attempt details (which serves as our certificate source)
+    const attempt = await prisma.testAttempt.findUnique({
       where: { id: certificateId },
       include: {
         test: {
@@ -29,50 +30,49 @@ export async function GET(request, { params }) {
         },
         user: {
           select: {
+            id: true,
             name: true,
             email: true,
           },
         },
       },
     });
-    
-    if (!certificate) {
+
+    if (!attempt || !attempt.isPassed) {
       return NextResponse.json(
-        { error: 'Certificate not found' },
+        { error: 'Certificate not found or test not passed' },
         { status: 404 }
       );
     }
-    
+
     // Check if user has permission to download this certificate
-    if (session.user.role !== 'ADMIN' && session.user.id !== certificate.userId) {
+    if (session.user.role !== 'ADMIN' && session.user.id !== attempt.userId) {
       return NextResponse.json(
         { error: 'Not authorized to download this certificate' },
         { status: 403 }
       );
     }
-    
+
     // Generate the PDF
     const certificateData = {
-      studentName: certificate.user?.name || 'Student',
-      courseName: certificate.test?.title || 'Course',
-      score: certificate.score,
-      issueDate: certificate.issuedAt,
-      certificateId: certificate.id,
+      studentName: attempt.user?.name || 'Student',
+      courseName: attempt.test?.title || 'Course',
+      score: attempt.score,
+      issueDate: attempt.finishedAt || attempt.submittedAt || new Date(),
+      certificateId: `MIN-${attempt.id.substring(0, 8).toUpperCase()}`,
     };
-    
+
     const pdfBytes = await generateCertificatePDF(certificateData);
-    
+
     // Return the PDF as a response
     return new NextResponse(pdfBytes, {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="certificate-${certificate.id}.pdf"`,
+        'Content-Disposition': `attachment; filename="certificate-${certificateData.certificateId}.pdf"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
       },
     });
-    
+
   } catch (error) {
     console.error('Error downloading certificate:', error);
     return NextResponse.json(

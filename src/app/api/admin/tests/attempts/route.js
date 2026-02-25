@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 // Helper function to build where clause based on filters
 function buildWhereClause(filters) {
   const where = {};
-  
+
   if (filters.search) {
     where.OR = [
       { user: { name: { contains: filters.search, mode: 'insensitive' } } },
@@ -16,25 +13,25 @@ function buildWhereClause(filters) {
       { test: { title: { contains: filters.search, mode: 'insensitive' } } },
     ];
   }
-  
+
   if (filters.testId) {
     where.testId = filters.testId;
   }
-  
+
   if (filters.userId) {
     where.userId = filters.userId;
   }
-  
+
   if (filters.status) {
     where.status = filters.status;
   }
-  
+
   if (filters.minScore || filters.maxScore) {
     where.score = {};
     if (filters.minScore) where.score.gte = parseFloat(filters.minScore);
     if (filters.maxScore) where.score.lte = parseFloat(filters.maxScore);
   }
-  
+
   if (filters.startDate || filters.endDate) {
     where.startedAt = {};
     if (filters.startDate) where.startedAt.gte = new Date(filters.startDate);
@@ -44,28 +41,28 @@ function buildWhereClause(filters) {
       where.startedAt.lt = endDate;
     }
   }
-  
+
   return where;
 }
 
 export async function GET(request) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
-    
+
     const { searchParams } = new URL(request.url);
-    
+
     // Pagination
     const page = parseInt(searchParams.get('page')) || 1;
     const pageSize = Math.min(parseInt(searchParams.get('pageSize')) || 10, 100);
     const skip = (page - 1) * pageSize;
-    
+
     // Filters
     const filters = {
       search: searchParams.get('search') || '',
@@ -77,12 +74,12 @@ export async function GET(request) {
       startDate: searchParams.get('startDate') || '',
       endDate: searchParams.get('endDate') || ''
     };
-    
+
     const where = buildWhereClause(filters);
-    
+
     // Get total count for pagination
     const total = await prisma.testAttempt.count({ where });
-    
+
     // Get paginated attempts with related data
     const attempts = await prisma.testAttempt.findMany({
       where,
@@ -108,7 +105,7 @@ export async function GET(request) {
         },
       },
     });
-    
+
     return NextResponse.json({
       data: attempts,
       total,
@@ -116,7 +113,7 @@ export async function GET(request) {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     });
-    
+
   } catch (error) {
     console.error('Error fetching test attempts:', error);
     return NextResponse.json(

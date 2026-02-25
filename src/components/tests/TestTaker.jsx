@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTestWebSocket } from '@/hooks/useTestWebSocket';
+import { useTestProctoring } from '@/hooks/useTestProctoring';
 import { useTestAssistant } from '@/lib/ai/testAssistant';
 import { TestAnalytics } from '@/components/analytics/TestAnalytics';
 import { Button } from '@/components/ui/button';
@@ -68,16 +69,40 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     getAnswerFeedback,
   } = useTestAssistant(test?.id);
 
+  // Proctoring Hook
+  const {
+    isActive: isProctoringActive,
+    violationCount,
+    videoRef,
+    startProctoring,
+    stopProctoring,
+  } = useTestProctoring({
+    testId: test?.id,
+    enableFaceDetection: test?.faceDetectionEnabled,
+    enableTabMonitoring: test?.tabMonitoringEnabled || test?.proctoringEnabled,
+    enforceFullscreen: test?.enforceFullscreen,
+  });
+
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningCount, setWarningCount] = useState(0);
+
+  // Synchronize violation count
+  useEffect(() => {
+    if (violationCount > warningCount) {
+      setWarningCount(violationCount);
+      setShowWarningModal(true);
+    }
+  }, [violationCount, warningCount]);
+  const { toast } = useToast();
+  const { data: session } = useSession();
+  const router = useRouter();
+
   // State for analytics and AI features
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [currentExplanation, setCurrentExplanation] = useState('');
-  const [performanceAnalysis, setPerformanceAnalysis] = useState(null);
   const [studyPlan, setStudyPlan] = useState(null);
   const [personalizedTips, setPersonalizedTips] = useState([]);
-  const { toast } = useToast();
-  const { data: session } = useSession();
-  const router = useRouter();
 
   // State management
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -166,10 +191,22 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
         }
 
         const response = await attemptRes.json();
-        attemptData = response.attempt;
+        attemptData = response.attempt || response.data;
       }
 
       setAttemptId(attemptData.id);
+
+      // Start proctoring if enabled
+      if (test?.proctoringEnabled) {
+        startProctoring().catch(err => {
+          console.error('Failed to start proctoring:', err);
+          toast({
+            title: 'Proctoring Error',
+            description: 'Could not initialize proctoring features.',
+            variant: 'destructive'
+          });
+        });
+      }
 
       // Calculate remaining time if resuming
       if (attemptData.startedAt) {
@@ -183,8 +220,9 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       }
 
       setAnswers(attemptData.answers || {});
-      setFlaggedQuestions(attemptData.flaggedQuestions || {});
+      setFlaggedQuestions(attemptData.metadata?.flaggedQuestions || attemptData.flaggedQuestions || {});
       setTimeSpent(attemptData.timeSpent || {});
+      setCurrentQuestionIndex(attemptData.details?.currentQuestionIndex || 0);
 
       console.log('TestTaker: Initializing', { testId: test?.id, questionsLength: questions.length });
 
@@ -280,35 +318,35 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Set auto-saved state for UI feedback
+    // Set auto-saved state for UI feedback (reset current status)
     setAutoSaved(false);
 
     // Debounce the save to avoid too many requests
     saveTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(`${apiBaseUrl}/${attemptId}`, {
-          method: 'PATCH', // Changed from PUT to PATCH and removed /answers endpoint
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             answers,
-            timeSpentSeconds: 1800 - timeLeft, // Calculate time spent roughly or use meaningful value
+            timeSpentSeconds: Math.floor((test.durationMinutes * 60) - timeLeft),
             currentQuestionIndex,
-            // timeLeft, // Optional, depending on API support
-            // flaggedQuestions
           })
         });
 
         if (!response.ok) throw new Error('Save failed');
 
-        setAutoSaved(true);
-        if (autoSaveTimeoutRef.current) clearTimeout(autoSaveTimeoutRef.current);
-        autoSaveTimeoutRef.current = setTimeout(() => setAutoSaved(false), 3000);
-
+        const result = await response.json();
+        if (result.success) {
+          setAutoSaved(true);
+          // Briefly show auto-saved indicator then hide it
+          setTimeout(() => setAutoSaved(false), 3000);
+        }
       } catch (error) {
         console.error('Auto-save failed:', error);
       }
     }, 2000);
-  }, [attemptId, answers, timeLeft, timeSpent, currentQuestionIndex, apiBaseUrl]);
+  }, [attemptId, answers, timeLeft, currentQuestionIndex, apiBaseUrl, isSubmitting, test.durationMinutes]);
 
   // Handle test completion with analytics
   const handleTestCompletion = useCallback(async (results) => {
@@ -548,74 +586,15 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
 
       const results = await response.json();
 
-      // Clean up Redis session
-      try {
-        await fetch(`${apiBaseUrl}/${attemptId}/cleanup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-        });
-      } catch (cleanupError) {
-        console.error('Cleanup failed, but continuing...', cleanupError);
-      }
-
-      // Redirect to success page
-      router.push(`/test-submitted?testId=${test?.id || ''}&attemptId=${results.id || attemptId}`);
-      return;
-
-      // Calculate performance metrics in the background
-      const calculatePerformance = async () => {
-        try {
-          if (analyzePerformance) {
-            // Use the results from submission which contains full context
-            const analysis = await analyzePerformance(results);
-
-            if (analysis) {
-              setPerformanceAnalysis(analysis);
-
-              // Generate study plan based on performance
-              if (generateStudyPlan && analysis.weakAreas) {
-                const plan = await generateStudyPlan(analysis.weakAreas);
-                setStudyPlan(plan);
-              }
-
-              // Get personalized tips
-              if (getPersonalizedTips) {
-                const tips = await getPersonalizedTips(analysis);
-                setPersonalizedTips(tips);
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error calculating performance:', error);
-        }
-      };
-
-      // Don't await this to avoid blocking UI
-      calculatePerformance();
-
-      // Notify parent component if provided
+      // Notify parent component — parent will handle navigation to results page
       if (onComplete) {
-        onComplete(results);
+        // Pass both the raw results and the attemptId clearly
+        onComplete({ ...(results.data || results), attemptId: results.data?.id || results.id || attemptId });
+        return;
       }
 
-      // Track test completion
-      if (window.gtag) {
-        window.gtag('event', 'test_completed', {
-          test_id: test?.id,
-          test_name: test?.title,
-          score: results.score,
-          correct_answers: results.correctAnswers,
-          total_questions: results.totalQuestions,
-          time_spent: Math.round((test?.durationMinutes * 60 - timeLeft) / 60) // in minutes
-        });
-      }
-
-      // Show success message
-      toast({
-        title: 'Test Submitted!',
-        description: 'Your test has been successfully submitted.',
-        variant: 'default',
-      });
+      // Fallback redirect if no onComplete handler
+      router.push(`/tests/${test?.id}/results/${results.data?.id || results.id || attemptId}`);
 
     } catch (error) {
       console.error('Test submission failed:', error);
@@ -1243,6 +1222,40 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
           </div>
         </CardHeader>
       </Card>
+
+      {/* Proctoring Warning Modal */}
+      {showWarningModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl border-4 border-amber-500"
+          >
+            <div className="flex flex-col items-center text-center">
+              <div className="h-20 w-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
+                <AlertTriangle className="h-10 w-10 text-amber-600" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Anti-Cheat Warning!</h2>
+              <p className="text-slate-500 dark:text-slate-400 mb-6">
+                You switched tabs or moved away from the test window. This event has been logged.
+                Multiple violations may result in automatic disqualification.
+              </p>
+
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-4 w-full mb-8">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Warning Count</p>
+                <p className="text-3xl font-black text-amber-600">{warningCount}</p>
+              </div>
+
+              <Button
+                onClick={() => setShowWarningModal(false)}
+                className="w-full py-6 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+              >
+                I Understand, Continue Test
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Time warning */}
       {timeWarning && (

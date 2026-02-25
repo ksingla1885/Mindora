@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
-const prisma = new PrismaClient();
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
 
 export async function GET(request, { params }) {
   try {
-    const session = await getServerSession(authOptions);
-    
+    const session = await auth();
+
     if (!session || session.user.role !== 'ADMIN') {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -78,12 +75,12 @@ export async function GET(request, { params }) {
 
     // Calculate overall test statistics
     const totalAttempts = test.attempts.length;
-    const averageScore = totalAttempts > 0 
-      ? test.attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts 
+    const averageScore = totalAttempts > 0
+      ? test.attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts
       : 0;
-    
-    const completionRate = test.attempts.length > 0 
-      ? (test.attempts.filter(a => a.status === 'COMPLETED').length / test.attempts.length) * 100 
+
+    const completionRate = test.attempts.length > 0
+      ? (test.attempts.filter(a => a.status === 'COMPLETED').length / test.attempts.length) * 100
       : 0;
 
     // Calculate time statistics
@@ -95,8 +92,8 @@ export async function GET(request, { params }) {
         return stats;
       }, { times: [], totalTime: 0 });
 
-    const averageTimeSpent = timeStats.times.length > 0 
-      ? timeStats.totalTime / timeStats.times.length 
+    const averageTimeSpent = timeStats.times.length > 0
+      ? timeStats.totalTime / timeStats.times.length
       : 0;
 
     // Calculate score distribution
@@ -180,7 +177,7 @@ export async function GET(request, { params }) {
 // Helper function to find common wrong answers
 function getCommonWrongAnswers(attempts, questionId, correctAnswer) {
   const wrongAnswers = new Map();
-  
+
   attempts.forEach(attempt => {
     const response = attempt.responses.find(r => r.questionId === questionId);
     if (response && !response.isCorrect && response.answer !== null) {

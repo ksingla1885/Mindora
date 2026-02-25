@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
 
 export async function GET(request) {
   try {
-    const session = await getServerSession();
+    const session = await auth();
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -79,7 +79,7 @@ export async function GET(request) {
     const averageScore =
       testAttempts.length > 0
         ? testAttempts.reduce((sum, attempt) => sum + (attempt.score || 0), 0) /
-          testAttempts.length
+        testAttempts.length
         : 0;
 
     // Get current streak

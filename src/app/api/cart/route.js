@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { rateLimit } from '@/lib/rate-limit';
 
@@ -11,7 +10,7 @@ const limiter = rateLimit({
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to view your cart' },
@@ -59,7 +58,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to add to cart' },
@@ -135,7 +134,7 @@ export async function POST(request) {
           items: {
             update: {
               where: { id: existingItem.id },
-              data: { 
+              data: {
                 quantity: existingItem.quantity + quantity,
                 updatedAt: new Date(),
               },
@@ -187,14 +186,14 @@ export async function POST(request) {
     });
   } catch (error) {
     console.error('Error adding to cart:', error);
-    
+
     if (error.message.includes('rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Failed to add to cart' },
       { status: 500 }
@@ -204,7 +203,7 @@ export async function POST(request) {
 
 export async function DELETE() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { error: 'You must be signed in to clear your cart' },

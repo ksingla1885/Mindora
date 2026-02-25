@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
 
 // In-memory storage (replace with database in production)
 let taxRates = [];
 
 // Helper function to check admin access
 async function checkAdminAccess(request) {
-  const session = await getServerSession(authOptions);
-  
+  const session = await auth();
+
   if (!session) {
     return { error: 'Unauthorized', status: 401 };
   }
@@ -39,7 +38,7 @@ export async function POST(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object') {
       return NextResponse.json(
@@ -71,8 +70,8 @@ export async function POST(request) {
     }
 
     // Check if a similar tax rate already exists
-    const existingTax = taxRates.find(tax => 
-      tax.country === data.country && 
+    const existingTax = taxRates.find(tax =>
+      tax.country === data.country &&
       (!data.state || tax.state === data.state) &&
       (data.state || !tax.state) // If no state is provided, don't match with state-specific taxes
     );
@@ -99,9 +98,9 @@ export async function POST(request) {
 
     taxRates.push(newTaxRate);
 
-    return NextResponse.json({ 
-      success: true, 
-      data: newTaxRate 
+    return NextResponse.json({
+      success: true,
+      data: newTaxRate
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating tax rate:', error);
@@ -121,7 +120,7 @@ export async function PUT(request) {
 
   try {
     const data = await request.json();
-    
+
     // Validate the incoming data
     if (!data || typeof data !== 'object' || !data.id) {
       return NextResponse.json(
@@ -140,16 +139,16 @@ export async function PUT(request) {
     }
 
     // Check if the updated tax would conflict with another tax rate
-    if ((data.country || data.state) && 
-        (data.country !== taxRates[taxIndex].country || 
-         (data.state || '') !== taxRates[taxIndex].state)) {
-      
+    if ((data.country || data.state) &&
+      (data.country !== taxRates[taxIndex].country ||
+        (data.state || '') !== taxRates[taxIndex].state)) {
+
       const newCountry = data.country || taxRates[taxIndex].country;
       const newState = data.state !== undefined ? data.state : taxRates[taxIndex].state;
-      
-      const existingTax = taxRates.find(tax => 
+
+      const existingTax = taxRates.find(tax =>
         tax.id !== data.id &&
-        tax.country === newCountry && 
+        tax.country === newCountry &&
         ((!newState && !tax.state) || tax.state === newState)
       );
 
@@ -166,24 +165,24 @@ export async function PUT(request) {
       ...taxRates[taxIndex],
       ...data,
       name: data.name ? data.name.trim() : taxRates[taxIndex].name,
-      rate: typeof data.rate === 'number' 
-        ? Number(data.rate.toFixed(2)) 
+      rate: typeof data.rate === 'number'
+        ? Number(data.rate.toFixed(2))
         : taxRates[taxIndex].rate,
       country: data.country ? data.country.trim() : taxRates[taxIndex].country,
-      state: data.state !== undefined 
-        ? (data.state ? data.state.trim() : '') 
+      state: data.state !== undefined
+        ? (data.state ? data.state.trim() : '')
         : taxRates[taxIndex].state,
-      isInclusive: data.isInclusive !== undefined 
-        ? data.isInclusive 
+      isInclusive: data.isInclusive !== undefined
+        ? data.isInclusive
         : taxRates[taxIndex].isInclusive,
       updatedAt: new Date().toISOString(),
     };
 
     taxRates[taxIndex] = updatedTaxRate;
 
-    return NextResponse.json({ 
-      success: true, 
-      data: updatedTaxRate 
+    return NextResponse.json({
+      success: true,
+      data: updatedTaxRate
     });
   } catch (error) {
     console.error('Error updating tax rate:', error);
@@ -204,7 +203,7 @@ export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
         { error: 'Tax rate ID is required' },
@@ -222,9 +221,9 @@ export async function DELETE(request) {
       );
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       success: true,
-      message: 'Tax rate deleted successfully' 
+      message: 'Tax rate deleted successfully'
     });
   } catch (error) {
     console.error('Error deleting tax rate:', error);

@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
 import { z } from 'zod';
 
@@ -100,11 +99,11 @@ export async function GET(request) {
       const startDate = new Date(event.startDate);
       const endDate = new Date(event.endDate);
       const registrationEnd = event.registrationEnd ? new Date(event.registrationEnd) : null;
-      
+
       let eventStatus = 'upcoming';
       let statusLabel = '';
       let progress = 0;
-      
+
       if (now < startDate) {
         eventStatus = 'upcoming';
         statusLabel = `Starts in ${Math.ceil((startDate - now) / (1000 * 60 * 60 * 24))} days`;
@@ -122,7 +121,7 @@ export async function GET(request) {
         progress = Math.min((elapsed / totalDuration) * 100, 100);
         statusLabel = `Ends in ${Math.ceil((endDate - now) / (1000 * 60 * 60 * 24))} days`;
       }
-      
+
       return {
         ...event,
         participants: event.participants.length,
@@ -157,7 +156,7 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     // Check if user is authenticated and has admin role
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
@@ -228,7 +227,7 @@ export async function POST(request) {
 export async function PUT(request) {
   try {
     // Check if user is authenticated and has admin role
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session) {
       return NextResponse.json(
         { success: false, error: 'Not authenticated' },
@@ -247,7 +246,7 @@ export async function PUT(request) {
     // Parse and validate request body
     const body = await request.json();
     const { id, ...updateData } = body;
-    
+
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'Event ID is required' },

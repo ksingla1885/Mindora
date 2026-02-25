@@ -1,195 +1,149 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import { PrismaClient } from '@prisma/client';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/auth';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-
-// Helper function to calculate percentile
-function calculatePercentile(rank, total) {
-  if (total <= 1) return 100;
-  return Math.round(((total - rank) / (total - 1)) * 100);
-}
-
+/**
+ * GET /api/leaderboard/[testId]
+ * Returns the leaderboard for a specific test or all tests.
+ * Query params: 
+ * - timeRange: all, 7d, 30d
+ * - page: number
+ * - limit: number
+ */
 export async function GET(request, { params }) {
+  const { testId } = params;
+  const session = await auth();
+  const { searchParams } = new URL(request.url);
+
+  const timeRange = searchParams.get('timeRange') || 'all';
+  const page = parseInt(searchParams.get('page')) || 1;
+  const limit = parseInt(searchParams.get('limit')) || 20;
+  const skip = (page - 1) * limit;
+
   try {
-    const session = await getServerSession(authOptions);
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { testId } = params;
-    const { searchParams } = new URL(request.url);
-    
-    const page = parseInt(searchParams.get('page')) || 1;
-    const pageSize = parseInt(searchParams.get('pageSize')) || 10;
-    const search = searchParams.get('search') || '';
-    const timeRange = searchParams.get('timeRange') || 'all';
-    const type = searchParams.get('type') || 'overall';
-    
-    // Calculate date range based on timeRange
     const now = new Date();
-    let startDate;
-    
-    switch (timeRange) {
-      case '7d':
-        startDate = new Date(now.setDate(now.getDate() - 7));
-        break;
-      case '30d':
-        startDate = new Date(now.setMonth(now.getMonth() - 1));
-        break;
-      case '90d':
-        startDate = new Date(now.setMonth(now.getMonth() - 3));
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      default:
-        startDate = null; // All time
+    let dateFilter = {};
+    if (timeRange === '7d') {
+      dateFilter = { finishedAt: { gte: new Date(now.setDate(now.getDate() - 7)) } };
+    } else if (timeRange === '30d') {
+      dateFilter = { finishedAt: { gte: new Date(now.setMonth(now.getMonth() - 1)) } };
     }
 
-    // Base where clause for test attempts
-    const whereClause = {
+    // Common filter
+    const where = {
+      status: 'submitted',
+      finishedAt: { not: null },
       ...(testId !== 'all' && { testId }),
-      ...(startDate && { completedAt: { gte: startDate } }),
-      status: 'COMPLETED',
-      user: {
-        ...(search && {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } }
-          ]
-        })
-      }
+      ...dateFilter,
     };
 
-    // Get total count for pagination
-    const total = await prisma.testAttempt.count({
-      where: whereClause,
-      distinct: ['userId']
+    // Calculate leaderboard
+    // We want the best attempt per user if multiple attempts allowed
+    // For simplicity in SQL/ORM, we'll group by userId
+
+    const totalParticipants = await prisma.testAttempt.groupBy({
+      by: ['userId'],
+      where,
+      _count: { userId: true },
+    }).then(groups => groups.length);
+
+    // Get top attempts
+    // This is tricky with Prisma ORM alone to get "best attempt per user" with user info in one go
+    // We'll fetch the best attempts and then join user data
+
+    const rawLeaderboard = await prisma.testAttempt.groupBy({
+      by: ['userId'],
+      where,
+      _max: {
+        score: true,
+      },
+      _min: {
+        timeSpentSeconds: true,
+      },
+      orderBy: [
+        { _max: { score: 'desc' } },
+        { _min: { timeSpentSeconds: 'asc' } }
+      ],
+      take: limit,
+      skip: skip,
     });
 
-    // Get leaderboard data with user information
-    const leaderboardData = await prisma.$queryRaw`
-      WITH ranked_scores AS (
-        SELECT 
-          u.id as "userId",
-          u.name as "userName",
-          u.email as "userEmail",
-          u.image as "userImage",
-          u.organization as "userOrganization",
-          ta.score,
-          ta.completedAt as "lastActive",
-          ROW_NUMBER() OVER (ORDER BY 
-            ${type === 'weekly' ? 
-              `SUM(CASE WHEN ta.completedAt >= NOW() - INTERVAL '7 days' THEN ta.score ELSE 0 END) DESC` :
-              type === 'monthly' ?
-              `SUM(CASE WHEN ta.completedAt >= DATE_TRUNC('month', CURRENT_DATE) THEN ta.score ELSE 0 END) DESC` :
-              'ta.score DESC'
-            }
-          ) as rank,
-          COUNT(ta.id) as "testsCompleted",
-          AVG(ta.score) as "averageScore",
-          AVG(ta.timeSpent) as "averageTimeSpent",
-          COUNT(DISTINCT DATE(ta.completedAt)) as "activeDays"
-        FROM "User" u
-        LEFT JOIN "TestAttempt" ta ON u.id = ta."userId"
-        WHERE ${JSON.stringify(whereClause)}
-        GROUP BY u.id, ta."userId", u.name, u.email, u.image, u.organization
-        HAVING COUNT(ta.id) > 0
-        ORDER BY rank
-        LIMIT ${pageSize}
-        OFFSET ${(page - 1) * pageSize}
-      )
-      SELECT * FROM ranked_scores;
-    `;
+    // Fetch user details for these users
+    const userIds = rawLeaderboard.map(entry => entry.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, image: true, class: true }
+    });
 
-    // Get current user's rank if not in current page
-    let userRank = null;
-    if (session.user) {
-      const userRankData = await prisma.$queryRaw`
-        SELECT * FROM (
-          SELECT 
-            u.id as "userId",
-            ROW_NUMBER() OVER (ORDER BY 
-              ${type === 'weekly' ? 
-                `SUM(CASE WHEN ta.completedAt >= NOW() - INTERVAL '7 days' THEN ta.score ELSE 0 END) DESC` :
-                type === 'monthly' ?
-                `SUM(CASE WHEN ta.completedAt >= DATE_TRUNC('month', CURRENT_DATE) THEN ta.score ELSE 0 END) DESC` :
-                'ta.score DESC'
+    const userMap = users.reduce((acc, user) => {
+      acc[user.id] = user;
+      return acc;
+    }, {});
+
+    const leaderboard = rawLeaderboard.map((entry, index) => ({
+      rank: skip + index + 1,
+      userId: entry.userId,
+      name: userMap[entry.userId]?.name || 'Anonymous User',
+      image: userMap[entry.userId]?.image,
+      class: userMap[entry.userId]?.class,
+      score: entry._max.score || 0,
+      timeSpent: entry._min.timeSpentSeconds || 0,
+      isCurrentUser: session?.user?.id === entry.userId,
+    }));
+
+    // Find current user's rank
+    let currentUserRank = null;
+    if (session?.user?.id) {
+      // To find rank, we can count how many users have a better score
+      const userBestAttempt = await prisma.testAttempt.aggregate({
+        where: { ...where, userId: session.user.id },
+        _max: { score: true },
+        _min: { timeSpentSeconds: true }
+      });
+
+      if (userBestAttempt._max.score !== null) {
+        const betterUsersCount = await prisma.testAttempt.groupBy({
+          by: ['userId'],
+          where: {
+            ...where,
+            OR: [
+              { score: { gt: userBestAttempt._max.score } },
+              {
+                score: userBestAttempt._max.score,
+                timeSpentSeconds: { lt: userBestAttempt._min.timeSpentSeconds }
               }
-            ) as rank,
-            COUNT(ta.id) as "testsCompleted"
-          FROM "User" u
-          LEFT JOIN "TestAttempt" ta ON u.id = ta."userId"
-          WHERE ${JSON.stringify(whereClause)}
-          GROUP BY u.id
-        ) ranked
-        WHERE "userId" = ${session.user.id};
-      `;
+            ]
+          },
+          _count: { userId: true }
+        }).then(groups => groups.length);
 
-      if (userRankData && userRankData.length > 0) {
-        userRank = {
-          rank: parseInt(userRankData[0].rank),
-          rankDisplay: `#${userRankData[0].rank}`,
-          percentile: calculatePercentile(userRankData[0].rank, total),
-          totalParticipants: total,
-          testsCompleted: parseInt(userRankData[0].testsCompleted),
-          user: {
-            id: session.user.id,
-            name: session.user.name,
-            email: session.user.email,
-            image: session.user.image
-          }
+        currentUserRank = {
+          rank: betterUsersCount + 1,
+          score: userBestAttempt._max.score,
+          timeSpent: userBestAttempt._min.timeSpentSeconds,
         };
       }
     }
 
-    // Format response
-    const formattedLeaderboard = leaderboardData.map((entry, index) => ({
-      rank: parseInt(entry.rank),
-      userId: entry.userId,
-      user: {
-        id: entry.userId,
-        name: entry.userName,
-        email: entry.userEmail,
-        image: entry.userImage,
-        organization: entry.userOrganization
-      },
-      score: Math.round(entry.score * 100) / 100,
-      averageScore: Math.round(entry.averageScore * 100) / 100,
-      averageTimeSpent: Math.round(entry.averageTimeSpent * 100) / 100,
-      testsCompleted: parseInt(entry.testsCompleted),
-      lastActive: entry.lastActive,
-      activeDays: parseInt(entry.activeDays),
-      isCurrentUser: session?.user?.id === entry.userId,
-      // Add streak calculation (simplified)
-      streak: Math.min(parseInt(entry.activeDays / 3), 30) // Example: 1 point for every 3 active days, max 30
-    }));
-
     return NextResponse.json({
-      leaderboard: formattedLeaderboard,
-      userRank,
-      pagination: {
-        page,
-        pageSize,
-        total,
-        totalPages: Math.ceil(total / pageSize)
-      },
-      timeRange,
-      type
+      success: true,
+      data: {
+        leaderboard,
+        currentUserRank,
+        pagination: {
+          total: totalParticipants,
+          page,
+          limit,
+          totalPages: Math.ceil(totalParticipants / limit)
+        }
+      }
     });
 
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
+    console.error('Leaderboard API Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch leaderboard' },
+      { success: false, error: 'Internal Server Error' },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
