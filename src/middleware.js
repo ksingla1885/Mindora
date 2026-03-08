@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 // List of paths that don't require authentication
 const publicPaths = [
   "/",
-  "/auth/signin",
+  "/auth/login",
   "/auth/signup",
   "/auth/forgot-password",
   "/auth/reset-password",
@@ -125,7 +125,7 @@ export async function middleware(request) {
   // Get the session token
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET
+    secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
   });
 
   // Check if the path requires authentication
@@ -147,7 +147,7 @@ export async function middleware(request) {
 
   // If no token and the path requires auth, redirect to signin
   if ((requiresAuth || isAdminPath || isTeacherPath || isStudentPath) && !token) {
-    const signInUrl = new URL('/auth/signin', origin);
+    const signInUrl = new URL('/auth/login', origin);
     signInUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(signInUrl);
   }

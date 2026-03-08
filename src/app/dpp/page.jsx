@@ -35,7 +35,8 @@ import { Search, Bell, Menu, BookOpen } from "lucide-react";
 export default function DailyPracticePage() {
   // States: 'entry', 'solve', 'feedback', 'reflection'
   const [viewState, setViewState] = useState('entry');
-  const [dppData, setDppData] = useState(null);
+  const [dppData, setDppData] = useState(null); // The currently active/selected DPP
+  const [allDpps, setAllDpps] = useState([]); // All available DPPs for the day
   const [isLoading, setIsLoading] = useState(true);
 
   // Quiz State
@@ -61,7 +62,14 @@ export default function DailyPracticePage() {
       const res = await fetch('/api/student/dpp');
       if (res.ok) {
         const data = await res.json();
-        setDppData(data);
+        if (data.dpps && data.dpps.length > 0) {
+          setAllDpps(data.dpps);
+          // If only one, or for compatibility, set it as default active
+          setDppData(data.dpps[0]);
+        } else {
+          setAllDpps([]);
+          setDppData(null);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch DPP", error);
@@ -87,13 +95,17 @@ export default function DailyPracticePage() {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
-  const startProblem = () => {
-    if (!dppData || !dppData.questions || dppData.questions.length === 0) return;
+  const startProblem = (selectedDpp = null) => {
+    const dppToStart = selectedDpp || dppData;
+    if (!dppToStart || !dppToStart.questions || dppToStart.questions.length === 0) return;
+
+    setDppData(dppToStart);
     setViewState('solve');
     setTimerActive(true);
     setCurrentQuestionIndex(0);
     setAnswers({});
     setIsSubmitted(false);
+    setTimeElapsed(0);
   };
 
   const handleAnswerSelect = (qId, value, type) => {
@@ -237,81 +249,117 @@ export default function DailyPracticePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="max-w-[1024px] w-full flex flex-col gap-10"
+            className="max-w-[1240px] w-full flex flex-col gap-8"
           >
-            {/* Breadcrumbs/Date Chips */}
-            <div className="flex flex-wrap gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-primary/10 dark:bg-[#282e39] border border-primary/10 dark:border-transparent pl-4 pr-4">
-                <Calendar className="size-4 text-primary dark:text-blue-400" />
-                <p className="text-primary dark:text-blue-100 text-xs font-bold uppercase tracking-wider">{new Date(dppData.date).toLocaleDateString()}</p>
-              </div>
-              <div className="flex h-8 shrink-0 items-center justify-center gap-x-2 rounded-full bg-orange-500/10 dark:bg-orange-900/20 border border-orange-500/20 pl-4 pr-4">
-                <Flame className="size-4 text-orange-600 dark:text-orange-400" />
-                <p className="text-orange-700 dark:text-orange-300 text-xs font-bold uppercase tracking-wider">Daily Challenge</p>
-              </div>
+            {/* Header Section */}
+            <div className="flex flex-col gap-2">
+              <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground">
+                Daily Practice Problems
+              </h1>
+              <p className="text-muted-foreground text-lg">
+                Stay consistent with your goals. Here are your practice sets for today.
+              </p>
             </div>
 
-            {/* Hero Section */}
-            <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
-              <div className="flex flex-col gap-6 flex-1 min-w-0">
-                <div className="flex flex-col gap-3">
-                  <h1 className="font-sans text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-[-0.03em] text-foreground">
-                    {dppData.subject?.name || "Daily Practice"}
-                  </h1>
-                  <p className="text-muted-foreground text-lg leading-relaxed max-w-2xl font-light">
-                    Ready to tackle today's questions? There are <span className="text-foreground font-medium">{dppData.questions.length} questions</span> to solve. Good luck!
-                  </p>
-                </div>
-                <div className="pt-4 flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={startProblem}
-                    className="flex min-w-[160px] cursor-pointer items-center justify-center gap-2 rounded-xl h-14 px-8 bg-[#135bec] hover:bg-blue-600 text-white text-lg font-bold shadow-lg shadow-blue-500/20 transition-all transform hover:scale-[1.02]"
-                  >
-                    <Play className="size-5 fill-current" />
-                    <span>Start Practice</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Visual Block Placeholder or Dynamic Image based on Subject */}
-              <div className="w-full lg:w-[420px] shrink-0">
-                <div className="relative w-full aspect-video lg:aspect-square bg-gradient-to-br from-[#1c2333] to-[#101622] rounded-2xl border border-border overflow-hidden flex items-center justify-center group shadow-2xl">
-                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#101622]/80 to-transparent"></div>
-                  <div
-                    className="relative z-10 w-full h-full bg-center bg-cover mix-blend-lighten opacity-80"
-                    style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBfOAlCJ2EfVIZCXHEUq1lpk7il5uRwxuR5kziy7c0bLft4SDeUQ-8SQE4fJMHXFah_phybsE4a4L8PkqLa1voraIUy12IJpYaPUNBGA6EcW96UfhbNY9BrW4WfEKsnVOm7d2vnmWibHIXFObezgVcHeDbX2dpmM4zL3lr0z2lUFvJGwyTrnlWTdU6paNfZUvncTjHm6I2r1PWxgsDu94ghorBC8Qc_ISnqK17LQJiOVHf90GZfnI61ml8UxU8jGCzpekvPIef0spM")' }}
-                  ></div>
-                  <div className="absolute bottom-6 left-6 right-6 p-4 rounded-xl bg-[#282e39]/90 backdrop-blur-md border border-[#3b4555] flex items-center justify-between">
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-400 uppercase tracking-wider font-semibold">Focus Topic</span>
-                      <span className="text-white font-bold text-lg">{dppData.subject?.name}</span>
+            {/* DPP Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {allDpps.map((dpp, idx) => (
+                <motion.div
+                  key={dpp.id || `dpp-${idx}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1 }}
+                >
+                  <Card className="group relative overflow-hidden bg-card border-border hover:border-primary/50 transition-all duration-300 shadow-sm hover:shadow-xl hover:shadow-primary/5 flex flex-col h-full">
+                    {/* Status Badge */}
+                    <div className="absolute top-4 right-4 z-20">
+                      {dpp.status === 'COMPLETED' ? (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest">
+                          <CheckCircle2 className="size-3" />
+                          <span>Finished</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 text-[10px] font-black uppercase tracking-widest">
+                          <Play className="size-3 fill-current" />
+                          <span>Active</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary">
-                      <Brain className="size-6" />
+
+                    {/* Visual Header */}
+                    <div className="h-40 relative bg-gradient-to-br from-[#1c2333] to-[#101622] flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '16px 16px' }}></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-card/90 to-transparent"></div>
+
+                      <Brain className={`size-12 transition-transform duration-500 group-hover:scale-110 ${dpp.status === 'COMPLETED' ? 'text-emerald-500/50' : 'text-primary/50'}`} />
+
+                      <div className="absolute bottom-4 left-4 right-4">
+                        <span className="text-[10px] text-muted-foreground font-black uppercase tracking-[0.2em] mb-1 block">
+                          {dpp.subject?.name || "General"}
+                        </span>
+                        <h3 className="text-xl font-bold text-foreground line-clamp-1">
+                          {dpp.subject?.name} Practice
+                        </h3>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
 
-            </div>
+                    {/* Stats & Content */}
+                    <div className="p-6 flex-1 flex flex-col gap-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Questions</span>
+                          <span className="text-foreground font-bold">{dpp.questions.length} Sets</span>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Class</span>
+                          <span className="text-foreground font-bold">{dpp.class || "12th"}</span>
+                        </div>
+                      </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full mt-4">
-              {[
-                { icon: Flame, color: 'text-orange-500', bg: 'bg-card', label: 'Questions', value: dppData.questions.length },
-                { icon: BarChart, color: 'text-red-500', bg: 'bg-card', label: 'Class', value: dppData.class },
-                { icon: Clock, color: 'text-blue-400', bg: 'bg-card', label: 'Time', value: 'Unlimited' },
-                { icon: Medal, color: 'text-purple-400', bg: 'bg-card', label: 'Attempt', value: 'Now' },
-              ].map((stat, i) => (
-                <div key={i} className={`flex flex-col gap-1 rounded-xl p-5 ${stat.bg} border border-border shadow-sm hover:border-primary/50 transition-colors group cursor-default`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <stat.icon className={`size-5 ${stat.color}`} />
-                    <p className="text-muted-foreground text-xs font-bold uppercase tracking-wider">{stat.label}</p>
-                  </div>
-                  <p className={`text-foreground text-2xl font-bold leading-tight group-hover:${stat.color.replace('text-', 'text-')} transition-colors`}>{stat.value}</p>
-                </div>
+                      <div className="mt-auto pt-4 border-t border-border/50">
+                        {dpp.status === 'COMPLETED' ? (
+                          <Button
+                            variant="outline"
+                            className="w-full h-11 rounded-xl font-bold gap-2 group-hover:bg-emerald-500/5 group-hover:text-emerald-500 group-hover:border-emerald-500/30 transition-all"
+                            onClick={() => {
+                              setDppData(dpp);
+                              setIsSubmitted(true);
+                              setViewState('feedback');
+                            }}
+                          >
+                            <Medal className="size-4" />
+                            Review Results
+                          </Button>
+                        ) : (
+                          <Button
+                            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl font-bold gap-2 transition-all shadow-lg shadow-primary/20"
+                            onClick={() => startProblem(dpp)}
+                          >
+                            <Play className="size-4 fill-current" />
+                            Start Practice
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                </motion.div>
               ))}
+            </div>
+
+            {/* Streak/Stats Widget (Optional Footer) */}
+            <div className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="size-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
+                  <Flame className="size-6" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-foreground">You're on a 5-day streak!</h4>
+                  <p className="text-sm text-muted-foreground">Complete today's problems to keep it going.</p>
+                </div>
+              </div>
+              <Button variant="ghost" className="text-primary font-bold hover:bg-primary/10" asChild>
+                <Link href="/dashboard">View Leaderboard <ArrowRight className="size-4 ml-2" /></Link>
+              </Button>
             </div>
           </motion.div>
         )}
@@ -459,7 +507,9 @@ export default function DailyPracticePage() {
           >
             {/* Score Header */}
             <div className="bg-card w-full rounded-2xl border border-border shadow-sm p-8 flex flex-col items-center justify-center text-center space-y-4">
-              <h2 className="text-3xl font-black text-foreground">DPP Completed!</h2>
+              <h2 className="text-3xl font-black text-foreground">
+                {dppData.status === 'COMPLETED' ? "Practice Results" : "DPP Completed!"}
+              </h2>
               <div className="text-5xl font-black text-primary">
                 {score} / {totalQuestions}
               </div>
@@ -471,24 +521,31 @@ export default function DailyPracticePage() {
               <h3 className="text-xl font-bold px-2">Detailed Review</h3>
               {dppData.questions.map((qItem, idx) => {
                 const q = qItem.question;
-                const type = q.type.toLowerCase();
+                const type = q.type?.toLowerCase() || '';
                 const userAns = answers[q.id];
-                let isCorrect = false;
+                let isCorrect = qItem.isCorrect || false;
                 let userAnswerText = "Not Answered";
 
-                if (type === 'mcq') {
-                  if (userAns?.selectedOption === q.correctAnswer) isCorrect = true;
-                  if (userAns?.selectedOption) userAnswerText = `Option ${userAns.selectedOption}`;
-                } else if (type === 'true_false') {
-                  if (userAns?.selectedOption === q.correctAnswer) isCorrect = true;
-                  if (userAns?.selectedOption) userAnswerText = userAns.selectedOption.toUpperCase();
+                if (qItem.status === 'COMPLETED' && !userAns) {
+                  if (type === 'mcq') userAnswerText = `Option ${qItem.userAnswer}`;
+                  else if (type === 'true_false') userAnswerText = String(qItem.userAnswer).toUpperCase();
+                  else userAnswerText = qItem.userAnswer;
+                  isCorrect = qItem.isCorrect;
                 } else {
-                  if (userAns?.subjective?.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()) isCorrect = true;
-                  if (userAns?.subjective) userAnswerText = userAns.subjective;
+                  if (type === 'mcq') {
+                    if (userAns?.selectedOption === q.correctAnswer) isCorrect = true;
+                    if (userAns?.selectedOption) userAnswerText = `Option ${userAns.selectedOption}`;
+                  } else if (type === 'true_false') {
+                    if (userAns?.selectedOption === q.correctAnswer) isCorrect = true;
+                    if (userAns?.selectedOption) userAnswerText = userAns.selectedOption.toUpperCase();
+                  } else {
+                    if (userAns?.subjective?.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase()) isCorrect = true;
+                    if (userAns?.subjective) userAnswerText = userAns.subjective;
+                  }
                 }
 
                 return (
-                  <Card key={q.id} className={`p-6 border-l-4 ${isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}>
+                  <Card key={qItem.id} className={`p-6 border-l-4 ${isCorrect ? 'border-l-green-500' : 'border-l-red-500'}`}>
                     <div className="flex gap-4 items-start">
                       <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${isCorrect ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                         {isCorrect ? <CheckCircle2 className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
@@ -529,9 +586,9 @@ export default function DailyPracticePage() {
             </div>
 
             <div className="flex justify-center pt-8">
-              <a href="/dpp">
-                <Button size="lg" className="px-10">Go to DPP</Button>
-              </a>
+              <Button size="lg" className="px-10" onClick={() => setViewState('entry')}>
+                Back to Practices
+              </Button>
             </div>
           </motion.div>
         )}

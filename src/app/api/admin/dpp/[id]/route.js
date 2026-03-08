@@ -66,11 +66,11 @@ export async function PUT(req, { params }) {
                 },
             });
 
-            // 2. Clear existing questions (Remove the links)
-            // Note: We are not deleting the Question records themselves to avoid losing data if used elsewhere, 
-            // though in this exact app flow they are likely unique to this DPP. 
-            // For cleaner DB, we COULD delete them if they are not used elsewhere, but safe bet is just unlink.
+            // 2. Clear existing questions and student assignments (to force reload)
             await tx.dPPQuestion.deleteMany({
+                where: { dppId: id },
+            });
+            await tx.dPPAssignment.deleteMany({
                 where: { dppId: id },
             });
 
@@ -143,13 +143,18 @@ export async function DELETE(req, { params }) {
 
         const { id } = await params;
 
-        await prisma.dPPQuestion.deleteMany({
-            where: { dppId: id },
-        });
-
-        await prisma.dailyPracticeProblem.delete({
-            where: { id },
-        });
+        // Cleanup related data in transaction
+        await prisma.$transaction([
+            prisma.dPPQuestion.deleteMany({
+                where: { dppId: id },
+            }),
+            prisma.dPPAssignment.deleteMany({
+                where: { dppId: id },
+            }),
+            prisma.dailyPracticeProblem.delete({
+                where: { id },
+            }),
+        ]);
 
         return new NextResponse(null, { status: 204 });
     } catch (error) {

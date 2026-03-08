@@ -30,11 +30,12 @@ export async function GET(request) {
     const config = await getOrCreateDPPConfig(session.user.id);
 
     // Get today's DPP
-    let assignments = await getTodaysDPP(session.user.id, includeCompleted);
+    let { assignments } = await getTodaysDPP(session.user.id, includeCompleted);
 
     // If no assignments and refresh is requested, generate new ones
     if ((!assignments || assignments.length === 0) && refresh) {
-      assignments = await generateDPP(session.user.id);
+      const generated = await generateDPP(session.user.id);
+      assignments = generated.assignments || [];
     }
 
     // Get user's DPP statistics
@@ -67,9 +68,9 @@ export async function POST(request) {
     }
 
     const { count } = await request.json();
-    const assignments = await generateDPP(session.user.id, count);
+    const dpp = await generateDPP(session.user.id, count);
 
-    return NextResponse.json({ assignments });
+    return NextResponse.json({ assignments: dpp.assignments });
   } catch (error) {
     console.error('Error in POST /api/dpp:', error);
     const status = error instanceof DPPError && error.code === 'UNAUTHORIZED' ? 403 : 500;

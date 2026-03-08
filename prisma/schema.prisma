@@ -1,63 +1,57 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime? @map("email_verified")
-  password      String
-  role          Role      @default(STUDENT)
-  class         String?
-  image         String?
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
-  profileMeta   Json?     @map("profile_meta")
-  points        Int       @default(0) @map("points")
-  xp           Int       @default(0) @map("xp")
-  level        Int       @default(1) @map("level")
-  currentStreak Int       @default(0) @map("current_streak")
-  longestStreak Int       @default(0) @map("longest_streak")
-  lastActiveDate DateTime? @map("last_active_date")
-  lastLogin     DateTime? @map("last_login")
-  
-  // Relations
-  verificationTokens      VerificationToken[]
-  olympiadRegistrations   OlympiadRegistration[]
-  testAttempts            TestAttempt[]
-  payments                Payment[]
-  discussions             Discussion[]
-  badges                  UserBadge[]
-  accounts                Account[]
-  sessions                Session[]
-  contentComments         ContentComment[]
-  contentItems            ContentItem[]         @relation("ContentItemAuthor")
-  learningProgress        LearningProgress[]
-  studySessions           StudySession[]
-  analyticsEvents         AnalyticsEvent[]
-  userTestAnalytics       UserTestAnalytics[]
-  analyticsDashboards     AnalyticsDashboard[]
-  dppConfig               DPPConfig?
-  dppAssignments          DPPAssignment[]
-  dppProgress             DPPProgress?
-  certificates            Certificate[]
-  xpHistory               XPHistory[]
-  leaderboardEntries      LeaderboardEntry[]
-  userChallenges          UserChallenge[]
-  
+  id                    String                 @id @default(cuid())
+  name                  String?
+  email                 String                 @unique
+  emailVerified         DateTime?              @map("email_verified")
+  password              String
+  role                  Role                   @default(STUDENT)
+  class                 String?
+  image                 String?
+  createdAt             DateTime               @default(now()) @map("created_at")
+  updatedAt             DateTime               @updatedAt @map("updated_at")
+  profileMeta           Json?                  @map("profile_meta")
+  level                 Int                    @default(1) @map("level")
+  points                Int                    @default(0) @map("points")
+  xp                    Int                    @default(0) @map("xp")
+  currentStreak         Int                    @default(0) @map("current_streak")
+  lastActiveDate        DateTime?              @map("last_active_date")
+  lastLogin             DateTime?              @map("last_login")
+  longestStreak         Int                    @default(0) @map("longest_streak")
+  accounts              Account[]
+  analyticsDashboards   AnalyticsDashboard[]
+  analyticsEvents       AnalyticsEvent[]
+  certificates          Certificate[]
+  contentComments       ContentComment[]
+  contentItems          ContentItem[]          @relation("ContentItemAuthor")
+  discussions           Discussion[]
+  dppAssignments        DPPAssignment[]
+  dppConfig             DPPConfig?
+  dppProgress           DPPProgress?
+  leaderboardEntries    LeaderboardEntry[]
+  learningProgress      LearningProgress[]
+  olympiadRegistrations OlympiadRegistration[]
+  payments              Payment[]
+  sessions              Session[]
+  studySessions         StudySession[]
+  testAttempts          TestAttempt[]
+  badges                UserBadge[]
+  userChallenges        UserChallenge[]
+  userTestAnalytics     UserTestAnalytics[]
+  verificationTokens    VerificationToken[]
+  xpHistory             XPHistory[]
+
   @@index([createdAt])
   @@index([role, createdAt])
-  
   @@map("users")
 }
 
@@ -68,9 +62,8 @@ model XPHistory {
   source    String
   newTotal  Int      @map("new_total")
   createdAt DateTime @default(now()) @map("created_at")
-  
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("xp_history")
 }
 
@@ -82,281 +75,255 @@ model LeaderboardEntry {
   totalScore   Int      @default(0) @map("total_score")
   averageScore Int      @default(0) @map("average_score")
   lastUpdated  DateTime @default(now()) @map("last_updated")
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject      Subject? @relation(fields: [subjectId], references: [id])
-  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, subjectId])
   @@map("leaderboard_entries")
 }
 
 model LeaderboardSnapshot {
-  id          String   @id @default(cuid())
-  type        String   // daily, weekly, monthly
-  subjectId   String?  @map("subject_id")
-  classLevel  String?  @map("class_level")
-  data        Json
-  startDate   DateTime @map("start_date")
-  endDate     DateTime @map("end_date")
-  createdAt   DateTime @default(now()) @map("created_at")
-  
+  id         String   @id @default(cuid())
+  type       String
+  subjectId  String?  @map("subject_id")
+  classLevel String?  @map("class_level")
+  data       Json
+  startDate  DateTime @map("start_date")
+  endDate    DateTime @map("end_date")
+  createdAt  DateTime @default(now()) @map("created_at")
+
   @@map("leaderboard_snapshots")
 }
 
 model DailyChallenge {
-  id             String   @id @default(cuid())
+  id             String          @id @default(cuid())
   title          String
   description    String?
-  type           String   // test_participation, dpp_completion, perfect_score, etc.
-  date           DateTime @default(now())
-  xpReward       Int      @default(0) @map("xp_reward")
-  badgeRewardId  String?  @map("badge_reward_id")
-  subjectId      String?  @map("subject_id")
-  requiredValue  Int      @default(1) @map("required_value")
-  createdAt      DateTime @default(now()) @map("created_at")
-  
-  badgeReward    Badge?   @relation(fields: [badgeRewardId], references: [id])
-  subject        Subject? @relation(fields: [subjectId], references: [id])
+  type           String
+  date           DateTime        @default(now())
+  xpReward       Int             @default(0) @map("xp_reward")
+  badgeRewardId  String?         @map("badge_reward_id")
+  subjectId      String?         @map("subject_id")
+  requiredValue  Int             @default(1) @map("required_value")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  badgeReward    Badge?          @relation(fields: [badgeRewardId], references: [id])
+  subject        Subject?        @relation(fields: [subjectId], references: [id])
   userChallenges UserChallenge[]
-  
+
   @@map("daily_challenges")
 }
 
 model UserChallenge {
-  id           String    @id @default(cuid())
-  userId       String    @map("user_id")
-  challengeId  String    @map("challenge_id")
-  progress     Int       @default(0)
-  isCompleted  Boolean   @default(false) @map("is_completed")
-  completedAt  DateTime? @map("completed_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  challenge    DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
-  
+  id          String         @id @default(cuid())
+  userId      String         @map("user_id")
+  challengeId String         @map("challenge_id")
+  progress    Int            @default(0)
+  isCompleted Boolean        @default(false) @map("is_completed")
+  completedAt DateTime?      @map("completed_at")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  challenge   DailyChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, challengeId])
   @@map("user_challenges")
 }
 
 model Olympiad {
-  id               String               @id @default(cuid())
+  id               String                 @id @default(cuid())
   name             String
   description      String?
-  startDate        DateTime             @map("start_date")
-  endDate          DateTime             @map("end_date")
-  registrationLink String?              @map("registration_link")
-  createdAt        DateTime             @default(now()) @map("created_at")
-  createdBy        String               @map("created_by")
+  startDate        DateTime               @map("start_date")
+  endDate          DateTime               @map("end_date")
+  registrationLink String?                @map("registration_link")
+  createdAt        DateTime               @default(now()) @map("created_at")
+  createdBy        String                 @map("created_by")
   registrations    OlympiadRegistration[]
-  tests            Test[]
   updates          OlympiadUpdate[]
-  
+  tests            Test[]
+
   @@map("olympiads")
 }
 
 model Subject {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  class       String?
-  topics      Topic[]
-  dpps        DailyPracticeProblem[]
-  leaderboardEntries LeaderboardEntry[]
+  id                 String                 @id @default(cuid())
+  name               String
+  description        String?
+  class              String?
   dailyChallenges    DailyChallenge[]
-  
+  dpps               DailyPracticeProblem[]
+  leaderboardEntries LeaderboardEntry[]
+  topics             Topic[]
+
   @@map("subjects")
 }
 
 model Topic {
-  id           String   @id @default(cuid())
-  subjectId    String   @map("subject_id")
-  name         String
-  summary      String?
-  formulaSheet String?  @map("formula_sheet")
-  difficulty   String?  @default("beginner")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-  
-  subject         Subject  @relation(fields: [subjectId], references: [id])
-  contentItems    ContentItem[]
-  questions      Question[]
+  id               String             @id @default(cuid())
+  subjectId        String             @map("subject_id")
+  name             String
+  summary          String?
+  formulaSheet     String?            @map("formula_sheet")
+  difficulty       String?            @default("beginner")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  contentItems     ContentItem[]
   learningProgress LearningProgress[]
-  studySessions   StudySession[]
-  
+  questions        Question[]
+  studySessions    StudySession[]
+  subject          Subject            @relation(fields: [subjectId], references: [id])
+
   @@map("topics")
 }
 
-// Content Tag for categorization and search
 model ContentTag {
-  id          String          @id @default(cuid())
-  name        String          @unique
-  description String?
-  color       String?         @default("#6b7280")
-  createdAt   DateTime        @default(now()) @map("created_at")
-  updatedAt   DateTime        @updatedAt @map("updated_at")
-  
-  // Relations
+  id           String           @id @default(cuid())
+  name         String           @unique
+  description  String?
+  color        String?          @default("#6b7280")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
   contentItems ContentItemTag[]
-  
+
   @@map("content_tags")
 }
 
-// Junction table for ContentItem and Tag many-to-many relationship
 model ContentItemTag {
-  id           String     @id @default(cuid())
-  contentItemId String    @map("content_item_id")
-  tagId        String    @map("tag_id")
-  assignedAt   DateTime  @default(now()) @map("assigned_at")
-  assignedBy   String?   @map("assigned_by") // User ID
-  
-  contentItem  ContentItem @relation(fields: [contentItemId], references: [id])
-  tag          ContentTag  @relation(fields: [tagId], references: [id])
-  
+  id            String      @id @default(cuid())
+  contentItemId String      @map("content_item_id")
+  tagId         String      @map("tag_id")
+  assignedAt    DateTime    @default(now()) @map("assigned_at")
+  assignedBy    String?     @map("assigned_by")
+  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
+  tag           ContentTag  @relation(fields: [tagId], references: [id])
+
   @@unique([contentItemId, tagId])
   @@map("content_item_tags")
 }
 
-// Content comments and discussions
 model ContentComment {
-  id           String    @id @default(cuid())
-  content      String
-  contentItemId String    @map("content_item_id")
-  userId       String    @map("user_id")
-  parentId     String?   @map("parent_id") // For threaded comments
-  isResolved   Boolean   @default(false) @map("is_resolved")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-  
-  contentItem  ContentItem @relation(fields: [contentItemId], references: [id])
-  user         User        @relation(fields: [userId], references: [id])
-  parent       ContentComment? @relation("CommentReplies", fields: [parentId], references: [id])
-  replies      ContentComment[] @relation("CommentReplies")
-  
+  id            String           @id @default(cuid())
+  content       String
+  contentItemId String           @map("content_item_id")
+  userId        String           @map("user_id")
+  parentId      String?          @map("parent_id")
+  isResolved    Boolean          @default(false) @map("is_resolved")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  contentItem   ContentItem      @relation(fields: [contentItemId], references: [id])
+  parent        ContentComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies       ContentComment[] @relation("CommentReplies")
+  user          User             @relation(fields: [userId], references: [id])
+
   @@index([contentItemId])
   @@index([userId])
   @@index([parentId])
   @@map("content_comments")
 }
 
-// Access control for content
 model ContentAccess {
-  id            String    @id @default(cuid())
-  contentItemId String    @map("content_item_id")
+  id            String             @id @default(cuid())
+  contentItemId String             @map("content_item_id")
   accessLevel   ContentAccessLevel @default(RESTRICTED) @map("access_level")
-  userId        String?   @map("user_id") // For user-specific access
-  role          Role?     // For role-based access
-  expiresAt     DateTime? @map("expires_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  
-  contentItem   ContentItem @relation(fields: [contentItemId], references: [id])
-  
+  userId        String?            @map("user_id")
+  role          Role?
+  expiresAt     DateTime?          @map("expires_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+  contentItem   ContentItem        @relation(fields: [contentItemId], references: [id])
+
   @@index([contentItemId])
   @@index([userId])
   @@index([role])
   @@map("content_access")
 }
 
-// Content Folder for organization
 model ContentFolder {
-  id          String         @id @default(cuid())
+  id          String          @id @default(cuid())
   name        String
-  slug        String         @unique
+  slug        String          @unique
   description String?
-  parentId    String?        @map("parent_id")
-  isSystem    Boolean        @default(false) @map("is_system")
-  order       Int            @default(0)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-  createdBy   String         @map("created_by")
-  updatedBy   String?        @map("updated_by")
-  
-  // Relations
-  parent     ContentFolder?  @relation("NestedFolders", fields: [parentId], references: [id])
-  children   ContentFolder[] @relation("NestedFolders")
-  items      ContentItem[]
-  access     FolderAccess[]
-  
-  @@map("content_folders")
+  parentId    String?         @map("parent_id")
+  isSystem    Boolean         @default(false) @map("is_system")
+  order       Int             @default(0)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  createdBy   String          @map("created_by")
+  updatedBy   String?         @map("updated_by")
+  parent      ContentFolder?  @relation("NestedFolders", fields: [parentId], references: [id])
+  children    ContentFolder[] @relation("NestedFolders")
+  items       ContentItem[]
+  access      FolderAccess[]
+
   @@index([parentId])
   @@index([slug])
+  @@map("content_folders")
 }
 
-// Folder access control
 model FolderAccess {
-  id        String       @id @default(cuid())
-  folderId  String       @map("folder_id")
-  userId    String?      @map("user_id")
+  id        String        @id @default(cuid())
+  folderId  String        @map("folder_id")
+  userId    String?       @map("user_id")
   role      Role?
-  access    AccessLevel  @default(VIEW)
-  createdAt DateTime     @default(now()) @map("created_at")
-  
+  access    AccessLevel   @default(VIEW)
+  createdAt DateTime      @default(now()) @map("created_at")
   folder    ContentFolder @relation(fields: [folderId], references: [id])
-  
+
   @@unique([folderId, userId, role])
   @@map("folder_access")
 }
 
-// Content version history and management
-// Analytics and Reporting Models
 model TestAnalytics {
-  id                  String         @id @default(cuid())
-  testId              String         @unique @map("test_id")
-  totalAttempts       Int            @default(0) @map("total_attempts")
-  averageScore        Float?         @map("average_score")
-  completionRate      Float?         @map("completion_rate")
-  averageTimeSpent    Int?           @map("average_time_spent") // in seconds
-  difficultyMetrics   Json?          @map("difficulty_metrics") // Store question difficulty analysis
-  knowledgeGaps       Json?          @map("knowledge_gaps")    // Common incorrect answers
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
-  
-  // Relations
-  test                Test           @relation(fields: [testId], references: [id])
-  questionAnalytics   QuestionAnalytics[]
-  
+  id                String              @id @default(cuid())
+  testId            String              @unique @map("test_id")
+  totalAttempts     Int                 @default(0) @map("total_attempts")
+  averageScore      Float?              @map("average_score")
+  completionRate    Float?              @map("completion_rate")
+  averageTimeSpent  Int?                @map("average_time_spent")
+  difficultyMetrics Json?               @map("difficulty_metrics")
+  knowledgeGaps     Json?               @map("knowledge_gaps")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  questionAnalytics QuestionAnalytics[]
+  test              Test                @relation(fields: [testId], references: [id])
+
   @@index([testId])
   @@map("test_analytics")
 }
 
 model QuestionAnalytics {
-  id              String         @id @default(cuid())
-  testAnalyticsId String         @map("test_analytics_id")
-  questionId      String         @map("question_id")
-  totalAttempts   Int            @default(0) @map("total_attempts")
-  correctAttempts Int            @default(0) @map("correct_attempts")
-  averageTime     Int?           @map("average_time") // in seconds
-  difficulty      Float?         // Calculated difficulty score (0-1)
-  discrimination  Float?         // Item discrimination index
-  distractorAnalysis Json?       @map("distractor_analysis") // Analysis of incorrect answers
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt @map("updated_at")
-  
-  // Relations
-  testAnalytics   TestAnalytics  @relation(fields: [testAnalyticsId], references: [id])
-  question        Question       @relation(fields: [questionId], references: [id])
-  
+  id                 String        @id @default(cuid())
+  testAnalyticsId    String        @map("test_analytics_id")
+  questionId         String        @map("question_id")
+  totalAttempts      Int           @default(0) @map("total_attempts")
+  correctAttempts    Int           @default(0) @map("correct_attempts")
+  averageTime        Int?          @map("average_time")
+  difficulty         Float?
+  discrimination     Float?
+  distractorAnalysis Json?         @map("distractor_analysis")
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+  question           Question      @relation(fields: [questionId], references: [id])
+  testAnalytics      TestAnalytics @relation(fields: [testAnalyticsId], references: [id])
+
   @@unique([testAnalyticsId, questionId])
   @@index([questionId])
   @@map("question_analytics")
 }
 
 model UserTestAnalytics {
-  id              String         @id @default(cuid())
-  userId          String         @map("user_id")
-  testId          String         @map("test_id")
-  attemptId       String         @map("attempt_id") @unique
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  testId          String   @map("test_id")
+  attemptId       String   @unique @map("attempt_id")
   score           Float
-  percentScore    Float          @map("percent_score")
-  timeSpent       Int            @map("time_spent") // in seconds
-  completedAt     DateTime       @map("completed_at")
-  questionMetrics Json?          @map("question_metrics") // Detailed question-level metrics
-  createdAt       DateTime       @default(now()) @map("created_at")
-  
-  // Relations
-  user            User           @relation(fields: [userId], references: [id])
-  test            Test           @relation(fields: [testId], references: [id])
-  
+  percentScore    Float    @map("percent_score")
+  timeSpent       Int      @map("time_spent")
+  completedAt     DateTime @map("completed_at")
+  questionMetrics Json?    @map("question_metrics")
+  createdAt       DateTime @default(now()) @map("created_at")
+  test            Test     @relation(fields: [testId], references: [id])
+  user            User     @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([testId])
   @@index([completedAt])
@@ -364,62 +331,60 @@ model UserTestAnalytics {
 }
 
 model FinancialReport {
-  id              String         @id @default(cuid())
-  reportType      String         @map("report_type") // daily, weekly, monthly, yearly, custom
-  startDate       DateTime       @map("start_date")
-  endDate         DateTime       @map("end_date")
-  totalRevenue    Decimal        @map("total_revenue") @default(0)
-  totalOrders     Int            @default(0) @map("total_orders")
-  totalRefunds    Decimal        @default(0) @map("total_refunds")
-  paymentMethods  Json?          @map("payment_methods") // Breakdown by payment method
-  subscriptionMetrics Json?      @map("subscription_metrics")
-  taxSummary      Json?          @map("tax_summary")
-  createdAt       DateTime       @default(now()) @map("created_at")
-  
+  id                  String   @id @default(cuid())
+  reportType          String   @map("report_type")
+  startDate           DateTime @map("start_date")
+  endDate             DateTime @map("end_date")
+  totalRevenue        Decimal  @default(0) @map("total_revenue")
+  totalOrders         Int      @default(0) @map("total_orders")
+  totalRefunds        Decimal  @default(0) @map("total_refunds")
+  paymentMethods      Json?    @map("payment_methods")
+  subscriptionMetrics Json?    @map("subscription_metrics")
+  taxSummary          Json?    @map("tax_summary")
+  createdAt           DateTime @default(now()) @map("created_at")
+
   @@index([reportType])
   @@index([startDate, endDate])
   @@map("financial_reports")
 }
 
 model SubscriptionAnalytics {
-  id                     String         @id @default(cuid())
-  date                   DateTime       @default(now())
-  totalSubscribers       Int            @default(0) @map("total_subscribers")
-  newSubscribers         Int            @default(0) @map("new_subscribers")
-  churnedSubscribers     Int            @default(0) @map("churned_subscribers")
-  mrr                    Decimal        @default(0) // Monthly Recurring Revenue
-  arr                    Decimal        @default(0) // Annual Recurring Revenue
-  arpu                   Decimal?       @default(0) // Average Revenue Per User
-  churnRate              Float?         @map("churn_rate")
-  planBreakdown          Json?          @map("plan_breakdown")
-  createdAt              DateTime       @default(now()) @map("created_at")
-  
+  id                 String   @id @default(cuid())
+  date               DateTime @default(now())
+  totalSubscribers   Int      @default(0) @map("total_subscribers")
+  newSubscribers     Int      @default(0) @map("new_subscribers")
+  churnedSubscribers Int      @default(0) @map("churned_subscribers")
+  mrr                Decimal  @default(0)
+  arr                Decimal  @default(0)
+  arpu               Decimal? @default(0)
+  churnRate          Float?   @map("churn_rate")
+  planBreakdown      Json?    @map("plan_breakdown")
+  createdAt          DateTime @default(now()) @map("created_at")
+
   @@index([date])
   @@map("subscription_analytics")
 }
 
-// Analytics and Progress Tracking
 model LearningProgress {
-  id              String      @id @default(cuid())
-  userId          String      @map("user_id")
-  contentItemId   String?     @map("content_item_id")
-  testId          String?     @map("test_id")
-  topicId         String?     @map("topic_id")
-  progress        Float       @default(0) // 0 to 1 (0% to 100%)
-  status          String      @default("not_started") // not_started, in_progress, completed
-  lastAccessedAt  DateTime?   @map("last_accessed_at")
-  timeSpent       Int         @default(0) // in seconds
-  completedAt     DateTime?   @map("completed_at")
-  score           Float?      // For tests/quizzes
-  metadata        Json?       // Additional progress data
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-  
-  user            User        @relation(fields: [userId], references: [id])
-  contentItem     ContentItem? @relation(fields: [contentItemId], references: [id])
-  test            Test?       @relation(fields: [testId], references: [id])
-  topic           Topic?      @relation(fields: [topicId], references: [id])
-  
+  id             String       @id @default(cuid())
+  userId         String       @map("user_id")
+  contentItemId  String?      @map("content_item_id")
+  testId         String?      @map("test_id")
+  topicId        String?      @map("topic_id")
+  progress       Float        @default(0)
+  status         String       @default("not_started")
+  lastAccessedAt DateTime?    @map("last_accessed_at")
+  timeSpent      Int          @default(0)
+  completedAt    DateTime?    @map("completed_at")
+  score          Float?
+  metadata       Json?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  contentItem    ContentItem? @relation(fields: [contentItemId], references: [id])
+  test           Test?        @relation(fields: [testId], references: [id])
+  topic          Topic?       @relation(fields: [topicId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
   @@unique([userId, contentItemId])
   @@unique([userId, testId])
   @@index([userId])
@@ -432,23 +397,22 @@ model LearningProgress {
 }
 
 model StudySession {
-  id              String      @id @default(cuid())
-  userId          String      @map("user_id")
-  startTime       DateTime    @map("start_time")
-  endTime         DateTime?   @map("end_time")
-  duration        Int?        // in seconds
-  activityType    String      @map("activity_type") // video_watch, test_taken, reading, etc.
-  contentItemId   String?     @map("content_item_id")
-  testId          String?     @map("test_id")
-  topicId         String?     @map("topic_id")
-  metadata        Json?       // Additional session data
-  createdAt       DateTime    @default(now()) @map("created_at")
-  
-  user            User        @relation(fields: [userId], references: [id])
-  contentItem     ContentItem? @relation(fields: [contentItemId], references: [id])
-  test            Test?       @relation(fields: [testId], references: [id])
-  topic           Topic?      @relation(fields: [topicId], references: [id])
-  
+  id            String       @id @default(cuid())
+  userId        String       @map("user_id")
+  startTime     DateTime     @map("start_time")
+  endTime       DateTime?    @map("end_time")
+  duration      Int?
+  activityType  String       @map("activity_type")
+  contentItemId String?      @map("content_item_id")
+  testId        String?      @map("test_id")
+  topicId       String?      @map("topic_id")
+  metadata      Json?
+  createdAt     DateTime     @default(now()) @map("created_at")
+  contentItem   ContentItem? @relation(fields: [contentItemId], references: [id])
+  test          Test?        @relation(fields: [testId], references: [id])
+  topic         Topic?       @relation(fields: [topicId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+
   @@index([userId])
   @@index([contentItemId])
   @@index([testId])
@@ -459,19 +423,18 @@ model StudySession {
 }
 
 model AnalyticsEvent {
-  id              String      @id @default(cuid())
-  eventType       String      @map("event_type") // page_view, content_view, test_start, test_complete, etc.
-  userId          String?     @map("user_id")
-  userRole        Role?       @map("user_role")
-  pageUrl         String?     @map("page_url")
-  referrer        String?
-  userAgent       String?     @map("user_agent")
-  ipAddress       String?     @map("ip_address")
-  metadata        Json?       // Additional event data
-  createdAt       DateTime    @default(now()) @map("created_at")
-  
-  user            User?       @relation(fields: [userId], references: [id])
-  
+  id        String   @id @default(cuid())
+  eventType String   @map("event_type")
+  userId    String?  @map("user_id")
+  userRole  Role?    @map("user_role")
+  pageUrl   String?  @map("page_url")
+  referrer  String?
+  userAgent String?  @map("user_agent")
+  ipAddress String?  @map("ip_address")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id])
+
   @@index([eventType])
   @@index([userId])
   @@index([userRole])
@@ -479,157 +442,150 @@ model AnalyticsEvent {
   @@map("analytics_events")
 }
 
-// Analytics dashboards and saved reports
 model AnalyticsDashboard {
-  id              String      @id @default(cuid())
-  name            String
-  description     String?
-  layout          Json        // Dashboard layout configuration
-  isDefault       Boolean     @default(false) @map("is_default")
-  createdBy       String      @map("created_by")
-  createdAt       DateTime    @default(now()) @map("created_at")
-  updatedAt       DateTime    @updatedAt @map("updated_at")
-  
-  user            User        @relation(fields: [createdBy], references: [id])
-  
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  layout      Json
+  isDefault   Boolean  @default(false) @map("is_default")
+  createdBy   String   @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user        User     @relation(fields: [createdBy], references: [id])
+
   @@index([createdBy])
   @@map("analytics_dashboards")
 }
 
 model ContentItem {
-  id              String          @id @default(cuid())
-  topicId         String          @map("topic_id")
-  folderId        String?         @map("folder_id")
-  versionGroupId  String          @default(uuid()) @map("version_group_id")
-  parentId        String?         @map("parent_id")
-  version         Int             @default(1)
-  title           String
-  slug            String          @unique
-  description     String?
-  type            String          // video, pdf, summary, document, image
-  mimeType        String?         @map("mime_type")  // MIME type of the content
-  fileSize        Int?            @map("file_size")  // In bytes
-  url             String
-  thumbnailUrl    String?         @map("thumbnail_url")
-  provider        String?         // s3, youtube, vimeo, etc.
-  status          ContentStatus   @default(DRAFT)
-  isPublic        Boolean         @default(false) @map("is_public")
-  publishedAt     DateTime?       @map("published_at")
-  scheduledFor    DateTime?       @map("scheduled_for")
-  expiresAt       DateTime?       @map("expires_at")
-  metadata        Json?           // Additional metadata (dimensions, duration, etc.)
-  changeLog       String?         @map("change_log") // Description of changes in this version
-  isCurrent       Boolean         @default(true) @map("is_current") // If this is the current version
-  downloadCount   Int             @default(0) @map("download_count")
-  viewCount       Int             @default(0) @map("view_count")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-  createdBy       String          @map("created_by") // User ID
-  updatedBy       String?         @map("updated_by") // User ID
-  
-  // Relations
-  topic           Topic           @relation(fields: [topicId], references: [id])
-  folder          ContentFolder?   @relation(fields: [folderId], references: [id])
-  parent          ContentItem?    @relation("ContentItemVersions", fields: [parentId], references: [id])
-  versions        ContentItem[]   @relation("ContentItemVersions")
-  contentTags     ContentItemTag[]
-  comments        ContentComment[]
-  accessControls  ContentAccess[]
-  creator         User            @relation("ContentItemAuthor", fields: [createdBy], references: [id])
+  id               String             @id @default(cuid())
+  topicId          String             @map("topic_id")
+  folderId         String?            @map("folder_id")
+  versionGroupId   String             @default(uuid()) @map("version_group_id")
+  parentId         String?            @map("parent_id")
+  version          Int                @default(1)
+  title            String
+  slug             String             @unique
+  description      String?
+  type             String
+  mimeType         String?            @map("mime_type")
+  fileSize         Int?               @map("file_size")
+  url              String
+  thumbnailUrl     String?            @map("thumbnail_url")
+  provider         String?
+  status           ContentStatus      @default(DRAFT)
+  isPublic         Boolean            @default(false) @map("is_public")
+  publishedAt      DateTime?          @map("published_at")
+  scheduledFor     DateTime?          @map("scheduled_for")
+  expiresAt        DateTime?          @map("expires_at")
+  metadata         Json?
+  changeLog        String?            @map("change_log")
+  isCurrent        Boolean            @default(true) @map("is_current")
+  downloadCount    Int                @default(0) @map("download_count")
+  viewCount        Int                @default(0) @map("view_count")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  createdBy        String             @map("created_by")
+  updatedBy        String?            @map("updated_by")
+  accessControls   ContentAccess[]
+  comments         ContentComment[]
+  contentTags      ContentItemTag[]
+  creator          User               @relation("ContentItemAuthor", fields: [createdBy], references: [id])
+  folder           ContentFolder?     @relation(fields: [folderId], references: [id])
+  parent           ContentItem?       @relation("ContentItemVersions", fields: [parentId], references: [id])
+  versions         ContentItem[]      @relation("ContentItemVersions")
+  topic            Topic              @relation(fields: [topicId], references: [id])
   learningProgress LearningProgress[]
-  studySessions   StudySession[]
-  
-  @@map("content_items")
+  studySessions    StudySession[]
+
   @@index([status])
   @@index([scheduledFor])
   @@index([publishedAt])
   @@index([versionGroupId])
   @@index([slug])
   @@index([createdBy])
+  @@map("content_items")
 }
 
 model Question {
-  id            String       @id @default(cuid())
-  topicId       String       @map("topic_id")
-  text          String
-  type          String       // mcq, short_answer, long_answer
-  options       Json?        // For MCQs
-  correctAnswer String?      @map("correct_answer")
-  explanation   String?
-  difficulty    String?      @default("medium")
-  marks         Int          @default(1)
-  isActive      Boolean      @default(true) @map("is_active")
-  attempts      Int          @default(0)
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-  
-  topic           Topic             @relation(fields: [topicId], references: [id])
-  testQuestions   TestQuestion[]
-  discussions     Discussion[]
+  id                String              @id @default(cuid())
+  topicId           String              @map("topic_id")
+  text              String
+  type              String
+  options           Json?
+  correctAnswer     String?             @map("correct_answer")
+  explanation       String?
+  difficulty        String?             @default("medium")
+  marks             Int                 @default(1)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+  attempts          Int                 @default(0)
+  isActive          Boolean             @default(true) @map("is_active")
+  discussions       Discussion[]
+  dppAssignments    DPPAssignment[]
+  dppQuestions      DPPQuestion[]
   questionAnalytics QuestionAnalytics[]
-  dppQuestions    DPPQuestion[]
-  dppAssignments  DPPAssignment[]
-  
+  topic             Topic               @relation(fields: [topicId], references: [id])
+  testQuestions     TestQuestion[]
+
   @@map("questions")
 }
 
 model Test {
-  id                  String         @id @default(cuid())
-  title               String
-  description         String?
-  olympiadId          String?        @map("olympiad_id")
-  isPaid              Boolean        @default(false) @map("is_paid")
-  price               Float?         @default(0)
-  startTime           DateTime?      @map("start_time")
-  endTime             DateTime?      @map("end_time")
-  durationMinutes     Int            @default(60) @map("duration_minutes")
-  isPublished         Boolean        @default(false) @map("is_published")
-  requiresPayment     Boolean        @default(false) @map("requires_payment")
-  paymentAmount       Float?         @default(0) @map("payment_amount")
-  paymentCurrency     String         @default("INR") @map("payment_currency")
-  autoSubmit          Boolean        @default(true) @map("auto_submit")
-  allowMultipleAttempts Boolean      @default(false) @map("allow_multiple_attempts")
-  showResultsImmediately Boolean     @default(false) @map("show_results_immediately")
-  passingScore        Float?         @map("passing_score")
-  subject             String?
-  testType            String         @default("weekly") @map("test_type")
-  class               String?
-  tags                String[]
-  categories          String[]
-  instructions        String?        @db.Text
-  proctoringEnabled   Boolean        @default(false) @map("proctoring_enabled")
-  faceDetectionEnabled Boolean       @default(false) @map("face_detection_enabled")
-  tabMonitoringEnabled Boolean       @default(false) @map("tab_monitoring_enabled")
-  enforceFullscreen    Boolean        @default(false) @map("enforce_fullscreen")
-  createdAt           DateTime       @default(now()) @map("created_at")
-  updatedAt           DateTime       @updatedAt @map("updated_at")
-  createdBy           String         @map("created_by")
-  
-  olympiad        Olympiad?      @relation(fields: [olympiadId], references: [id])
-  testQuestions     TestQuestion[]
-  testAnalytics     TestAnalytics[]
-  userTestAnalytics UserTestAnalytics[]
-  learningProgress  LearningProgress[]
-  studySessions     StudySession[]
-  attempts          TestAttempt[]
-  payments          Payment[]
-  discussions       Discussion[]
-  certificates      Certificate[]
-  
+  id                     String              @id @default(cuid())
+  title                  String
+  description            String?
+  olympiadId             String?             @map("olympiad_id")
+  isPaid                 Boolean             @default(false) @map("is_paid")
+  price                  Float?              @default(0)
+  startTime              DateTime?           @map("start_time")
+  endTime                DateTime?           @map("end_time")
+  durationMinutes        Int                 @default(60) @map("duration_minutes")
+  isPublished            Boolean             @default(false) @map("is_published")
+  requiresPayment        Boolean             @default(false) @map("requires_payment")
+  paymentAmount          Float?              @default(0) @map("payment_amount")
+  paymentCurrency        String              @default("INR") @map("payment_currency")
+  autoSubmit             Boolean             @default(true) @map("auto_submit")
+  allowMultipleAttempts  Boolean             @default(false) @map("allow_multiple_attempts")
+  showResultsImmediately Boolean             @default(false) @map("show_results_immediately")
+  passingScore           Float?              @map("passing_score")
+  instructions           String?
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  createdBy              String              @map("created_by")
+  categories             String[]
+  subject                String?
+  tags                   String[]
+  testType               String              @default("weekly") @map("test_type")
+  class                  String?
+  enforceFullscreen      Boolean             @default(false) @map("enforce_fullscreen")
+  faceDetectionEnabled   Boolean             @default(false) @map("face_detection_enabled")
+  proctoringEnabled      Boolean             @default(false) @map("proctoring_enabled")
+  tabMonitoringEnabled   Boolean             @default(false) @map("tab_monitoring_enabled")
+  certificates           Certificate[]
+  discussions            Discussion[]
+  learningProgress       LearningProgress[]
+  payments               Payment[]
+  studySessions          StudySession[]
+  testAnalytics          TestAnalytics?
+  attempts               TestAttempt[]
+  testQuestions          TestQuestion[]
+  olympiad               Olympiad?           @relation(fields: [olympiadId], references: [id])
+  userTestAnalytics      UserTestAnalytics[]
+
   @@map("tests")
 }
 
 model TestQuestion {
-  id           String       @id @default(cuid())
-  testId       String       @map("test_id")
-  questionId   String       @map("question_id")
-  sequence     Int          @default(0)
-  marks        Int          @default(1)
-  createdAt    DateTime     @default(now()) @map("created_at")
-  
-  test       Test      @relation(fields: [testId], references: [id])
-  question   Question  @relation(fields: [questionId], references: [id])
-  
+  id         String   @id @default(cuid())
+  testId     String   @map("test_id")
+  questionId String   @map("question_id")
+  sequence   Int      @default(0)
+  marks      Int      @default(1)
+  createdAt  DateTime @default(now()) @map("created_at")
+  question   Question @relation(fields: [questionId], references: [id])
+  test       Test     @relation(fields: [testId], references: [id])
+
   @@unique([testId, questionId])
   @@index([testId])
   @@index([questionId])
@@ -637,94 +593,89 @@ model TestQuestion {
 }
 
 model TestAttempt {
-  id                 String   @id @default(cuid())
-  testId             String   @map("test_id")
-  userId             String   @map("user_id")
-  paymentId          String?  @map("payment_id")
-  startedAt          DateTime @default(now()) @map("started_at")
-  finishedAt         DateTime? @map("finished_at")
-  submittedAt        DateTime? @map("submitted_at")
-  timeSpentSeconds   Int      @default(0) @map("time_spent_seconds")
-  status             String   @default("in_progress") // in_progress, submitted, timed_out, abandoned
-  score              Float?
-  percentage         Float?   @map("percentage")
-  isPassed           Boolean? @map("is_passed")
-  ipAddress          String?  @map("ip_address")
-  userAgent          String?  @map("user_agent")
-  answers            Json?    @map("answers") // Store user's answers
-  results            Json?    @map("results") // Detailed results and feedback
-  details            Json?    @map("details") // Detailed attempt information
-  metadata           Json?    @map("metadata") // Additional metadata
-  
-  test       Test     @relation(fields: [testId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
-  certificate Certificate?
-  
+  id               String       @id @default(cuid())
+  testId           String       @map("test_id")
+  userId           String       @map("user_id")
+  paymentId        String?      @map("payment_id")
+  startedAt        DateTime     @default(now()) @map("started_at")
+  finishedAt       DateTime?    @map("finished_at")
+  submittedAt      DateTime?    @map("submitted_at")
+  timeSpentSeconds Int          @default(0) @map("time_spent_seconds")
+  status           String       @default("in_progress")
+  score            Float?
+  percentage       Float?       @map("percentage")
+  isPassed         Boolean?     @map("is_passed")
+  ipAddress        String?      @map("ip_address")
+  userAgent        String?      @map("user_agent")
+  answers          Json?        @map("answers")
+  results          Json?        @map("results")
+  metadata         Json?        @map("metadata")
+  details          Json?        @map("details")
+  certificate      Certificate?
+  test             Test         @relation(fields: [testId], references: [id])
+  user             User         @relation(fields: [userId], references: [id])
+
   @@map("test_attempts")
 }
 
 model Payment {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  testId          String?  @map("test_id")
-  amount          Float
-  currency        String   @default("INR")
-  status          String   // pending, completed, failed
-  provider        String   // razorpay, stripe
-  providerOrderId String   @map("provider_order_id")
-  providerPaymentId String? @map("provider_payment_id")
-  signature       String?  // For webhook verification
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  
-  user            User     @relation(fields: [userId], references: [id])
-  test            Test?    @relation(fields: [testId], references: [id])
-  
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  testId            String?  @map("test_id")
+  amount            Float
+  currency          String   @default("INR")
+  status            String
+  provider          String
+  providerOrderId   String   @map("provider_order_id")
+  providerPaymentId String?  @map("provider_payment_id")
+  signature         String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  test              Test?    @relation(fields: [testId], references: [id])
+  user              User     @relation(fields: [userId], references: [id])
+
   @@map("payments")
 }
 
 model Discussion {
-  id          String      @id @default(cuid())
-  questionId  String?     @map("question_id")
-  testId      String?     @map("test_id")
-  userId      String      @map("user_id")
-  parentId    String?     @map("parent_id")
-  content     String
-  isResolved  Boolean     @default(false) @map("is_resolved")
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
-  
-  user        User        @relation(fields: [userId], references: [id])
-  question    Question?   @relation(fields: [questionId], references: [id])
-  test        Test?       @relation(fields: [testId], references: [id])
-  parent      Discussion? @relation("DiscussionReplies", fields: [parentId], references: [id])
-  replies     Discussion[] @relation("DiscussionReplies")
-  
+  id         String       @id @default(cuid())
+  questionId String?      @map("question_id")
+  testId     String?      @map("test_id")
+  userId     String       @map("user_id")
+  parentId   String?      @map("parent_id")
+  content    String
+  isResolved Boolean      @default(false) @map("is_resolved")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  parent     Discussion?  @relation("DiscussionReplies", fields: [parentId], references: [id])
+  replies    Discussion[] @relation("DiscussionReplies")
+  question   Question?    @relation(fields: [questionId], references: [id])
+  test       Test?        @relation(fields: [testId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+
   @@map("discussions")
 }
 
 model Badge {
-  id          String      @id @default(cuid())
-  name        String
-  description String
-  iconUrl     String?     @map("icon_url")
-  criteria    Json?       // Criteria to earn this badge
-  
-  userBadges      UserBadge[]
+  id              String           @id @default(cuid())
+  name            String
+  description     String
+  iconUrl         String?          @map("icon_url")
+  criteria        Json?
   dailyChallenges DailyChallenge[]
-  
+  userBadges      UserBadge[]
+
   @@map("badges")
 }
 
 model UserBadge {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  badgeId   String   @map("badge_id")
-  earnedAt  DateTime @default(now()) @map("earned_at")
-  
-  user      User     @relation(fields: [userId], references: [id])
-  badge     Badge    @relation(fields: [badgeId], references: [id])
-  
+  id       String   @id @default(cuid())
+  userId   String   @map("user_id")
+  badgeId  String   @map("badge_id")
+  earnedAt DateTime @default(now()) @map("earned_at")
+  badge    Badge    @relation(fields: [badgeId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
   @@unique([userId, badgeId])
   @@map("user_badges")
 }
@@ -733,15 +684,172 @@ model OlympiadRegistration {
   id         String   @id @default(cuid())
   userId     String   @map("user_id")
   olympiadId String   @map("olympiad_id")
-  status     String   @default("registered") // registered, confirmed, cancelled
+  status     String   @default("registered")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-  
-  user       User     @relation(fields: [userId], references: [id])
   olympiad   Olympiad @relation(fields: [olympiadId], references: [id])
-  
+  user       User     @relation(fields: [userId], references: [id])
+
   @@unique([userId, olympiadId])
   @@map("olympiad_registrations")
+}
+
+model VerificationToken {
+  id         String     @id @default(cuid())
+  token      String     @unique
+  type       TokenType?
+  identifier String?
+  expiresAt  DateTime   @map("expires_at")
+  expires    DateTime?
+  userId     String?    @map("user_id")
+  user       User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OlympiadUpdate {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  type        String    @default("UPDATE")
+  date        DateTime  @default(now())
+  olympiadId  String?   @map("olympiad_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  documentUrl String?   @map("document_url")
+  olympiad    Olympiad? @relation(fields: [olympiadId], references: [id])
+
+  @@map("olympiad_updates")
+}
+
+model DailyPracticeProblem {
+  id             String          @id @default(cuid())
+  title          String?
+  date           DateTime        @default(now())
+  class          String?
+  subjectId      String?         @map("subject_id")
+  isActive       Boolean         @default(true) @map("is_active")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  completedAt    DateTime?       @map("completed_at")
+  status         String          @default("PENDING")
+  totalQuestions Int             @default(0) @map("total_questions")
+  userId         String?         @map("user_id")
+  subject        Subject?        @relation(fields: [subjectId], references: [id])
+  assignments    DPPAssignment[]
+  questions      DPPQuestion[]
+
+  @@map("daily_practice_problems")
+}
+
+model DPPQuestion {
+  id         String               @id @default(cuid())
+  dppId      String               @map("dpp_id")
+  questionId String               @map("question_id")
+  sequence   Int                  @default(0)
+  dpp        DailyPracticeProblem @relation(fields: [dppId], references: [id])
+  question   Question             @relation(fields: [questionId], references: [id])
+
+  @@unique([dppId, questionId])
+  @@map("dpp_questions")
+}
+
+model DPPConfig {
+  id            String   @id @default(cuid())
+  userId        String   @unique @map("user_id")
+  subjects      String[]
+  topics        String[]
+  difficulty    String[]
+  questionTypes String[]
+  dailyLimit    Int      @default(5) @map("daily_limit")
+  timeOfDay     String   @default("09:00") @map("time_of_day")
+  notifications Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@map("dpp_configs")
+}
+
+model DPPAssignment {
+  id          String                @id @default(cuid())
+  dppId       String?               @map("dpp_id")
+  userId      String                @map("user_id")
+  questionId  String                @map("question_id")
+  status      String                @default("PENDING")
+  userAnswer  String?               @map("user_answer")
+  isCorrect   Boolean?              @map("is_correct")
+  timeSpent   Int                   @default(0) @map("time_spent")
+  submittedAt DateTime?             @map("submitted_at")
+  sequence    Int                   @default(0)
+  metadata    Json?
+  dpp         DailyPracticeProblem? @relation(fields: [dppId], references: [id])
+  question    Question              @relation(fields: [questionId], references: [id])
+  user        User                  @relation(fields: [userId], references: [id])
+
+  @@map("dpp_assignments")
+}
+
+model DPPProgress {
+  id             String    @id @default(cuid())
+  userId         String    @unique @map("user_id")
+  date           DateTime  @default(now())
+  totalAssigned  Int       @default(0) @map("total_assigned")
+  totalCompleted Int       @default(0) @map("total_completed")
+  correctAnswers Int       @default(0) @map("correct_answers")
+  currentStreak  Int       @default(0) @map("current_streak")
+  longestStreak  Int       @default(0) @map("longest_streak")
+  lastActiveDate DateTime? @map("last_active_date")
+  user           User      @relation(fields: [userId], references: [id])
+
+  @@map("dpp_progress")
+}
+
+model Certificate {
+  id            String      @id @default(cuid())
+  userId        String      @map("user_id")
+  testId        String      @map("test_id")
+  attemptId     String      @unique @map("attempt_id")
+  certificateId String      @unique @map("certificate_id")
+  issueDate     DateTime    @default(now()) @map("issue_date")
+  pdfUrl        String?     @map("pdf_url")
+  metadata      Json?
+  attempt       TestAttempt @relation(fields: [attemptId], references: [id])
+  test          Test        @relation(fields: [testId], references: [id])
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@map("certificates")
 }
 
 enum Role {
@@ -796,175 +904,4 @@ enum ContentType {
 enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
-}
-
-// Unified VerificationToken model that works with both custom tokens and NextAuth
-model VerificationToken {
-  id           String     @id @default(cuid())
-  token        String     @unique
-  type         TokenType?
-  identifier   String?    // For NextAuth
-  expiresAt    DateTime   @map("expires_at")
-  expires      DateTime?  // For NextAuth compatibility
-  userId       String?    @map("user_id")
-  
-  // Relations
-  user         User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("verification_tokens")
-  @@unique([userId, type])
-  @@unique([identifier, token])
-}
-
-// For NextAuth.js
-model Account {
-  id                String  @id @default(cuid())
-  userId            String  @map("user_id")
-  type              String
-  provider          String
-  providerAccountId String  @map("provider_account_id")
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([provider, providerAccountId])
-  @@map("accounts")
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique @map("session_token")
-  userId       String   @map("user_id")
-  expires      DateTime
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("sessions")
-}
-
-model OlympiadUpdate {
-  id          String   @id @default(cuid())
-  title       String
-  content     String   @db.Text
-  type        String   @default("UPDATE") // UPDATE, NOTICE, RESULT
-  documentUrl String?  @map("document_url")
-  date        DateTime @default(now())
-  olympiadId  String?  @map("olympiad_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  olympiad    Olympiad? @relation(fields: [olympiadId], references: [id])
-
-  @@map("olympiad_updates")
-}
-
-model DailyPracticeProblem {
-  id          String   @id @default(cuid())
-  title       String?
-  date        DateTime @default(now())
-  class       String?
-  subjectId   String?  @map("subject_id")
-  userId      String?  @map("user_id") // Optional: if specific to a user
-  totalQuestions Int   @default(0) @map("total_questions")
-  status      String   @default("PENDING") // PENDING, COMPLETED
-  isActive    Boolean  @default(true) @map("is_active")
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  subject     Subject? @relation(fields: [subjectId], references: [id])
-  questions   DPPQuestion[]
-  assignments DPPAssignment[]
-  
-  @@map("daily_practice_problems")
-}
-
-model DPPQuestion {
-  id          String   @id @default(cuid())
-  dppId       String   @map("dpp_id")
-  questionId  String   @map("question_id")
-  sequence    Int      @default(0)
-  
-  dpp         DailyPracticeProblem @relation(fields: [dppId], references: [id])
-  question    Question @relation(fields: [questionId], references: [id])
-
-  @@unique([dppId, questionId])
-  @@map("dpp_questions")
-}
-
-model DPPConfig {
-  id              String   @id @default(cuid())
-  userId          String   @unique @map("user_id")
-  subjects        String[] // Array of subject IDs
-  topics          String[] // Array of topic IDs
-  difficulty      String[] // easy, medium, hard
-  questionTypes   String[] // MCQ, NUMERICAL, etc.
-  dailyLimit      Int      @default(5) @map("daily_limit")
-  timeOfDay       String   @default("09:00") @map("time_of_day")
-  notifications   Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  user            User     @relation(fields: [userId], references: [id])
-
-  @@map("dpp_configs")
-}
-
-model DPPAssignment {
-  id          String    @id @default(cuid())
-  dppId       String?   @map("dpp_id")
-  userId      String    @map("user_id")
-  questionId  String    @map("question_id")
-  status      String    @default("PENDING") // PENDING, COMPLETED, SKIPPED
-  userAnswer  String?   @map("user_answer")
-  isCorrect   Boolean?  @map("is_correct")
-  timeSpent   Int       @default(0) @map("time_spent")
-  submittedAt DateTime? @map("submitted_at")
-  sequence    Int       @default(0)
-  metadata    Json?
-  
-  dpp         DailyPracticeProblem? @relation(fields: [dppId], references: [id])
-  user        User                  @relation(fields: [userId], references: [id])
-  question    Question              @relation(fields: [questionId], references: [id])
-
-  @@map("dpp_assignments")
-}
-
-model DPPProgress {
-  id             String   @id @default(cuid())
-  userId         String   @unique @map("user_id")
-  date           DateTime @default(now())
-  totalAssigned  Int      @default(0) @map("total_assigned")
-  totalCompleted Int      @default(0) @map("total_completed")
-  correctAnswers Int      @default(0) @map("correct_answers")
-  currentStreak  Int      @default(0) @map("current_streak")
-  longestStreak  Int      @default(0) @map("longest_streak")
-  lastActiveDate DateTime? @map("last_active_date")
-  
-  user           User     @relation(fields: [userId], references: [id])
-
-  @@map("dpp_progress")
-}
-
-model Certificate {
-  id            String   @id @default(cuid())
-  userId        String   @map("user_id")
-  testId        String   @map("test_id")
-  attemptId     String   @unique @map("attempt_id")
-  certificateId String   @unique @map("certificate_id")
-  issueDate     DateTime @default(now()) @map("issue_date")
-  pdfUrl        String?  @map("pdf_url")
-  metadata      Json?
-
-  user          User     @relation(fields: [userId], references: [id])
-  test          Test     @relation(fields: [testId], references: [id])
-  attempt       TestAttempt @relation(fields: [attemptId], references: [id])
-
-  @@map("certificates")
 }

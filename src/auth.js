@@ -16,9 +16,11 @@ class BlockedError extends CredentialsSignin {
     code = "user_blocked"
 }
 
+const prismaAdapter = PrismaAdapter(prisma);
+
 export const authOptions = {
     adapter: {
-        ...PrismaAdapter(prisma),
+        ...prismaAdapter,
         // Custom createUser to handle email verification
         async createUser(user) {
             const verificationToken = generateToken()
@@ -135,7 +137,7 @@ export const authOptions = {
         maxAge: 30 * 24 * 60 * 60, // 30 days
         updateAge: 24 * 60 * 60, // 24 hours
     },
-    secret: process.env.NEXTAUTH_SECRET,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === 'development',
     pages: {
         signIn: '/auth/login',

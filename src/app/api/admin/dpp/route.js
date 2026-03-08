@@ -14,7 +14,7 @@ export async function GET(req) {
         const classFilter = searchParams.get('class');
         const subjectId = searchParams.get('subjectId');
 
-        const where = {};
+        const where = { userId: null };
         if (classFilter && classFilter !== 'all') where.class = classFilter;
         if (subjectId && subjectId !== 'all') where.subjectId = subjectId;
 

@@ -126,7 +126,8 @@ export default async function DashboardPage() {
   // 4. Fetch DPP for today
   let dppAssignments = [];
   try {
-    dppAssignments = await getTodaysDPP(userId);
+    const dppResult = await getTodaysDPP(userId, true);
+    dppAssignments = dppResult.assignments || [];
   } catch (error) {
     console.error("Failed to fetch DPP:", error);
   }

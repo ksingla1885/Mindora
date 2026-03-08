@@ -69,9 +69,9 @@ const getTransporter = async () => {
 };
 
 export const sendVerificationEmail = async (user, token) => {
-  const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
+  const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
 
-  const emailHtml = render(
+  const emailHtml = await render(
     <VerificationEmail username={user.name || 'there'} verificationUrl={verificationUrl} />
   );
 
@@ -91,9 +91,9 @@ export const sendVerificationEmail = async (user, token) => {
 };
 
 export const sendPasswordResetEmail = async (user, token) => {
-  const resetUrl = `${process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/auth/reset-password?token=${token}`;
 
-  const emailHtml = render(
+  const emailHtml = await render(
     <ResetPasswordEmail username={user.name || 'there'} resetUrl={resetUrl} />
   );
 
@@ -132,9 +132,9 @@ export const sendPasswordChangedEmail = async (user) => {
 };
 
 export const sendTestResultEmail = async (user, testResult) => {
-  const resultsUrl = `${process.env.NEXTAUTH_URL}/tests/${testResult.testId}/results/${testResult.attemptId}`;
+  const resultsUrl = `${process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL}/tests/${testResult.testId}/results/${testResult.attemptId}`;
 
-  const emailHtml = render(
+  const emailHtml = await render(
     <TestResultEmail
       username={user.name || 'there'}
       testTitle={testResult.testTitle}
@@ -162,7 +162,7 @@ export const sendTestResultEmail = async (user, testResult) => {
 };
 
 export const sendPaymentConfirmationEmail = async (user, payment) => {
-  const emailHtml = render(
+  const emailHtml = await render(
     <PaymentConfirmEmail
       username={user.name || 'there'}
       itemName={payment.itemName}

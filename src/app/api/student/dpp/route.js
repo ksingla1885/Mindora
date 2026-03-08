@@ -12,46 +12,25 @@ export async function GET() {
 
         const userId = session.user.id;
 
-        // Get today's assignments including completed ones for the full list view
-        const assignments = await getTodaysDPP(userId, true);
+        const { dpp, assignments, dpps } = await getTodaysDPP(userId, true);
 
-        if (!assignments || assignments.length === 0) {
-            return NextResponse.json(null);
+        if (!dpps || dpps.length === 0) {
+            return NextResponse.json({
+                date: new Date().toISOString(),
+                subject: { name: "No Practice" },
+                class: session.user.class || "General",
+                questions: [],
+                message: "No practice problems available for today.",
+                dpps: []
+            });
         }
 
-        // Adapt to the frontend expected format for dpp/page.jsx
-        // The frontend expects:
-        // {
-        //   date: string,
-        //   subject: { name: string },
-        //   class: string,
-        //   questions: [ { question: { text: string, type: string, options: {}, correctAnswer: string, explanation: string } } ]
-        // }
-
-        // Fetch the dpp record to get the date (optional, but good for completeness)
-        const dppRecord = await prisma.dailyPracticeProblem.findFirst({
-            where: { userId, status: { in: ['PENDING', 'COMPLETED'] } },
-            orderBy: { date: 'desc' }
+        // Return the list of DPPs
+        return NextResponse.json({
+            dpps: dpps,
+            // For backward compatibility (optional but good)
+            ...dpps[0]
         });
-
-        const response = {
-            date: dppRecord?.date || new Date().toISOString(),
-            subject: { name: assignments[0].question.topic.subject.name },
-            class: session.user.classLevel || "General",
-            questions: assignments.map(a => ({
-                id: a.id, // assignment id
-                question: {
-                    id: a.question.id,
-                    text: a.question.text,
-                    type: a.question.type,
-                    options: a.question.options,
-                    correctAnswer: a.question.correctAnswer,
-                    explanation: a.question.explanation
-                }
-            }))
-        };
-
-        return NextResponse.json(response);
     } catch (error) {
         console.error('Error in student DPP API:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

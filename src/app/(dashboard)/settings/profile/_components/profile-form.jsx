@@ -80,9 +80,10 @@ export function ProfileForm({ user }) {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('type', 'avatar');
 
     try {
-      const response = await fetch('/api/upload/avatar', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });

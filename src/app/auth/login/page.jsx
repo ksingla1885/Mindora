@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
+import { signIn } from 'next-auth/react';
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,23 +35,15 @@ export default function LoginPage() {
     setStatus('loading');
 
     try {
-      const response = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          redirect: false,
-          callbackUrl,
-        }),
+      const result = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+        callbackUrl,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid email or password');
+      if (result?.error) {
+        throw new Error(result.error);
       }
 
       // Handle successful login

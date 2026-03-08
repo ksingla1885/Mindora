@@ -19,7 +19,7 @@ export async function GET() {
 
     // Use service to get today's DPP
     // Returns a list of assignments (typically 1-5 questions depending on config)
-    const assignments = await getTodaysDPP(session.user.id);
+    const { assignments } = await getTodaysDPP(session.user.id);
 
     // If no assignments after generation attempt
     if (!assignments || assignments.length === 0) {

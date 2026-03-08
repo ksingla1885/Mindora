@@ -5,9 +5,10 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { FiCreditCard, FiLoader, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import { toast } from 'react-hot-toast';
+import { cn } from '@/lib/cn';
 import { MockPaymentModal } from './MockPaymentModal';
 
-export default function PaymentButton({ testId, price, disabled = false, buttonText = 'Buy Now' }) {
+export default function PaymentButton({ testId, price, disabled = false, buttonText = 'Buy Now', onSuccess, className }) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -129,9 +130,13 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
       setPaymentStatus('success');
       toast.success('Payment successful! You can now take the test.');
 
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      if (onSuccess) {
+        onSuccess(result, response);
+      } else {
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }
 
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -194,10 +199,10 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
         <button
           type="button"
           onClick={handlePayment}
-          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${isLoading || disabled
+          className={cn(`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white transition-all ${isLoading || disabled
             ? 'bg-indigo-300 cursor-not-allowed'
-            : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
-            }`}
+            : 'bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 active:scale-95'
+            }`, className)}
           disabled={isLoading || disabled}
         >
           {isLoading ? (

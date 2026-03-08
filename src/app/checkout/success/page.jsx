@@ -20,23 +20,27 @@ export default function OrderSuccessPage() {
   useEffect(() => {
     if (!orderId) return;
 
-    const fetchOrder = async () => {
+    const fetchPayment = async () => {
       try {
-        const response = await fetch(`/api/orders/${orderId}`);
+        const response = await fetch(`/api/payments/status/${orderId}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch order details');
+          throw new Error('Failed to fetch payment details');
         }
-        const data = await response.json();
-        setOrder(data);
+        const result = await response.json();
+        if (result.success) {
+          setOrder(result.data); // result.data contains the mapped payment info
+        } else {
+          throw new Error(result.error || 'Failed to fetch payment details');
+        }
       } catch (err) {
-        console.error('Error fetching order:', err);
+        console.error('Error fetching payment:', err);
         setError(err.message);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchOrder();
+    fetchPayment();
   }, [orderId]);
 
   const downloadInvoice = async () => {
@@ -45,7 +49,7 @@ export default function OrderSuccessPage() {
       if (!response.ok) {
         throw new Error('Failed to download invoice');
       }
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -100,8 +104,8 @@ export default function OrderSuccessPage() {
           </p>
           <div className="flex flex-wrap justify-center gap-4 mb-8">
             <div className="bg-muted/50 px-4 py-2 rounded-md">
-              <p className="text-sm text-muted-foreground">Order Number</p>
-              <p className="font-medium">{order.orderNumber}</p>
+              <p className="text-sm text-muted-foreground">Order ID</p>
+              <p className="font-medium">{order.orderId}</p>
             </div>
             <div className="bg-muted/50 px-4 py-2 rounded-md">
               <p className="text-sm text-muted-foreground">Date</p>
@@ -110,145 +114,88 @@ export default function OrderSuccessPage() {
               </p>
             </div>
             <div className="bg-muted/50 px-4 py-2 rounded-md">
-              <p className="text-sm text-muted-foreground">Total</p>
-              <p className="font-medium">₹{(order.total / 100).toFixed(2)}</p>
+              <p className="text-sm text-muted-foreground">Total Paid</p>
+              <p className="font-medium">₹{order.amount.toFixed(2)}</p>
             </div>
             <div className="bg-muted/50 px-4 py-2 rounded-md">
-              <p className="text-sm text-muted-foreground">Payment Method</p>
-              <p className="font-medium capitalize">
-                {order.paymentMethod || 'Online Payment'}
-              </p>
+              <p className="text-sm text-muted-foreground">Status</p>
+              <p className="font-medium capitalize">{order.status.toLowerCase()}</p>
             </div>
           </div>
           <div className="flex flex-wrap justify-center gap-3">
-            <Button onClick={downloadInvoice}>
-              <Download className="mr-2 h-4 w-4" />
-              Download Invoice
-            </Button>
             <Button variant="outline" asChild>
-              <Link href="/tests">
-                View My Tests
+              <Link href="/dashboard/tests">
+                Go to My Tests
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard">
+                Back to Dashboard
               </Link>
             </Button>
           </div>
         </div>
 
-        {/* Order Details */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Order Details</CardTitle>
+        {/* Payment Details */}
+        <Card className="mb-8 border-primary/20 shadow-sm">
+          <CardHeader className="bg-primary/5">
+            <CardTitle>Transaction Details</CardTitle>
             <CardDescription>
-              Your order details and next steps
+              Information about your recently purchased test
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-8">
-              {/* Order Status */}
-              <div className="flex items-start">
-                <div className="bg-primary/10 p-2 rounded-full mr-4">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              <div className="flex justify-between items-start border-b pb-4">
                 <div>
-                  <h3 className="font-medium mb-1">Order Status</h3>
-                  <div className="flex items-center">
-                    <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                  <h3 className="font-semibold text-lg">{order.test?.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{order.test?.description}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-xl text-primary">₹{order.amount.toFixed(2)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start">
+                  <div className="bg-primary/10 p-2 rounded-full mr-4 shrink-0">
+                    <Clock className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-1">Access Status</h3>
+                    <div className="flex items-center">
+                      <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
+                      <p className="text-sm text-muted-foreground">
+                        {order.status === 'CAPTURED' ? 'Immediate Access Granted' : 'Processing Access'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="bg-primary/10 p-2 rounded-full mr-4 shrink-0">
+                    <Mail className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium mb-1">Receipt</h3>
                     <p className="text-sm text-muted-foreground">
-                      {order.status === 'completed' 
-                        ? 'Completed' 
-                        : order.status === 'processing' 
-                          ? 'Processing' 
-                          : 'Pending'}
+                      A confirmation has been sent to your registered email address.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Email Confirmation */}
-              <div className="flex items-start">
-                <div className="bg-primary/10 p-2 rounded-full mr-4">
-                  <Mail className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-medium mb-1">Email Confirmation</h3>
-                  <p className="text-sm text-muted-foreground">
-                    An email receipt including the details of your order has been sent to your email address.
-                  </p>
-                </div>
-              </div>
             </div>
           </CardContent>
-        </Card>
-
-        {/* Order Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Test</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {order.items.map((item) => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-medium">
-                      {item.test.title}
-                      {item.quantity > 1 && (
-                        <span className="text-muted-foreground text-sm ml-2">
-                          ×{item.quantity}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ₹{(item.total / 100).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {order.coupon && (
-                  <TableRow>
-                    <TableCell className="font-medium">
-                      Discount ({order.coupon})
-                    </TableCell>
-                    <TableCell className="text-right text-green-600">
-                      -₹{(order.discount / 100).toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                )}
-                <TableRow>
-                  <TableCell className="font-medium">Tax (18%)</TableCell>
-                  <TableCell className="text-right">
-                    ₹{(order.tax / 100).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-                <TableRow className="border-t font-medium">
-                  <TableCell>Total</TableCell>
-                  <TableCell className="text-right">
-                    ₹{(order.total / 100).toFixed(2)}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-          <CardFooter className="flex flex-col items-start gap-4">
+          <CardFooter className="bg-muted/30 flex-col items-start gap-4 p-6">
             <div className="w-full">
-              <h3 className="font-medium mb-2">Need Help?</h3>
-              <p className="text-sm text-muted-foreground">
-                If you have any questions about your order, please contact our support team at{' '}
-                <a href="mailto:support@mindora.com" className="text-primary hover:underline">
+              <h3 className="font-medium mb-2 text-sm uppercase tracking-wider text-muted-foreground">Need Help?</h3>
+              <p className="text-sm">
+                If you have any questions about your payment, please contact our support team at{' '}
+                <a href="mailto:support@mindora.com" className="text-primary hover:underline font-medium">
                   support@mindora.com
                 </a>
-                {' '}or call us at +91 1234567890.
               </p>
             </div>
-            <Button variant="outline" asChild className="w-full md:w-auto">
-              <Link href="/contact">
-                Contact Support
-              </Link>
-            </Button>
           </CardFooter>
         </Card>
       </div>

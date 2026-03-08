@@ -35,21 +35,21 @@ export function useDPP() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const isMounted = useRef(true);
-  
+
   // Track component mount state for cleanup
   useEffect(() => {
     return () => {
       isMounted.current = false;
     };
   }, []);
-  
+
   // Safe state update wrapper
   const safeSetState = useCallback((setter, ...args) => {
     if (isMounted.current) {
       setter(...args);
     }
   }, []);
-  
+
   const [dppData, setDppData] = useState({
     config: null,
     assignments: [],
@@ -57,7 +57,7 @@ export function useDPP() {
     isLoading: true,
     error: null,
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
@@ -67,7 +67,7 @@ export function useDPP() {
     isLoading: false,
     error: null,
   });
-  
+
   const [gamification, setGamification] = useState({
     badges: [],
     achievements: [],
@@ -77,13 +77,13 @@ export function useDPP() {
     isLoading: false,
     error: null,
   });
-  
+
   const [activeAnalyticsTab, setActiveAnalyticsTab] = useState('overview');
 
   // Fetch DPP data with pagination and caching
   const fetchDPP = useCallback(async (options = {}) => {
     if (status !== 'authenticated') return;
-    
+
     const {
       includeCompleted = false,
       refresh = false,
@@ -92,10 +92,10 @@ export function useDPP() {
       append = false,
       retryCount = 0,
     } = options;
-    
+
     // Don't fetch if already loading more data
     if (dppData.isLoadingMore) return;
-    
+
     try {
       performanceMetrics.markStart();
       setDppData(prev => ({
@@ -104,33 +104,33 @@ export function useDPP() {
         isLoadingMore: append,
         error: null,
       }));
-      
+
       const params = new URLSearchParams({
         page,
         pageSize,
         ...(includeCompleted && { includeCompleted: 'true' }),
         ...(refresh && { refresh: 'true' }),
       });
-      
+
       const response = await fetch(`/api/dpp?${params.toString()}`, {
         headers: {
           'Cache-Control': 'no-cache',
         },
       });
-      
+
       const duration = performanceMetrics.markEnd('fetch_dpp');
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to fetch DPP');
       }
-      
+
       const data = await response.json();
-      
+
       setDppData(prev => ({
         ...prev,
         config: data.config || prev.config,
-        assignments: append 
+        assignments: append
           ? [...prev.assignments, ...(data.assignments || [])]
           : (data.assignments || []),
         stats: data.stats || prev.stats,
@@ -140,7 +140,7 @@ export function useDPP() {
         isLoadingMore: false,
         error: null,
       }));
-      
+
       return data;
     } catch (error) {
       performanceMetrics.logError(error, { operation: 'fetchDPP' });
@@ -150,7 +150,7 @@ export function useDPP() {
         isLoadingMore: false,
         error: error.message,
       }));
-      
+
       // Auto-retry on network errors
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
         if (retryCount < 3) {
@@ -165,7 +165,7 @@ export function useDPP() {
   // Generate new DPP
   const generateDPP = useCallback(async (count) => {
     if (status !== 'authenticated' || isGenerating) return;
-    
+
     try {
       setIsGenerating(true);
       const response = await fetch('/api/dpp', {
@@ -175,12 +175,12 @@ export function useDPP() {
         },
         body: JSON.stringify({ count }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to generate DPP');
       }
-      
+
       // Refresh the DPP data
       await fetchDPP(true);
       return true;
@@ -199,7 +199,7 @@ export function useDPP() {
   // Update DPP configuration
   const updateDPPConfig = useCallback(async (updates) => {
     if (status !== 'authenticated') return false;
-    
+
     try {
       const response = await fetch('/api/dpp', {
         method: 'PUT',
@@ -208,18 +208,18 @@ export function useDPP() {
         },
         body: JSON.stringify(updates),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to update DPP configuration');
       }
-      
+
       const data = await response.json();
       setDppData(prev => ({
         ...prev,
         config: data.config,
       }));
-      
+
       // Calculate user level and progress
       const userLevel = useMemo(() => {
         if (!analytics.stats?.points) return { level: 1, progress: 0 };
@@ -230,7 +230,7 @@ export function useDPP() {
         const progress = ((points - currentLevelPoints) / (nextLevelPoints - currentLevelPoints)) * 100;
         return { level, progress };
       }, [analytics.stats?.points]);
-      
+
       return true;
     } catch (error) {
       console.error('Error updating DPP config:', error);
@@ -245,7 +245,7 @@ export function useDPP() {
   // Submit an answer
   const submitAnswer = useCallback(async (assignmentId, answer, metadata = {}) => {
     if (status !== 'authenticated' || isSubmitting) return null;
-    
+
     try {
       setIsSubmitting(true);
       const response = await fetch('/api/dpp/answer', {
@@ -259,25 +259,25 @@ export function useDPP() {
           metadata,
         }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to submit answer');
       }
-      
+
       const { result } = await response.json();
-      
+
       // Update local state
       setDppData(prev => ({
         ...prev,
-        assignments: prev.assignments.map(a => 
+        assignments: prev.assignments.map(a =>
           a.id === assignmentId ? { ...a, ...result } : a
         ),
       }));
-      
+
       // Refresh stats
       await fetchDPP(true);
-      
+
       return result;
     } catch (error) {
       console.error('Error submitting answer:', error);
@@ -294,7 +294,7 @@ export function useDPP() {
   // Skip a question
   const skipQuestion = useCallback(async (assignmentId) => {
     if (status !== 'authenticated' || isSkipping) return false;
-    
+
     try {
       setIsSkipping(true);
       const response = await fetch('/api/dpp/skip', {
@@ -304,12 +304,12 @@ export function useDPP() {
         },
         body: JSON.stringify({ assignmentId }),
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to skip question');
       }
-      
+
       // Refresh the DPP data
       await fetchDPP(true);
       return true;
@@ -328,7 +328,7 @@ export function useDPP() {
   // Generate practice test
   const generatePracticeTest = useCallback(async (options = {}) => {
     if (status !== 'authenticated' || isGenerating) return [];
-    
+
     try {
       setIsGenerating(true);
       const params = new URLSearchParams();
@@ -336,14 +336,14 @@ export function useDPP() {
       if (options.subjects?.length) params.append('subjects', options.subjects.join(','));
       if (options.topics?.length) params.append('topics', options.topics.join(','));
       if (options.difficulties?.length) params.append('difficulties', options.difficulties.join(','));
-      
+
       const response = await fetch(`/api/dpp/practice-test?${params.toString()}`);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to generate practice test');
       }
-      
+
       const data = await response.json();
       return data.questions || [];
     } catch (error) {
@@ -357,7 +357,7 @@ export function useDPP() {
       setIsGenerating(false);
     }
     if (status !== 'authenticated' || isGenerating) return [];
-    
+
     try {
       setIsGenerating(true);
       const params = new URLSearchParams();
@@ -365,14 +365,14 @@ export function useDPP() {
       if (options.subjects?.length) params.append('subjects', options.subjects.join(','));
       if (options.topics?.length) params.append('topics', options.topics.join(','));
       if (options.difficulties?.length) params.append('difficulties', options.difficulties.join(','));
-      
+
       const response = await fetch(`/api/dpp/practice-test?${params.toString()}`);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || 'Failed to generate practice test');
       }
-      
+
       const data = await response.json();
       return data.questions || [];
     } catch (error) {
@@ -418,14 +418,14 @@ export function useDPP() {
   // Fetch analytics data with error boundaries and retry logic
   const fetchAnalytics = useCallback(async (retryCount = 0) => {
     if (status !== 'authenticated' || analytics.isLoading) return;
-    
+
     try {
       setAnalytics(prev => ({ ...prev, isLoading: true, error: null }));
-      
+
       // Add cache busting and request timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
-      
+
       const response = await fetch('/api/dpp/analytics', {
         signal: controller.signal,
         headers: {
@@ -433,17 +433,17 @@ export function useDPP() {
           'Pragma': 'no-cache',
         },
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Failed to fetch analytics');
       }
-      
+
       const data = await response.json();
       const processedData = await processAnalyticsData(data);
-      
+
       setAnalytics(prev => ({
         ...prev,
         stats: processedData,
@@ -468,12 +468,12 @@ export function useDPP() {
       return new Promise((resolve) => {
         const worker = new Worker('/workers/gamification-processor.js');
         worker.postMessage(data);
-        
+
         worker.onmessage = (e) => {
           worker.terminate();
           resolve(e.data);
         };
-        
+
         // Fallback in case worker times out
         setTimeout(() => {
           worker.terminate();
@@ -483,7 +483,7 @@ export function useDPP() {
     }
     return processGamificationSync(data);
   }, []);
-  
+
   // Synchronous fallback for gamification processing
   const processGamificationSync = (data) => {
     return {
@@ -516,7 +516,7 @@ export function useDPP() {
   // Fetch gamification data with retry and caching
   const fetchGamification = useCallback(async (retryCount = 0) => {
     if (status !== 'authenticated' || gamification.isLoading) return;
-    
+
     try {
       setGamification(prev => ({
         ...prev,
@@ -524,12 +524,12 @@ export function useDPP() {
         error: null,
         lastFetched: prev.lastFetched,
       }));
-      
+
       // Check cache first
       const cacheKey = `gamification_${session.user.id}`;
       const cachedData = sessionStorage.getItem(cacheKey);
       const cacheExpiry = localStorage.getItem(`${cacheKey}_expiry`);
-      
+
       if (cachedData && cacheExpiry > Date.now()) {
         const data = JSON.parse(cachedData);
         setGamification(prev => ({
@@ -540,25 +540,25 @@ export function useDPP() {
         }));
         return;
       }
-      
+
       // Fetch fresh data
       const response = await fetch('/api/dpp/gamification', {
         headers: {
           'Cache-Control': 'max-age=300', // 5 minutes cache
         },
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch gamification data');
       }
-      
+
       const data = await response.json();
       const processedData = await processGamificationData(data);
-      
+
       // Cache the response
       sessionStorage.setItem(cacheKey, JSON.stringify(processedData));
       localStorage.setItem(`${cacheKey}_expiry`, Date.now() + (5 * 60 * 1000)); // 5 min expiry
-      
+
       setGamification(prev => ({
         ...prev,
         ...processedData,
@@ -580,11 +580,11 @@ export function useDPP() {
   const memoizedFetchDPP = useCallback(fetchDPP, [status, dppData.isLoadingMore]);
   const memoizedFetchAnalytics = useCallback(fetchAnalytics, [status]);
   const memoizedFetchGamification = useCallback(fetchGamification, [status, gamification.isLoading]);
-  
+
   // Initial data loading
   useEffect(() => {
     if (status === 'authenticated') {
-      memoizedFetchDPP();
+      memoizedFetchDPP({ includeCompleted: true });
       memoizedFetchAnalytics();
       memoizedFetchGamification();
     }
@@ -605,14 +605,14 @@ export function useDPP() {
         progress: assignment.progress,
       })),
     },
-    
+
     // Loading states
     isLoading: dppData.isLoading || analytics.isLoading || gamification.isLoading,
     isLoadingMore: dppData.isLoadingMore,
     isSubmitting,
     isGenerating,
     isAuthenticated: status === 'authenticated',
-    
+
     // Analytics (memoized)
     analytics: memoizedAnalytics || {
       performanceTrends: [],
@@ -623,7 +623,7 @@ export function useDPP() {
       isLoading: analytics.isLoading,
       error: analytics.error,
     },
-    
+
     // Gamification (memoized)
     gamification: memoizedGamification || {
       points: 0,
@@ -638,10 +638,10 @@ export function useDPP() {
       isLoading: gamification.isLoading,
       error: gamification.error,
     },
-    
+
     // User level (memoized)
     userLevel,
-    
+
     // Memoized functions
     fetchDPP: memoizedFetchDPP,
     generateDPP: useCallback(generateDPP, [status, isGenerating]),
@@ -649,17 +649,17 @@ export function useDPP() {
     submitAnswer: useCallback(submitAnswer, [status, isSubmitting]),
     skipQuestion: useCallback(skipQuestion, [status]),
     generatePracticeTest: useCallback(generatePracticeTest, [status, isGenerating]),
-    
+
     // Refresh functions
     refreshAnalytics: memoizedFetchAnalytics,
     refreshGamification: memoizedFetchGamification,
   }), [
-    dppData, 
-    isSubmitting, 
-    isGenerating, 
+    dppData,
+    isSubmitting,
+    isGenerating,
     status,
-    memoizedAnalytics, 
-    analytics.isLoading, 
+    memoizedAnalytics,
+    analytics.isLoading,
     analytics.error,
     memoizedGamification,
     gamification.isLoading,

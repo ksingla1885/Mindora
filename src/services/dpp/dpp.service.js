@@ -161,13 +161,30 @@ export const getTodaysDPP = async (userId, includeCompleted = false) => {
     const todayStart = startOfToday();
     const todayEnd = endOfToday();
 
-    let dpp = await prisma.dailyPracticeProblem.findFirst({
+    // 1. Fetch user to get their class
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { class: true }
+    });
+    const userClass = user?.class ? String(user.class) : "General";
+
+    // 2. Search for all relevant DPPs for today
+    let dpps = await prisma.dailyPracticeProblem.findMany({
       where: {
-        userId,
-        date: { gte: todayStart, lte: todayEnd }
+        AND: [
+          { date: { gte: todayStart, lte: todayEnd } },
+          {
+            OR: [
+              { userId: userId },
+              { userId: null, class: userClass },
+              { userId: null, class: null }
+            ]
+          }
+        ]
       },
       include: {
         assignments: {
+          where: { userId },
           include: {
             question: {
               include: {
@@ -175,46 +192,199 @@ export const getTodaysDPP = async (userId, includeCompleted = false) => {
               }
             }
           },
-          orderBy: { sequence: 'asc' },
-          where: includeCompleted ? {} : { status: 'PENDING' }
+          orderBy: { sequence: 'asc' }
+        },
+        questions: {
+          include: {
+            question: {
+              include: {
+                topic: { include: { subject: true } }
+              }
+            }
+          },
+          orderBy: { sequence: 'asc' }
         }
-      }
+      },
+      orderBy: { createdAt: 'desc' }
     });
 
-    if (!dpp) {
-      dpp = await generateDPP(userId);
-    } else if (!dpp.assignments || dpp.assignments.length === 0) {
-      const count = await prisma.dPPAssignment.count({ where: { dppId: dpp.id } });
-      if (count === 0) {
-        await prisma.dailyPracticeProblem.delete({ where: { id: dpp.id } });
-        dpp = await generateDPP(userId);
+    // 3. Separate admin DPPs and personalized ones
+    const adminDPPs = dpps.filter(d => d.userId === null);
+
+    // 4. Ensure we prioritize admin content. 
+    // If admin sets exist for the class, we ONLY use those.
+    if (adminDPPs.length > 0) {
+      dpps = adminDPPs;
+    }
+
+    // Deduplicate DPPs just in case any overlap exists
+    const uniqueDpps = [];
+    const seenIds = new Set();
+    for (const d of dpps) {
+      if (!seenIds.has(d.id)) {
+        uniqueDpps.push(d);
+        seenIds.add(d.id);
+      }
+    }
+    dpps = uniqueDpps;
+
+    const allAssignments = [];
+
+    // 4. Process each DPP to ensure assignments exist
+    if (dpps && dpps.length > 0) {
+      for (const dpp of dpps) {
+        if (!dpp) continue;
+        let currentAssignments = dpp.assignments || [];
+
+        // Sync assignments with current DPP questions
+        const currentAssignmentQIds = new Set((dpp.assignments || []).map(a => a.questionId));
+        const dppQuestionIds = dpp.questions.map(dq => dq.questionId);
+
+        // 1. Identify missing assignments
+        const missingQIds = dppQuestionIds.filter(id => !currentAssignmentQIds.has(id));
+
+        if (missingQIds.length > 0) {
+          try {
+            const newAssignments = await prisma.$transaction(
+              missingQIds.map(qId => {
+                const dq = dpp.questions.find(x => x.questionId === qId);
+                return prisma.dPPAssignment.create({
+                  data: {
+                    userId,
+                    dppId: dpp.id,
+                    questionId: qId,
+                    sequence: dq?.sequence || 0,
+                    status: 'PENDING'
+                  },
+                  include: {
+                    question: {
+                      include: {
+                        topic: { include: { subject: true } }
+                      }
+                    }
+                  }
+                });
+              })
+            );
+            // Combine with existing
+            currentAssignments = [...(dpp.assignments || []), ...newAssignments];
+          } catch (createError) {
+            console.error(`Failed to sync assignments for DPP ${dpp.id}:`, createError);
+            currentAssignments = dpp.assignments || [];
+          }
+        } else {
+          currentAssignments = dpp.assignments || [];
+        }
+
+        // 2. Filter out assignments that are no longer in the DPP (Admin removed them)
+        const activeAssignments = currentAssignments.filter(a => dppQuestionIds.includes(a.questionId));
+
+        // 3. Add to total list (filtering by status if needed)
+        const filtered = includeCompleted
+          ? activeAssignments
+          : activeAssignments.filter(a => a.status === 'PENDING');
+
+        allAssignments.push(...filtered);
       }
     }
 
-    const items = dpp.assignments || [];
-    return items.map(q => ({
-      id: q.id,
-      question: q.question,
-      status: q.status,
-      userAnswer: q.userAnswer,
-      isCorrect: q.isCorrect,
-      timeSpent: q.timeSpent,
-      submittedAt: q.submittedAt,
-      sequence: q.sequence
-    }));
+    // Safety check for personalized empty DPPs (re-generating if needed)
+    if (allAssignments.length === 0 && dpps.length === 1 && dpps[0] && dpps[0].userId === userId && !includeCompleted) {
+      const count = await prisma.dPPAssignment.count({ where: { dppId: dpps[0].id, userId } });
+      if (count === 0) {
+        try {
+          await prisma.dailyPracticeProblem.delete({ where: { id: dpps[0].id } });
+          return getTodaysDPP(userId, includeCompleted);
+        } catch (e) {
+          console.warn('Cleanup of empty DPP failed');
+        }
+      }
+    }
+
+    const dppsWithAssignments = dpps.map(dpp => {
+      const dppAssignments = allAssignments.filter(a => a.dppId === dpp.id);
+      return {
+        ...dpp,
+        assignments: dppAssignments
+      };
+    });
+
+    // Deduplicate top-level assignments by questionId
+    const finalAssignments = [];
+    const seenGlobalQIds = new Set();
+    for (const a of allAssignments) {
+      if (!seenGlobalQIds.has(a.questionId)) {
+        finalAssignments.push(a);
+        seenGlobalQIds.add(a.questionId);
+      }
+    }
+
+    return {
+      dpp: dpps[0],
+      assignments: finalAssignments.map(q => ({
+        id: q.id,
+        question: q.question,
+        status: q.status,
+        userAnswer: q.userAnswer,
+        isCorrect: q.isCorrect,
+        timeSpent: q.timeSpent,
+        submittedAt: q.submittedAt,
+        sequence: q.sequence
+      })),
+      dpps: dppsWithAssignments.map(d => {
+        const seenLocalQIds = new Set();
+        const uniqueLocalAssignments = d.assignments.filter(a => {
+          if (seenLocalQIds.has(a.questionId)) return false;
+          seenLocalQIds.add(a.questionId);
+          return true;
+        });
+
+        return {
+          id: d.id,
+          date: d.date,
+          status: d.status,
+          class: d.class,
+          subject: d.assignments[0]?.question?.topic?.subject || { name: "Daily Practice" },
+          questions: uniqueLocalAssignments.map(a => ({
+            id: a.id,
+            status: a.status,
+            userAnswer: a.userAnswer,
+            isCorrect: a.isCorrect,
+            timeSpent: a.timeSpent,
+            submittedAt: a.submittedAt,
+            question: {
+              id: a.question.id,
+              text: a.question.text,
+              type: a.question.type,
+              options: a.question.options,
+              correctAnswer: a.question.correctAnswer,
+              explanation: a.question.explanation
+            }
+          }))
+        };
+      })
+    };
   } catch (error) {
     console.error('Error getting today\'s DPP:', error);
-    throw new DPPError('Failed to fetch today\'s DPP');
+    if (error instanceof DPPError) throw error;
+    return { dpp: null, assignments: [], dpps: [] };
   }
 };
 
 /**
  * Generate new DPP assignments for a user
  */
-export const generateDPP = async (userId, count) => {
+export const generateDPP = async (userId, count, userClass) => {
   try {
     const config = await getOrCreateDPPConfig(userId);
     const limit = count || config.dailyLimit || 5;
+
+    // Use passed class or fetch user's class if not provided
+    let finalClass = userClass;
+    if (!finalClass) {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { class: true } });
+      finalClass = user?.class ? String(user.class) : undefined;
+    }
 
     const completedAssignments = await prisma.dPPAssignment.findMany({
       where: { userId, status: 'COMPLETED' },
@@ -226,7 +396,10 @@ export const generateDPP = async (userId, count) => {
       where: {
         id: { notIn: excludedIds },
         topic: {
-          subjectId: config.subjects.length > 0 ? { in: config.subjects } : undefined
+          subject: {
+            id: config.subjects.length > 0 ? { in: config.subjects } : undefined,
+            OR: finalClass ? [{ class: finalClass }, { class: null }] : undefined
+          }
         },
         difficulty: config.difficulty.length > 0 ? { in: config.difficulty } : undefined,
         isActive: true
@@ -236,7 +409,7 @@ export const generateDPP = async (userId, count) => {
     });
 
     if (questions.length === 0) {
-      throw new DPPError('No new questions available for your settings.', 'NO_QUESTIONS');
+      return null;
     }
 
     const todayDPP = await prisma.dailyPracticeProblem.create({
