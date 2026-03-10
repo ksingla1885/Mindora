@@ -54,7 +54,11 @@ export async function GET(request, { params }) {
         select: {
           id: true,
           status: true,
-          submittedAt: true
+          submittedAt: true,
+          startedAt: true,
+          answers: true,
+          metadata: true,
+          details: true,
         }
       };
     }

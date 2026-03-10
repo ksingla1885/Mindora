@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { Loader2, AlertCircle, Lock, Clock, FileText, CheckCircle } from 'lucide-react';
@@ -65,17 +65,37 @@ export default function TestPage() {
 
   const handleTestComplete = (results) => {
     console.log('Test completed:', results);
-    router.refresh();
-    // Redirect to the detailed results page
-    // results.id is the attemptId returned from the submit API
-    if (results?.attemptId || results?.id) {
-      const attemptId = results.attemptId || results.id;
-      router.push(`/tests/${testId}/results/${attemptId}`);
-    } else {
-      // Fallback: test-submitted page still links to results if params present
-      router.push('/test-submitted?testId=' + testId);
-    }
+    // Always show the success/celebration page first
+    const completedAttemptId = results?.attemptId || results?.id;
+    const params = new URLSearchParams({ testId });
+    if (completedAttemptId) params.set('attemptId', completedAttemptId);
+    router.push(`/test-submitted?${params.toString()}`);
   };
+
+  // Memoize test and questions to prevent unstable props in TestTaker
+  const processedTest = useMemo(() => {
+    if (!test) return null;
+    return {
+      ...test,
+      durationMinutes: test.duration || test.durationMinutes || 60
+    };
+  }, [test]);
+
+  const questions = useMemo(() => {
+    if (!test?.testQuestions) return [];
+    return test.testQuestions.map(tq => {
+      let type = tq.question.type;
+      if (type === 'mcq') type = 'MULTIPLE_CHOICE';
+      else if (type === 'short_answer') type = 'SHORT_ANSWER';
+      else if (type === 'long_answer') type = 'ESSAY';
+
+      return {
+        ...tq.question,
+        type,
+        question: tq.question.text || tq.question.question
+      };
+    });
+  }, [test?.testQuestions]);
 
   if (loading || status === 'loading') {
     return (
@@ -107,46 +127,25 @@ export default function TestPage() {
   const needsPayment = test.isPaid && test.price > 0 && !isPurchased;
 
   // Check if test is completed based on server status or attempt analysis
-  // Logic: if not allowMultipleAttempts and status is COMPLETED
-  const userStatus = test.userStatus || 'NOT_STARTED';
-  // Fallback to local check if userStatus not yet available
   const userAttempts = test.attempts || [];
-
   const hasInProgress = userAttempts.some(a => a.status?.toLowerCase() === 'in_progress');
   const hasAnyAttempt = userAttempts.length > 0;
 
   // Lock if: Single attempt allowed AND has attempts AND no active attempt to resume
   const isCompleted = !test.allowMultipleAttempts && hasAnyAttempt && !hasInProgress;
 
+  // Determine the current attempt if any (use the first in_progress one)
+  const currentAttempt = userAttempts.find(a => a.status?.toLowerCase() === 'in_progress');
+
   // If test is running, render TestTaker
-  if (hasStarted && !needsPayment) {
-    // Map questions from test.testQuestions to the format expected by TestTaker
-    // TestTaker expects an array of question objects
-    const questions = test.testQuestions?.map(tq => {
-      let type = tq.question.type;
-      if (type === 'mcq') type = 'MULTIPLE_CHOICE';
-      else if (type === 'short_answer') type = 'SHORT_ANSWER';
-      else if (type === 'long_answer') type = 'ESSAY';
-
-      return {
-        ...tq.question,
-        type,
-        question: tq.question.text || tq.question.question
-      };
-    }) || [];
-
-    // Ensure durationMinutes is set
-    const processedTest = {
-      ...test,
-      durationMinutes: test.duration || test.durationMinutes || 60
-    };
-
+  if (hasStarted && !needsPayment && processedTest) {
     return (
       <div className="min-h-screen bg-background">
         <TestTaker
           test={processedTest}
           questions={questions}
           onComplete={handleTestComplete}
+          initialAttempt={currentAttempt}
           apiBaseUrl={`/api/tests/${testId}/attempts`}
         />
       </div>

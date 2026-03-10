@@ -114,12 +114,21 @@ export async function POST(request) {
     });
 
     // Return test data with questions
-    const questions = test.testQuestions.map(tq => ({
+    const validQuestions = test.testQuestions.filter(tq => tq && tq.question);
+    
+    if (validQuestions.length === 0) {
+      return NextResponse.json(
+        { error: 'Test questions are missing content' },
+        { status: 400 }
+      );
+    }
+
+    const questions = validQuestions.map(tq => ({
       id: tq.question.id,
       text: tq.question.text,
       type: tq.question.type,
       options: tq.question.options,
-      marks: tq.question.marks,
+      marks: tq.marks || tq.question.marks || 1,
     }));
 
     return NextResponse.json({
@@ -133,7 +142,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error starting test attempt:', error);
     return NextResponse.json(
-      { error: 'Failed to start test attempt' },
+      { error: 'Failed to start test attempt', message: error.message },
       { status: 500 }
     );
   } finally {

@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 
 // GET /api/tests/[testId]/attempts - Get user's attempts for a test
 export async function GET(request, { params }) {
-  const { testId } = params;
+  const { testId } = await params;
   const session = await auth();
 
   if (!session) {
@@ -51,7 +51,8 @@ export async function GET(request, { params }) {
 
 // POST /api/tests/[testId]/attempts - Start a new test attempt
 export async function POST(request, { params }) {
-  const { testId } = params;
+  const { testId } = await params;
+  console.log(`[API] POST attempt for testId: ${testId}`);
   const session = await auth();
 
   if (!session) {
@@ -97,8 +98,8 @@ export async function POST(request, { params }) {
       where: {
         testId,
         userId: session.user.id,
-        status: 'in-progress',
-        finishedAt: null,
+        status: { in: ['in-progress', 'in_progress'] },
+        submittedAt: null,
       },
       include: {
         test: true
@@ -108,7 +109,8 @@ export async function POST(request, { params }) {
     if (inProgressAttempt) {
       // Calculate time remaining
       const startTime = new Date(inProgressAttempt.startedAt).getTime();
-      const durationMs = (test.durationMinutes || 30) * 60 * 1000;
+      const testDuration = inProgressAttempt.test?.durationMinutes || test.durationMinutes || 60;
+      const durationMs = testDuration * 60 * 1000;
       const elapsedMs = Date.now() - startTime;
       const timeRemaining = Math.max(0, Math.floor((durationMs - elapsedMs) / 1000));
 
@@ -136,9 +138,19 @@ export async function POST(request, { params }) {
       },
     });
 
-    if (testQuestions.length === 0) {
+    if (!testQuestions || testQuestions.length === 0) {
       return NextResponse.json(
         { success: false, error: 'Test has no questions' },
+        { status: 400 }
+      );
+    }
+
+    // Filter out rows with missing question data
+    const validQuestions = testQuestions.filter(tq => tq.question);
+    
+    if (validQuestions.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'Test questions are missing content' },
         { status: 400 }
       );
     }
@@ -149,20 +161,20 @@ export async function POST(request, { params }) {
         testId,
         userId: session.user.id,
         startedAt: now,
-        status: 'in-progress',
+        status: 'in_progress',
         answers: {},
         details: {
-          questions: testQuestions.map((tq) => ({
+          questions: validQuestions.map((tq) => ({
             questionId: tq.questionId,
             text: tq.question.text,
             type: tq.question.type,
             options: tq.question.options,
             difficulty: tq.question.difficulty,
-            marks: tq.question.marks || 1,
+            marks: tq.marks || tq.question.marks || 1,
             answer: null,
           })),
-          totalMarks: testQuestions.reduce(
-            (sum, tq) => sum + (tq.question.marks || 1),
+          totalMarks: validQuestions.reduce(
+            (sum, tq) => sum + (tq.marks || tq.question.marks || 1),
             0
           ),
         },
@@ -173,18 +185,23 @@ export async function POST(request, { params }) {
       success: true,
       data: {
         ...attempt,
-        timeRemaining: test.durationMinutes * 60,
+        timeRemaining: (test.durationMinutes || 60) * 60,
       },
       attempt: {
         ...attempt,
-        timeRemaining: test.durationMinutes * 60,
+        timeRemaining: (test.durationMinutes || 60) * 60,
       }
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error starting test attempt:', error);
+    console.error(`[API] Error starting test attempt for test ${testId}:`, error);
     return NextResponse.json(
-      { success: false, error: 'Failed to start test attempt' },
+      { 
+        success: false, 
+        error: `Failed to start test attempt: ${error.message}`,
+        details: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

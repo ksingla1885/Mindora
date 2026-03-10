@@ -5,7 +5,8 @@ import { sendTestResultEmail } from '@/lib/email';
 
 // POST /api/tests/[testId]/attempts/[attemptId]/submit - Submit a test attempt
 export async function POST(request, { params }) {
-  const { testId, attemptId } = params;
+  const { testId, attemptId } = await params;
+  console.log(`[API] Submit attempt for testId: ${testId}, attemptId: ${attemptId}`);
   const session = await auth();
 
   if (!session) {
@@ -118,8 +119,8 @@ export async function POST(request, { params }) {
 
     // Calculate percentage
     const percentage = totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0;
-    const passingPercentage = attempt.test.passingPercentage || 33;
-    const isPassed = percentage >= passingPercentage;
+    const passingScore = attempt.test.passingScore || 33;
+    const isPassed = percentage >= passingScore;
 
     // Time spent in seconds
     const timeSpentSeconds = Math.floor((now - attempt.startedAt) / 1000);
@@ -129,6 +130,7 @@ export async function POST(request, { params }) {
       where: { id: attemptId },
       data: {
         finishedAt: now,
+        submittedAt: now,
         score: percentage,
         isPassed,
         timeSpentSeconds,
@@ -139,7 +141,7 @@ export async function POST(request, { params }) {
           totalMarks,
           score,
           percentage,
-          passingPercentage,
+          passingScore,
           isPassed,
           correctCount,
           incorrectCount,
@@ -152,7 +154,7 @@ export async function POST(request, { params }) {
         test: {
           select: {
             title: true,
-            passingPercentage: true,
+            passingScore: true,
           },
         },
       },
@@ -198,9 +200,9 @@ export async function POST(request, { params }) {
       },
     });
   } catch (error) {
-    console.error('Error submitting test attempt:', error);
+    console.error('Error submitting test attempt:', error?.message || error);
     return NextResponse.json(
-      { success: false, error: 'Failed to submit test attempt' },
+      { success: false, error: 'Failed to submit test attempt', details: error?.message },
       { status: 500 }
     );
   }

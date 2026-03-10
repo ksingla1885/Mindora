@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 // PUT /api/tests/[testId]/attempts/[attemptId]/flags - Update flagged questions
 export async function PUT(request, { params }) {
-    const { testId, attemptId } = params;
+    const { testId, attemptId } = await params;
     const session = await auth();
 
     if (!session) {

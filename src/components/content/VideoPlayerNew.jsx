@@ -94,8 +94,26 @@ export function VideoPlayerNew({
       });
       setFullscreen(true);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
+      try {
+        const exitFullscreen = (
+          document.exitFullscreen || 
+          document.webkitExitFullscreen || 
+          document.msExitFullscreen
+        );
+        
+        if (exitFullscreen) {
+          const result = exitFullscreen.call(document);
+          if (result instanceof Promise) {
+            result.catch(err => {
+              if (!err?.message?.includes('Document not active')) {
+                console.warn('exitFullscreen failed:', err);
+              }
+            });
+          }
+        }
+        setFullscreen(false);
+      } catch (error) {
+        console.debug('Failed to exit fullscreen:', error);
         setFullscreen(false);
       }
     }

@@ -1,25 +1,24 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { CheckCircle, Home, Award, ArrowRight } from 'lucide-react';
+import { CheckCircle, Home, Award, ArrowRight, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import JSConfetti from 'js-confetti';
 
-export default function TestSubmittedPage() {
+function TestSubmittedContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const testId = searchParams.get('testId');
     const attemptId = searchParams.get('attemptId');
 
     useEffect(() => {
-        // Trigger confetti on mount
         const jsConfetti = new JSConfetti();
         jsConfetti.addConfetti({
             emojis: ['🎉', '✨', '🎓', '✅', '⭐'],
-            confettiNumber: 100,
+            confettiNumber: 120,
         });
     }, []);
 
@@ -37,10 +36,10 @@ export default function TestSubmittedPage() {
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{
-                                type: "spring",
+                                type: 'spring',
                                 stiffness: 260,
                                 damping: 20,
-                                delay: 0.2
+                                delay: 0.2,
                             }}
                             className="mx-auto mb-4 bg-green-100 dark:bg-green-900/30 p-4 rounded-full w-24 h-24 flex items-center justify-center"
                         >
@@ -63,34 +62,61 @@ export default function TestSubmittedPage() {
                             className="p-4 bg-muted/50 rounded-lg border border-border/50"
                         >
                             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                                <Award className="w-4 h-4 text-yellow-500" />
-                                <span>Results and analytics are now available</span>
+                                <Award className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                                <span>Results and detailed analytics are now available</span>
                             </div>
                         </motion.div>
                     </CardContent>
 
-                    <CardFooter className="flex flex-col gap-3 pt-6">
+                    <CardFooter className="flex flex-col gap-3 pt-2 pb-6">
+                        {/* Primary action: Go back to Tests listing */}
                         <Button
-                            className="w-full h-11 text-base group"
-                            onClick={() => router.push('/dashboard')}
+                            className="w-full h-11 text-base"
+                            onClick={() => router.push('/tests')}
+                            id="back-to-tests-btn"
                         >
-                            <Home className="mr-2 w-4 h-4" />
-                            Go to Dashboard
+                            <BookOpen className="mr-2 w-4 h-4" />
+                            Back to Tests
                         </Button>
 
+                        {/* Secondary: View detailed results (only if attemptId is available) */}
                         {testId && attemptId && (
                             <Button
                                 variant="outline"
-                                className="w-full h-11 text-base"
+                                className="w-full h-11 text-base group"
                                 onClick={() => router.push(`/tests/${testId}/results/${attemptId}`)}
+                                id="view-results-btn"
                             >
                                 View Detailed Results
                                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Button>
                         )}
+
+                        {/* Tertiary: Go to Dashboard */}
+                        <Button
+                            variant="ghost"
+                            className="w-full h-10 text-sm text-muted-foreground"
+                            onClick={() => router.push('/dashboard')}
+                            id="go-to-dashboard-btn"
+                        >
+                            <Home className="mr-2 w-3.5 h-3.5" />
+                            Go to Dashboard
+                        </Button>
                     </CardFooter>
                 </Card>
             </motion.div>
         </div>
+    );
+}
+
+export default function TestSubmittedPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[80vh] flex items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </div>
+        }>
+            <TestSubmittedContent />
+        </Suspense>
     );
 }

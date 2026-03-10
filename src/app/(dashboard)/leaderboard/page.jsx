@@ -237,10 +237,10 @@ export default function LeaderboardPage() {
                                                                     <AvatarFallback className="bg-slate-100 text-xs font-medium"><UserIcon className="h-4 w-4" /></AvatarFallback>
                                                                 </Avatar>
                                                                 <div>
-                                                                    <p className="font-bold text-slate-900 dark:text-white leading-none">
+                                                                    <span className="font-bold text-slate-900 dark:text-white leading-none flex items-center gap-1">
                                                                         {user.name}
                                                                         {user.isCurrentUser && <Badge className="ml-2 py-0 h-4 text-[10px] uppercase font-bold">You</Badge>}
-                                                                    </p>
+                                                                    </span>
                                                                 </div>
                                                             </div>
                                                         </td>

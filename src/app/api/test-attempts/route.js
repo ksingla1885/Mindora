@@ -119,6 +119,16 @@ export async function POST(request) {
       }
     }
 
+    // Filter out rows with missing question data
+    const validQuestions = test.testQuestions.filter(tq => tq && tq.question);
+    
+    if (validQuestions.length === 0) {
+      return NextResponse.json(
+        { error: 'Test questions are missing content' },
+        { status: 400 }
+      );
+    }
+
     // Create a new test attempt
     const attempt = await prisma.testAttempt.create({
       data: {
@@ -139,12 +149,12 @@ export async function POST(request) {
         instructions: test.instructions,
         autoSubmit: test.autoSubmit,
       },
-      questions: test.testQuestions.map((tq) => ({
+      questions: validQuestions.map((tq) => ({
         id: tq.question.id,
         text: tq.question.text,
         type: tq.question.type,
         options: tq.question.options,
-        marks: tq.marks,
+        marks: tq.marks || tq.question.marks || 1,
         difficulty: tq.question.difficulty,
         imageUrl: tq.question.imageUrl,
       })),
@@ -152,7 +162,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error starting test attempt:', error);
     return NextResponse.json(
-      { error: 'Failed to start test attempt' },
+      { error: 'Failed to start test attempt', message: error.message },
       { status: 500 }
     );
   }

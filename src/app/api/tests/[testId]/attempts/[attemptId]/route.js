@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma';
 
 // GET /api/tests/[testId]/attempts/[attemptId] - Get attempt details
 export async function GET(request, { params }) {
-  const { testId, attemptId } = params;
+  const { testId, attemptId } = await params;
   const session = await auth();
 
   if (!session) {
@@ -66,7 +66,7 @@ export async function GET(request, { params }) {
 
 // PATCH /api/tests/[testId]/attempts/[attemptId] - Save or auto-submit test attempt
 export async function PATCH(request, { params }) {
-  const { testId, attemptId } = params;
+  const { testId, attemptId } = await params;
   const session = await auth();
 
   if (!session) {

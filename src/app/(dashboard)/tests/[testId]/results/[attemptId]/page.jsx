@@ -137,6 +137,9 @@ export default async function TestResultPage({ params }) {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href="/tests">
+                        <Button variant="ghost" id="back-to-tests-results-btn">← Back to Tests</Button>
+                    </Link>
                     <Link href={`/tests/${testId}`}>
                         <Button variant="outline">Retake Test</Button>
                     </Link>

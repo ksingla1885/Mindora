@@ -56,7 +56,22 @@ const ContentRenderer = ({ content, className = '' }) => {
       if (!document.fullscreenElement) {
         await contentRef.current.requestFullscreen();
       } else {
-        await document.exitFullscreen();
+        const exitFullscreen = (
+          document.exitFullscreen || 
+          document.webkitExitFullscreen || 
+          document.msExitFullscreen
+        );
+        
+        if (exitFullscreen) {
+          const result = exitFullscreen.call(document);
+          if (result instanceof Promise) {
+            await result.catch(err => {
+              if (!err?.message?.includes('Document not active')) {
+                console.warn('exitFullscreen failed:', err);
+              }
+            });
+          }
+        }
       }
     } catch (err) {
       console.error('Error toggling fullscreen:', err);

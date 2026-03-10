@@ -115,8 +115,28 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const [testResults, setTestResults] = useState(null);
   const [showTestResults, setShowTestResults] = useState(false);
   const [aiFeedback, setAiFeedback] = useState(null);
-  const [attemptId, setAttemptId] = useState(null);
+  const [attemptId, setAttemptId] = useState(initialAttempt?.id || null);
   const [questions, setQuestions] = useState(initialQuestions);
+
+  // Sync state if initialAttempt is provided or changes
+  useEffect(() => {
+    if (initialAttempt) {
+      if (initialAttempt.id && !attemptId) {
+        setAttemptId(initialAttempt.id);
+      }
+      if (initialAttempt.answers && Object.keys(answers).length === 0) {
+        setAnswers(initialAttempt.answers);
+      }
+      if (initialAttempt.metadata?.flaggedQuestions && Object.keys(flaggedQuestions).length === 0) {
+        setFlaggedQuestions(initialAttempt.metadata.flaggedQuestions);
+      } else if (initialAttempt.details?.flaggedQuestions && Object.keys(flaggedQuestions).length === 0) {
+        setFlaggedQuestions(initialAttempt.details.flaggedQuestions);
+      }
+      if (initialAttempt.timeRemaining) {
+        setTimeLeft(initialAttempt.timeRemaining);
+      }
+    }
+  }, [initialAttempt, attemptId, answers, flaggedQuestions]);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [autoSaved, setAutoSaved] = useState(false);
@@ -147,6 +167,9 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const autoSaveTimeoutRef = useRef(null);
   const questionTimerRef = useRef(null);
   const mainContentRef = useRef(null);
+  const isInitializing = useRef(false);
+  // Keep a ref to the current attemptId to avoid stale closures in useCallback
+  const attemptIdRef = useRef(initialAttempt?.id || null);
 
   // Derived state
   const currentQuestion = questions[currentQuestionIndex];
@@ -160,17 +183,40 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
 
   // Initialize test attempt
   const initializeTest = useCallback(async () => {
-    if (!test?.id) {
-      setIsLoading(false);
+    // Basic guards
+    if (!test?.id || isInitializing.current) {
+      if (!test?.id) setIsLoading(false);
       return;
     }
 
-    try {
-      let attemptData = initialAttempt;
+    // Wait for session to load if not yet available
+    if (session === undefined) {
+      console.log('TestTaker: Waiting for session to load...');
+      return;
+    }
 
-      // Use attemptId if already available in state or props
-      if (attemptId && !attemptData) {
-        attemptData = { id: attemptId };
+    // If unauthenticated, the API will handle it, but we can catch it early here 
+    // to avoid unnecessary requests if we know it's unauthenticated.
+    if (!session?.user?.id) {
+       console.warn('TestTaker: No user session found');
+       // But let's proceed to the API anyway just in case NextAuth state is laggy
+    }
+
+    try {
+      isInitializing.current = true;
+      setIsLoading(true);
+      
+      let attemptData = initialAttempt;
+      let newAttemptId = attemptId;
+
+      // Use attemptId if already available in state/ref or props
+      if (!newAttemptId) newAttemptId = attemptIdRef.current;
+      if (newAttemptId && !attemptData) {
+        attemptData = { id: newAttemptId };
+      } else if (attemptData && attemptData.id) {
+        newAttemptId = attemptData.id;
+        attemptIdRef.current = newAttemptId;
+        setAttemptId(newAttemptId);
       }
 
       if (!attemptData) {
@@ -191,10 +237,19 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
         }
 
         const response = await attemptRes.json();
-        attemptData = response.attempt || response.data;
-      }
+        const attemptDataRaw = response.attempt || response.data || response;
+        
+        if (!attemptDataRaw || !attemptDataRaw.id) {
+          console.error('API response missing attempt ID:', response);
+          throw new Error('API failed to return a valid test session ID');
+        }
 
-      setAttemptId(attemptData.id);
+        attemptData = attemptDataRaw;
+        newAttemptId = attemptData.id;
+        attemptIdRef.current = newAttemptId;
+        setAttemptId(newAttemptId);
+        console.log('TestTaker: Created/Resumed attempt', newAttemptId);
+      }
 
       // Start proctoring if enabled
       if (test?.proctoringEnabled) {
@@ -286,8 +341,9 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       // Don't redirect immediately on error, let user try again or see error
     } finally {
       setIsLoading(false);
+      isInitializing.current = false;
     }
-  }, [test, session, questions.length, initialAttempt, apiBaseUrl]);
+  }, [test?.id, session?.user?.id, initialAttempt, apiBaseUrl]);
 
   // Timer logic
   useEffect(() => {
@@ -357,7 +413,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       // Analyze performance using AI
       const analysis = await analyzePerformance(results);
       if (analysis) {
-        setPerformanceAnalysis(analysis);
+        setAiFeedback(analysis);
 
         // Get personalized tips if user is logged in
         if (session?.user?.id) {
@@ -535,8 +591,12 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   // Handle confirmed test submission with Redis cleanup
   const confirmSubmit = async () => {
     setShowSubmitConfirm(false);
+    
+    // Read from ref as fallback for stale closure safety
+    const currentAttemptId = attemptId || attemptIdRef.current;
+    console.log('Attempting to submit. attemptId:', currentAttemptId, '(state:', attemptId, ', ref:', attemptIdRef.current, ')');
 
-    if (!attemptId) {
+    if (!currentAttemptId) {
       console.error('Submission failed: Missing attemptId');
       toast({
         title: 'Error',
@@ -557,7 +617,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       }
 
       // Send final answers to server
-      const response = await fetch(`${apiBaseUrl}/${attemptId}/submit`, {
+      const response = await fetch(`${apiBaseUrl}/${currentAttemptId}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

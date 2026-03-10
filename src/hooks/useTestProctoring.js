@@ -310,12 +310,32 @@ export const useTestProctoring = ({
     document.removeEventListener('keydown', handleKeyDown, true);
     
     // Exit fullscreen
-    if (document.exitFullscreen) {
-      document.exitFullscreen().catch(console.error);
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
+    const isFullscreen = !!(document.fullscreenElement || 
+                          document.webkitFullscreenElement || 
+                          document.msFullscreenElement);
+    
+    if (isFullscreen) {
+      try {
+        const exitFullscreen = (
+          document.exitFullscreen || 
+          document.webkitExitFullscreen || 
+          document.msExitFullscreen
+        );
+        
+        if (exitFullscreen) {
+          const result = exitFullscreen.call(document);
+          if (result instanceof Promise) {
+            result.catch(err => {
+              const message = err?.message || '';
+              if (!message.includes('Document not active') && !message.includes('no element')) {
+                console.warn('exitFullscreen failed:', err);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.debug('Failed to exit fullscreen synchronously:', error);
+      }
     }
     
     setProctoringState(prev => ({

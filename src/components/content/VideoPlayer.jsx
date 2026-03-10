@@ -52,7 +52,7 @@ const VideoPlayer = ({
 
   // State management
   // State management
-  te(controls);
+  const [showControlsInternal, setShowControlsInternal] = useState(controls);
   const [showSettings, setShowSettings] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(defaultPlaybackRate);
   const [activeTrack, setActiveTrack] = useState(-1);
@@ -286,12 +286,25 @@ const VideoPlayer = ({
         containerRef.current.msRequestFullscreen();
       }
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) { // Safari
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) { // IE11
-        document.msExitFullscreen();
+      try {
+        const exitFullscreen = (
+          document.exitFullscreen || 
+          document.webkitExitFullscreen || 
+          document.msExitFullscreen
+        );
+        
+        if (exitFullscreen) {
+          const result = exitFullscreen.call(document);
+          if (result instanceof Promise) {
+            result.catch(err => {
+              if (!err?.message?.includes('Document not active')) {
+                console.warn('exitFullscreen failed:', err);
+              }
+            });
+          }
+        }
+      } catch (error) {
+        console.debug('Failed to exit fullscreen:', error);
       }
     }
     
