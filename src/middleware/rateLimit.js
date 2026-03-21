@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
-import redisClient from '@/lib/redis';
+import redis from '@/lib/redis';
 
 // Rate limiting configuration
 const rateLimiterConfig = {
@@ -24,21 +23,55 @@ const rateLimiterConfig = {
   },
 };
 
-// Create rate limiters
-const rateLimiters = {
-  api: null,
-  auth: null,
-  upload: null,
-};
+// Simple in-memory rate limiter fallback (for when Redis is unavailable)
+const memoryStore = new Map();
 
-// Initialize rate limiters with Redis
-Object.keys(rateLimiterConfig).forEach((key) => {
-  rateLimiters[key] = new RateLimiterRedis({
-    storeClient: redisClient,
-    keyPrefix: `rate_limit:${key}`,
-    ...rateLimiterConfig[key],
-  });
-});
+async function checkRateLimit(ip, type) {
+  const config = rateLimiterConfig[type] || rateLimiterConfig.api;
+  const key = `rate_limit:${type}:${ip}`;
+  const now = Date.now();
+  const windowMs = config.duration * 1000;
+
+  // Try Redis first
+  try {
+    const redisKey = `mindora:${key}`;
+    const [count] = await Promise.all([
+      redis.get(redisKey),
+    ]);
+
+    const currentCount = count ? parseInt(count, 10) : 0;
+
+    if (currentCount >= config.points) {
+      return { allowed: false, remaining: 0, limit: config.points };
+    }
+
+    // Increment and set TTL (fire and forget)
+    if (redis.client) {
+      redis.client.incr(redisKey).catch(() => {});
+      if (currentCount === 0) {
+        redis.client.expire(redisKey, config.duration).catch(() => {});
+      }
+    }
+
+    return { allowed: true, remaining: config.points - currentCount - 1, limit: config.points };
+  } catch {
+    // Fall back to in-memory store
+  }
+
+  // In-memory fallback
+  const entry = memoryStore.get(key) || { count: 0, resetAt: now + windowMs };
+  if (now > entry.resetAt) {
+    entry.count = 0;
+    entry.resetAt = now + windowMs;
+  }
+  entry.count++;
+  memoryStore.set(key, entry);
+
+  if (entry.count > config.points) {
+    return { allowed: false, remaining: 0, limit: config.points };
+  }
+  return { allowed: true, remaining: config.points - entry.count, limit: config.points };
+}
 
 /**
  * Rate limiting middleware for Next.js
@@ -52,54 +85,48 @@ export async function rateLimitMiddleware(request) {
   }
 
   // Get client IP
-  const ip = request.headers.get('x-real-ip') || 
+  const ip = request.headers.get('x-real-ip') ||
              request.headers.get('x-forwarded-for')?.split(',').shift().trim() ||
              'unknown';
-  
+
   // Determine rate limiter based on path
-  let rateLimiter;
+  let type = 'api';
   if (request.nextUrl.pathname.startsWith('/api/auth')) {
-    rateLimiter = rateLimiters.auth;
+    type = 'auth';
   } else if (request.nextUrl.pathname.startsWith('/api/upload')) {
-    rateLimiter = rateLimiters.upload;
-  } else if (request.nextUrl.pathname.startsWith('/api')) {
-    rateLimiter = rateLimiters.api;
-  } else {
-    // For non-API routes, use default rate limiting
-    rateLimiter = rateLimiters.api;
+    type = 'upload';
   }
 
   try {
-    // Consume a point
-    const rateLimitRes = await rateLimiter.consume(ip);
-    
-    // Set rate limit headers
+    const result = await checkRateLimit(ip, type);
+    const config = rateLimiterConfig[type];
+
+    if (!result.allowed) {
+      return new NextResponse(
+        JSON.stringify({
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Please try again later.',
+        }),
+        {
+          status: 429,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-RateLimit-Limit': String(result.limit),
+            'X-RateLimit-Remaining': '0',
+          },
+        }
+      );
+    }
+
     const response = NextResponse.next();
-    response.headers.set('X-RateLimit-Limit', rateLimiter.points.toString());
-    response.headers.set('X-RateLimit-Remaining', rateLimitRes.remainingPoints.toString());
-    response.headers.set('X-RateLimit-Reset', Math.ceil((Date.now() + rateLimitRes.msBeforeNext) / 1000).toString());
-    
+    response.headers.set('X-RateLimit-Limit', String(result.limit));
+    response.headers.set('X-RateLimit-Remaining', String(result.remaining));
     return response;
-    
+
   } catch (error) {
-    // Rate limit exceeded
-    const response = new NextResponse(
-      JSON.stringify({
-        error: 'Too Many Requests',
-        message: 'Rate limit exceeded. Please try again later.',
-      }),
-      {
-        status: 429,
-        headers: {
-          'Content-Type': 'application/json',
-          'Retry-After': Math.ceil(error.msBeforeNext / 1000) || 1,
-          'X-RateLimit-Limit': rateLimiter.points,
-          'X-RateLimit-Remaining': 0,
-          'X-RateLimit-Reset': Math.ceil((Date.now() + error.msBeforeNext) / 1000),
-        },
-      }
-    );
-    
-    return response;
+    // If rate limiting itself fails, allow the request through
+    console.warn('[RateLimit] Rate limiting check failed, allowing request:', error.message);
+    return NextResponse.next();
   }
 }
+

@@ -1,14 +1,6 @@
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { createClient } from 'redis';
-
-// Initialize Redis client
-const redis = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
-
-// Connect to Redis
-await redis.connect();
+import redis from '@/lib/redis';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -24,7 +16,6 @@ export default async function handler(req, res) {
   const { id: attemptId } = req.query;
 
   try {
-    // Get the test attempt
     const attempt = await prisma.testAttempt.findUnique({
       where: { id: attemptId },
     });
@@ -33,15 +24,12 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'Test attempt not found' });
     }
 
-    // Verify ownership
     if (attempt.userId !== session.user.id) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Clean up Redis data
-    await redis.del(`test:${attempt.testId}:${session.user.id}:answers`);
-    await redis.del(`test:${attempt.testId}:${session.user.id}:time`);
-    await redis.sRem(`test:${attempt.testId}:users`, session.user.id);
+    // Clean up Redis data (best-effort via our safe singleton)
+    await redis.cleanupTestSession(attempt.testId, session.user.id);
 
     return res.status(200).json({
       success: true,

@@ -1,14 +1,6 @@
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { createClient } from 'redis';
-
-// Initialize Redis client
-const redis = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-});
-
-// Connect to Redis
-await redis.connect();
+import redis from '@/lib/redis';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -40,7 +32,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
-    // Calculate score (this is a simplified version)
+    // Calculate score
     const questions = await prisma.question.findMany({
       where: { testId: attempt.testId },
     });
@@ -60,7 +52,7 @@ export default async function handler(req, res) {
       };
     });
 
-    const score = Math.round((correctAnswers / questions.length) * 100);
+    const score = questions.length > 0 ? Math.round((correctAnswers / questions.length) * 100) : 0;
 
     // Update the test attempt
     const updatedAttempt = await prisma.testAttempt.update({
@@ -79,17 +71,9 @@ export default async function handler(req, res) {
       },
     });
 
-    // Clean up Redis data
-    try {
-      await redis.del(`test:${attempt.testId}:${session.user.id}:answers`);
-      await redis.del(`test:${attempt.testId}:${session.user.id}:time`);
-      await redis.sRem(`test:${attempt.testId}:users`, session.user.id);
-    } catch (redisError) {
-      console.error('Redis cleanup error:', redisError);
-      // Don't fail the request if Redis cleanup fails
-    }
+    // Clean up Redis data (best-effort, non-blocking)
+    await redis.cleanupTestSession(attempt.testId, session.user.id);
 
-    // Return results
     return res.status(200).json({
       success: true,
       attemptId: updatedAttempt.id,

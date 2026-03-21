@@ -400,3 +400,7 @@ export const getUserPaymentHistory = async (userId, { limit = 10, page = 1 } = {
     throw new Error('Failed to fetch payment history');
   }
 };
+
+// Alias used by payments/create/route.js
+export const createOrder = createPaymentOrder;
+

@@ -1,4 +1,4 @@
-import { redisClient } from './redis';
+import redis from './redis';
 
 class RedisCache {
   constructor(prefix = '') {
@@ -6,7 +6,8 @@ class RedisCache {
   }
 
   async get(key) {
-    const result = await redisClient.get(`${this.prefix}${key}`);
+    const result = await redis.get(`${this.prefix}${key}`);
+    if (result === null) return null;
     try {
       return JSON.parse(result);
     } catch (e) {
@@ -17,19 +18,19 @@ class RedisCache {
   async set(key, value, ttl = null) {
     const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
     if (ttl) {
-      return redisClient.set(`${this.prefix}${key}`, stringValue, 'EX', ttl);
+      return redis.setex(`${this.prefix}${key}`, ttl, stringValue);
     }
-    return redisClient.set(`${this.prefix}${key}`, stringValue);
+    return redis.set(`${this.prefix}${key}`, stringValue);
   }
 
   async del(key) {
-    return redisClient.del(`${this.prefix}${key}`);
+    return redis.del(`${this.prefix}${key}`);
   }
 
   async clear() {
-    const keys = await redisClient.keys(`${this.prefix}*`);
+    const keys = await redis.keys(`${this.prefix}*`);
     if (keys.length > 0) {
-      return redisClient.del(keys);
+      return redis.del(...keys);
     }
     return 0;
   }
@@ -40,3 +41,4 @@ export const cache = new RedisCache(process.env.REDIS_PREFIX || 'mindora:');
 
 // Export the class for custom cache instances
 export default RedisCache;
+

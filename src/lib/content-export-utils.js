@@ -1,14 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import archiver from 'archiver';
-import { Readable } from 'stream';
-import { promisify } from 'util';
-import fs from 'fs';
-import path from 'path';
 
 const prisma = new PrismaClient();
-const pipeline = promisify(require('stream').pipeline);
+
 
 // Initialize S3 client
 const s3Client = new S3Client({
@@ -44,38 +39,16 @@ function generateExportFilename(format, prefix = 'content') {
  * @returns {Promise<{filename: string, stream: Readable, type: string}>} Export result
  */
 async function exportToJson(contentIds) {
-  const contents = await prisma.content.findMany({
-    where: {
-      id: { in: contentIds },
-    },
-    include: {
-      topics: true,
-      createdBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      updatedBy: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-    },
+  const contents = await prisma.contentItem.findMany({
+    where: { id: { in: contentIds } },
   });
 
-  // Convert to JSON string with pretty printing
   const jsonString = JSON.stringify(contents, null, 2);
-  const stream = new Readable();
-  stream.push(jsonString);
-  stream.push(null); // Signal end of stream
+  const buffer = Buffer.from(jsonString, 'utf-8');
 
   return {
     filename: generateExportFilename('json'),
-    stream,
+    buffer,
     type: 'application/json',
   };
 }
@@ -86,61 +59,25 @@ async function exportToJson(contentIds) {
  * @returns {Promise<{filename: string, stream: Readable, type: string}>} Export result
  */
 async function exportToCsv(contentIds) {
-  const contents = await prisma.content.findMany({
-    where: {
-      id: { in: contentIds },
-    },
-    include: {
-      topics: true,
-      createdBy: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
+  const contents = await prisma.contentItem.findMany({
+    where: { id: { in: contentIds } },
   });
 
-  // Flatten the data for CSV
-  const rows = [
-    [
-      'ID',
-      'Title',
-      'Type',
-      'Status',
-      'Topics',
-      'Created At',
-      'Created By',
-      'Updated At',
-    ].join(','),
-  ];
-
-  for (const content of contents) {
-    const topics = content.topics.map((t) => t.name).join('; ');
-    const creator = content.createdBy ? `${content.createdBy.name} <${content.createdBy.email}>` : 'System';
-    
-    rows.push(
-      [
-        `"${content.id}"`,
-        `"${content.title.replace(/"/g, '""')}"`,
-        `"${content.type}"`,
-        `"${content.status}"`,
-        `"${topics}"`,
-        `"${content.createdAt.toISOString()}"`,
-        `"${creator}"`,
-        `"${content.updatedAt.toISOString()}"`,
-      ].join(',')
-    );
+  const rows = [['ID','Title','Type','Status','Created At'].join(',')];
+  for (const c of contents) {
+    rows.push([
+      `"${c.id}"`,
+      `"${(c.title || '').replace(/"/g, '""')}"`,
+      `"${c.type || ''}"`,
+      `"${c.status || ''}"`,
+      `"${c.createdAt?.toISOString() || ''}"`,
+    ].join(','));
   }
 
-  const csvString = rows.join('\n');
-  const stream = new Readable();
-  stream.push(csvString);
-  stream.push(null); // Signal end of stream
-
+  const buffer = Buffer.from(rows.join('\n'), 'utf-8');
   return {
     filename: generateExportFilename('csv'),
-    stream,
+    buffer,
     type: 'text/csv',
   };
 }
@@ -150,89 +87,11 @@ async function exportToCsv(contentIds) {
  * @param {Array<string>} contentIds - Array of content IDs to export
  * @returns {Promise<{filename: string, stream: Readable, type: string}>} Export result
  */
+// ZIP export requires Node.js streams (archiver) — not supported on Vercel serverless.
+// Falls back to JSON export.
 async function exportToZip(contentIds) {
-  const contents = await prisma.content.findMany({
-    where: {
-      id: { in: contentIds },
-    },
-    include: {
-      topics: true,
-      files: true,
-    },
-  });
-
-  // Create a new archive
-  const archive = archiver('zip', {
-    zlib: { level: 9 }, // Maximum compression
-  });
-
-  // Add metadata file
-  const metadata = {
-    exportedAt: new Date().toISOString(),
-    contentCount: contents.length,
-    contents: contents.map((content) => ({
-      id: content.id,
-      title: content.title,
-      type: content.type,
-      status: content.status,
-      topics: content.topics.map((t) => t.name),
-      files: content.files.map((f) => ({
-        id: f.id,
-        filename: f.filename,
-        mimeType: f.mimeType,
-        size: f.size,
-      })),
-    })),
-  };
-
-  archive.append(JSON.stringify(metadata, null, 2), { name: 'metadata.json' });
-
-  // Add each content item's files to the archive
-  for (const content of contents) {
-    const contentDir = `${content.id}_${content.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
-    
-    // Add content metadata
-    archive.append(JSON.stringify(content, null, 2), { 
-      name: `${contentDir}/content.json` 
-    });
-
-    // Add files
-    for (const file of content.files) {
-      try {
-        // Get signed URL for S3 file
-        const command = new GetObjectCommand({
-          Bucket: process.env.AWS_S3_BUCKET,
-          Key: file.s3Key,
-        });
-        
-        const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-        
-        // Fetch the file and add it to the archive
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to fetch file: ${file.filename}`);
-        
-        const buffer = await response.arrayBuffer();
-        archive.append(Buffer.from(buffer), { 
-          name: `${contentDir}/files/${file.filename}` 
-        });
-      } catch (error) {
-        console.error(`Error adding file ${file.filename} to archive:`, error);
-        // Add an error file instead
-        archive.append(`Error: Could not include file: ${file.filename}\n${error.message}`, { 
-          name: `${contentDir}/files/ERROR_${file.filename}.txt` 
-        });
-      }
-    }
-  }
-
-  // Finalize the archive
-  archive.finalize();
-
-  return {
-    filename: generateExportFilename('zip'),
-    stream: archive,
-    type: 'application/zip',
-  };
+  console.warn('[content-export-utils] ZIP export not supported on serverless. Falling back to JSON.');
+  return exportToJson(contentIds);
 }
 
 /**

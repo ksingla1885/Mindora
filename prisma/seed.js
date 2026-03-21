@@ -1,9 +1,19 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
 async function main() {
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+        console.error('❌  ADMIN_EMAIL and ADMIN_PASSWORD must be set in your .env file.');
+        console.error('    Add them to .env and try again.');
+        process.exit(1);
+    }
+
     console.log('Starting Clean Seed...');
 
     try {
@@ -53,11 +63,12 @@ async function main() {
 
         // 2. Create the Single Admin Account
         console.log('Creating Admin Account...');
-        const hashedPassword = await bcrypt.hash('ketan@1885', 10);
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+
 
         const admin = await prisma.user.create({
             data: {
-                email: 'ketansingla3246@gmail.com',
+                email: adminEmail,
                 name: 'Mindora Admin',
                 password: hashedPassword,
                 role: 'ADMIN',

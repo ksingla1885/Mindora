@@ -1,8 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 import { cache } from '@/lib/redis-utils';
-import { dppService } from '../dpp/dpp.service';
 
 const prisma = new PrismaClient();
+
+// Helper to simulate cache.getOrSet using get/set
+async function getOrSet(key, fn, ttl) {
+  try {
+    const cached = await cache.get(key);
+    if (cached !== null) return cached;
+    const result = await fn();
+    if (result !== null && result !== undefined) await cache.set(key, result, ttl);
+    return result;
+  } catch {
+    return fn();
+  }
+}
+
+
 
 const CACHE_TTL = 60 * 60; // 1 hour
 const DPP_CACHE_TTL = 30 * 60; // 30 minutes
@@ -12,7 +26,7 @@ class ContentService {
   async getContentById(contentId, userId = null) {
     const cacheKey = `content:${contentId}:${userId || 'public'}`;
     
-    return cache.getOrSet(cacheKey, async () => {
+    return getOrSet(cacheKey, async () => {
       const content = await prisma.contentItem.findUnique({
         where: { id: contentId },
         include: {
@@ -44,7 +58,7 @@ class ContentService {
   async getContentBySlug(slug, userId = null) {
     const cacheKey = `content:slug:${slug}:${userId || 'public'}`;
     
-    return cache.getOrSet(cacheKey, async () => {
+    return getOrSet(cacheKey, async () => {
       const content = await prisma.contentItem.findFirst({
         where: { slug },
         include: {
@@ -196,7 +210,7 @@ class ContentService {
   async getContentDPP(contentId, userId) {
     const cacheKey = `content:${contentId}:dpp:${userId}`;
     
-    return cache.getOrSet(cacheKey, async () => {
+    return getOrSet(cacheKey, async () => {
       // Check if content has associated DPP
       const content = await prisma.contentItem.findUnique({
         where: { id: contentId },
@@ -273,7 +287,7 @@ class ContentService {
   async getContentComments(contentId) {
     const cacheKey = `content:${contentId}:comments`;
     
-    return cache.getOrSet(cacheKey, async () => {
+    return getOrSet(cacheKey, async () => {
       return prisma.comment.findMany({
         where: { 
           contentId,

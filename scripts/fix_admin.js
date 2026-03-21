@@ -1,12 +1,18 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
-const TARGET_EMAIL = "ketansingla3246@gmail.com";
-const TARGET_PASSWORD_PLAIN = "ketan@1885";
+const TARGET_EMAIL = process.env.ADMIN_EMAIL;
+const TARGET_PASSWORD_PLAIN = process.env.ADMIN_PASSWORD;
 
 async function main() {
+    if (!TARGET_EMAIL || !TARGET_PASSWORD_PLAIN) {
+        console.error('❌  ADMIN_EMAIL and ADMIN_PASSWORD must be set in your .env file.');
+        console.error('    Add them to .env and try again.');
+        process.exit(1);
+    }
     console.log('Starting Admin Fix Script...');
 
     try {

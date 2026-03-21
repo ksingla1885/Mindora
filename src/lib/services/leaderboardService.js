@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { redis } from '@/lib/redis';
+import redis from '@/lib/redis';
 import { formatDistanceToNow, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
 const LEADERBOARD_CACHE_PREFIX = 'leaderboard:';

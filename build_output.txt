@@ -1,0 +1,1019 @@
+
+> mindora@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Turbopack build encountered 2 warnings:
+./src/app/api/webhooks/razorpay/route.js:6:14
+Next.js can't recognize the exported `config` field in route. Page config in `config` is deprecated and ignored, use individual exports instead.
+[0m [90m 4 |[39m
+ [90m 5 |[39m [90m// Disable body parsing, we need the raw body for signature verification[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mexport[39m [36mconst[39m config [33m=[39m {
+ [90m   |[39m              [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m   api[33m:[39m {
+ [90m 8 |[39m     bodyParser[33m:[39m [36mfalse[39m[33m,[39m
+ [90m 9 |[39m   }[33m,[39m[0m
+
+The exported configuration object in a source file needs to have a very specific format from which some properties can be statically parsed at compiled-time.
+
+https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config
+
+
+./src/app/api/ws/system-health/route.js:156:14
+Next.js can't recognize the exported `config` field in route. Page config in `config` is deprecated and ignored, use individual exports instead.
+[0m [90m 154 |[39m [90m// Configure Next.js to not parse the body[39m
+ [90m 155 |[39m [90m// This is important for WebSocket upgrade requests[39m
+[31m[1m>[22m[39m[90m 156 |[39m [36mexport[39m [36mconst[39m config [33m=[39m {
+ [90m     |[39m              [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 157 |[39m   api[33m:[39m {
+ [90m 158 |[39m     bodyParser[33m:[39m [36mfalse[39m[33m,[39m
+ [90m 159 |[39m   }[33m,[39m[0m
+
+The exported configuration object in a source file needs to have a very specific format from which some properties can be statically parsed at compiled-time.
+
+https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config
+
+
+
+> Build error occurred
+Error: Turbopack build failed with 38 errors:
+./src/app/api/orders/[orderId]/invoice/route.js:309:7
+Ecmascript file had an error
+[0m [90m 307 |[39m     [90m// Handle page breaks[39m
+ [90m 308 |[39m     [36mif[39m (y [33m<[39m [35m100[39m) {
+[31m[1m>[22m[39m[90m 309 |[39m       page [33m=[39m pdfDoc[33m.[39maddPage([[35m595[39m[33m,[39m [35m842[39m])[33m;[39m
+ [90m     |[39m       [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 310 |[39m       y [33m=[39m height [33m-[39m margin[33m;[39m
+ [90m 311 |[39m     }
+ [90m 312 |[39m   }[0m
+
+cannot reassign to a variable declared with `const`
+
+
+./src/app/api/orders/[orderId]/invoice/route.js:162:16
+Ecmascript file had an error
+[0m [90m 160 |[39m
+ [90m 161 |[39m [90m// Helper function to create PDF invoice (placeholder implementation)[39m
+[31m[1m>[22m[39m[90m 162 |[39m [36masync[39m [36mfunction[39m createPdfInvoice(data) {
+ [90m     |[39m                [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 163 |[39m   [90m// In a real app, use a PDF generation library like pdfkit, puppeteer, or a service[39m
+ [90m 164 |[39m   [90m// This is a simplified example that returns a basic PDF[39m
+ [90m 165 |[39m[0m
+
+the name `createPdfInvoice` is defined multiple times
+
+
+./src/app/(dashboard)/analytics/page.jsx:20:1
+Module not found: Can't resolve './_components/content-performance'
+[0m [90m 18 |[39m [36mimport[39m { [33mOverview[39m } [36mfrom[39m [32m'./_components/overview'[39m[33m;[39m
+ [90m 19 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 20 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 21 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m 22 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAnalyticsPage[39m() {
+ [90m 23 |[39m   [36mconst[39m {[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:22:1
+Module not found: Can't resolve './_components/content-performance'
+[0m [90m 20 |[39m [36mimport[39m { [33mOverview[39m } [36mfrom[39m [32m'./_components/overview'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 22 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 23 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m 24 |[39m
+ [90m 25 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAnalyticsPage[39m() {[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:21:1
+Module not found: Can't resolve './_components/test-analytics'
+[0m [90m 19 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+ [90m 20 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 21 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 22 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAnalyticsPage[39m() {
+ [90m 23 |[39m   [36mconst[39m {
+ [90m 24 |[39m     data[33m:[39m session[33m,[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:23:1
+Module not found: Can't resolve './_components/test-analytics'
+[0m [90m 21 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+ [90m 22 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 23 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 24 |[39m
+ [90m 25 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAnalyticsPage[39m() {
+ [90m 26 |[39m   [36mconst[39m { data[33m:[39m session[33m,[39m status } [33m=[39m useSession()[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:19:1
+Module not found: Can't resolve './_components/user-activity-table'
+[0m [90m 17 |[39m [90m// Components[39m
+ [90m 18 |[39m [36mimport[39m { [33mOverview[39m } [36mfrom[39m [32m'./_components/overview'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 19 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 20 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m 22 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mAnalyticsPage[39m() {[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:21:1
+Module not found: Can't resolve './_components/user-activity-table'
+[0m [90m 19 |[39m [90m// Components[39m
+ [90m 20 |[39m [36mimport[39m { [33mOverview[39m } [36mfrom[39m [32m'./_components/overview'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 21 |[39m [36mimport[39m { [33mUserActivityTable[39m } [36mfrom[39m [32m'./_components/user-activity-table'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 22 |[39m [36mimport[39m { [33mContentPerformance[39m } [36mfrom[39m [32m'./_components/content-performance'[39m[33m;[39m
+ [90m 23 |[39m [36mimport[39m { [33mTestAnalytics[39m } [36mfrom[39m [32m'./_components/test-analytics'[39m[33m;[39m
+ [90m 24 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:12:1
+Module not found: Can't resolve '@/components/date-range-picker'
+[0m [90m 10 |[39m [36mimport[39m { format } [36mfrom[39m [32m'date-fns'[39m[33m;[39m
+ [90m 11 |[39m [36mimport[39m { [33mDateRange[39m } [36mfrom[39m [32m'react-day-picker'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m { [33mDatePickerWithRange[39m } [36mfrom[39m [32m'@/components/date-range-picker'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 13 |[39m [36mimport[39m { [33mSkeleton[39m } [36mfrom[39m [32m'@/components/ui/skeleton'[39m[33m;[39m
+ [90m 14 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'@/components/ui/use-toast'[39m[33m;[39m
+ [90m 15 |[39m [36mimport[39m { [33mLineChart[39m[33m,[39m [33mLine[39m[33m,[39m [33mXAxis[39m[33m,[39m [33mYAxis[39m[33m,[39m [33mCartesianGrid[39m[33m,[39m [33mTooltip[39m[33m,[39m [33mResponsiveContainer[39m[33m,[39m [33mBarChart[39m [36mas[39m [33mReBarChart[39m[33m,[39m [33mBar[39m[33m,[39m [33mCell[39m[33m,[39m [33mPieChart[39m[33m,[39m [33mPie[39m } [36mfrom[39m [32m'recharts'[39m[33m;[39m[0m
+
+Import map: aliased to relative './src/components/date-range-picker' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/(dashboard)/analytics/page.jsx:11:1
+Module not found: Can't resolve '@/components/date-range-picker'
+[0m [90m  9 |[39m [36mimport[39m { format } [36mfrom[39m [32m'date-fns'[39m[33m;[39m
+ [90m 10 |[39m [36mimport[39m { [33mDateRange[39m } [36mfrom[39m [32m'react-day-picker'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 11 |[39m [36mimport[39m { [33mDatePickerWithRange[39m } [36mfrom[39m [32m'@/components/date-range-picker'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 12 |[39m [36mimport[39m { [33mSkeleton[39m } [36mfrom[39m [32m'@/components/ui/skeleton'[39m[33m;[39m
+ [90m 13 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'@/components/ui/use-toast'[39m[33m;[39m
+ [90m 14 |[39m [36mimport[39m {[0m
+
+Import map: aliased to relative './src/components/date-range-picker' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component Browser]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/(dashboard)/analytics/page.jsx [Client Component SSR]
+    ./src/app/(dashboard)/analytics/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/cluster/ClusterOptions.js:4:15
+Module not found: Can't resolve 'dns'
+[0m [90m 2 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 3 |[39m exports[33m.[39m[33mDEFAULT_CLUSTER_OPTIONS[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mconst[39m dns_1 [33m=[39m require([32m"dns"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m exports[33m.[39m[33mDEFAULT_CLUSTER_OPTIONS[39m [33m=[39m {
+ [90m 6 |[39m     clusterRetryStrategy[33m:[39m (times) [33m=>[39m [33mMath[39m[33m.[39mmin([35m100[39m [33m+[39m times [33m*[39m [35m2[39m[33m,[39m [35m2000[39m)[33m,[39m
+ [90m 7 |[39m     enableOfflineQueue[33m:[39m [36mtrue[39m[33m,[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/cluster/ClusterOptions.js [Client Component Browser]
+    ./node_modules/ioredis/built/cluster/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/cluster/ClusterOptions.js [Client Component SSR]
+    ./node_modules/ioredis/built/cluster/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/utils/index.js:4:14
+Module not found: Can't resolve 'fs'
+[0m [90m 2 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 3 |[39m exports[33m.[39mnoop [33m=[39m exports[33m.[39mdefaults [33m=[39m exports[33m.[39m[33mDebug[39m [33m=[39m exports[33m.[39mgetPackageMeta [33m=[39m exports[33m.[39mzipMap [33m=[39m exports[33m.[39m[33mCONNECTION_CLOSED_ERROR_MSG[39m [33m=[39m exports[33m.[39mshuffle [33m=[39m exports[33m.[39msample [33m=[39m exports[33m.[39mresolveTLSProfile [33m=[39m exports[33m.[39mparseURL [33m=[39m exports[33m.[39moptimizeErrorStack [33m=[39m exports[33m.[39mtoArg [33m=[39m exports[33m.[39mconvertMapToArray [33m=[39m exports[33m.[39mconvertObjectToArray [33m=[39m exports[33m.[39mtimeout [33m=[39m exports[33m.[39mpackObject [33m=[39m exports[33m.[39misInt [33m=[39m exports[33m.[39mwrapMultiResult [33m=[39m exports[33m.[39mconvertBufferToString [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mconst[39m fs_1 [33m=[39m require([32m"fs"[39m)[33m;[39m
+ [90m   |[39m              [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m [36mconst[39m path_1 [33m=[39m require([32m"path"[39m)[33m;[39m
+ [90m 6 |[39m [36mconst[39m url_1 [33m=[39m require([32m"url"[39m)[33m;[39m
+ [90m 7 |[39m [36mconst[39m lodash_1 [33m=[39m require([32m"./lodash"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/utils/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/Command.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/utils/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/Command.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/cluster/util.js:5:15
+Module not found: Can't resolve 'net'
+[0m [90m 3 |[39m exports[33m.[39mgetConnectionName [33m=[39m exports[33m.[39mweightSrvRecords [33m=[39m exports[33m.[39mgroupSrvRecords [33m=[39m exports[33m.[39mgetUniqueHostnamesFromOptions [33m=[39m exports[33m.[39mnormalizeNodeOptions [33m=[39m exports[33m.[39mnodeKeyToRedisOptions [33m=[39m exports[33m.[39mgetNodeKey [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+ [90m 4 |[39m [36mconst[39m utils_1 [33m=[39m require([32m"../utils"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mconst[39m net_1 [33m=[39m require([32m"net"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 6 |[39m [36mfunction[39m getNodeKey(node) {
+ [90m 7 |[39m     node[33m.[39mport [33m=[39m node[33m.[39mport [33m||[39m [35m6379[39m[33m;[39m
+ [90m 8 |[39m     node[33m.[39mhost [33m=[39m node[33m.[39mhost [33m||[39m [32m"127.0.0.1"[39m[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/cluster/util.js [Client Component Browser]
+    ./node_modules/ioredis/built/cluster/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/cluster/util.js [Client Component SSR]
+    ./node_modules/ioredis/built/cluster/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/connectors/SentinelConnector/index.js:4:15
+Module not found: Can't resolve 'net'
+[0m [90m 2 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 3 |[39m exports[33m.[39m[33mSentinelIterator[39m [33m=[39m [36mvoid[39m [35m0[39m[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mconst[39m net_1 [33m=[39m require([32m"net"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m [36mconst[39m utils_1 [33m=[39m require([32m"../../utils"[39m)[33m;[39m
+ [90m 6 |[39m [36mconst[39m tls_1 [33m=[39m require([32m"tls"[39m)[33m;[39m
+ [90m 7 |[39m [36mconst[39m [33mSentinelIterator_1[39m [33m=[39m require([32m"./SentinelIterator"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/connectors/SentinelConnector/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/connectors/SentinelConnector/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/connectors/StandaloneConnector.js:3:15
+Module not found: Can't resolve 'net'
+[0m [90m 1 |[39m [32m"use strict"[39m[33m;[39m
+ [90m 2 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mconst[39m net_1 [33m=[39m require([32m"net"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m [36mconst[39m tls_1 [33m=[39m require([32m"tls"[39m)[33m;[39m
+ [90m 5 |[39m [36mconst[39m utils_1 [33m=[39m require([32m"../utils"[39m)[33m;[39m
+ [90m 6 |[39m [36mconst[39m [33mAbstractConnector_1[39m [33m=[39m require([32m"./AbstractConnector"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/connectors/StandaloneConnector.js [Client Component Browser]
+    ./node_modules/ioredis/built/connectors/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/Redis.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/connectors/StandaloneConnector.js [Client Component SSR]
+    ./node_modules/ioredis/built/connectors/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/Redis.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/api/certificates/generate/route.js:5:1
+Module not found: Can't resolve 'pdf-lib'
+[0m [90m 3 |[39m [36mimport[39m { [33mPrismaClient[39m } [36mfrom[39m [32m'@prisma/client'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { renderToBuffer } [36mfrom[39m [32m'@react-pdf/renderer'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { [33mPDFDocument[39m[33m,[39m rgb[33m,[39m [33mStandardFonts[39m } [36mfrom[39m [32m'pdf-lib'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 6 |[39m [36mimport[39m { format } [36mfrom[39m [32m'date-fns'[39m[33m;[39m
+ [90m 7 |[39m [36mimport[39m { v4 [36mas[39m uuidv4 } [36mfrom[39m [32m'uuid'[39m[33m;[39m
+ [90m 8 |[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/api/orders/[orderId]/invoice/route.js:171:32
+Module not found: Can't resolve 'pdf-lib'
+[0m [90m 169 |[39m   [90m// In a real implementation, you would generate the actual PDF here[39m
+ [90m 170 |[39m   [90m// For now, we'll return a simple PDF with the invoice data[39m
+[31m[1m>[22m[39m[90m 171 |[39m   [36mconst[39m { [33mPDFDocument[39m[33m,[39m rgb } [33m=[39m require([32m'pdf-lib'[39m)[33m;[39m
+ [90m     |[39m                                [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 172 |[39m
+ [90m 173 |[39m   [90m// Create a new PDF document[39m
+ [90m 174 |[39m   [36mconst[39m pdfDoc [33m=[39m [36mawait[39m [33mPDFDocument[39m[33m.[39mcreate()[33m;[39m[0m
+
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/lib/certificateGenerator.js:1:1
+Module not found: Can't resolve 'pdf-lib'
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { [33mPDFDocument[39m[33m,[39m rgb[33m,[39m [33mStandardFonts[39m } [36mfrom[39m [32m'pdf-lib'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mimport[39m { format } [36mfrom[39m [32m'date-fns'[39m[33m;[39m
+ [90m 3 |[39m
+ [90m 4 |[39m [90m// Background color for the certificate[39m[0m
+
+
+
+Import trace:
+  App Route:
+    ./src/lib/certificateGenerator.js
+    ./src/app/api/certificates/download/[certificateId]/route.js
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/lib/pdf-invoice.js:5:1
+Module not found: Can't resolve 'pdf-lib'
+[0m [90m 3 |[39m [90m * Generates a simple PDF invoice using pdf-lib.[39m
+ [90m 4 |[39m [90m */[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { [33mPDFDocument[39m[33m,[39m rgb[33m,[39m [33mStandardFonts[39m } [36mfrom[39m [32m'pdf-lib'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [90m/**[39m
+ [90m 8 |[39m [90m * @param {Object} data - Invoice data[39m[0m
+
+
+
+Import trace:
+  App Route:
+    ./src/lib/pdf-invoice.js
+    ./src/app/api/orders/[orderId]/invoice/route.js
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/lib/services/folderService.js:3:1
+Module not found: Can't resolve 'slugify'
+[0m [90m 1 |[39m [36mimport[39m { prisma } [36mfrom[39m [32m'@/lib/prisma'[39m[33m;[39m
+ [90m 2 |[39m [36mimport[39m { v4 [36mas[39m uuidv4 } [36mfrom[39m [32m'uuid'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m slugify [36mfrom[39m [32m'slugify'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mclass[39m [33mFolderService[39m {
+ [90m 6 |[39m   [90m/**[39m[0m
+
+
+
+Import trace:
+  App Route:
+    ./src/lib/services/folderService.js
+    ./src/app/api/folders/[id]/route.js
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/cart/page.jsx:12:1
+Module not found: Can't resolve 'sonner'
+[0m [90m 10 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'next/navigation'[39m[33m;[39m
+ [90m 11 |[39m [36mimport[39m { useState } [36mfrom[39m [32m'react'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 13 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mCartPage[39m() {
+ [90m 14 |[39m   [36mconst[39m {
+ [90m 15 |[39m     items[33m,[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/cart/page.jsx [Client Component Browser]
+    ./src/app/cart/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/cart/page.jsx [Client Component SSR]
+    ./src/app/cart/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/cart/page.jsx:12:1
+Module not found: Can't resolve 'sonner'
+[0m [90m 10 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'next/navigation'[39m[33m;[39m
+ [90m 11 |[39m [36mimport[39m { useState } [36mfrom[39m [32m'react'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 12 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mCartPage[39m() {
+ [90m 15 |[39m   [36mconst[39m { items[33m,[39m removeItem[33m,[39m updateQuantity[33m,[39m cartTotal[33m,[39m clearCart[33m,[39m isLoading } [33m=[39m useCart()[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/cart/page.jsx [Client Component Browser]
+    ./src/app/cart/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/cart/page.jsx [Client Component SSR]
+    ./src/app/cart/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/test-payment/page.jsx:8:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  6 |[39m [36mimport[39m { [33mInput[39m } [36mfrom[39m [32m'@/components/ui/input'[39m[33m;[39m
+ [90m  7 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  8 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  9 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mTestPaymentPage[39m() {
+ [90m 10 |[39m   [36mconst[39m [testId[33m,[39m setTestId] [33m=[39m useState([32m''[39m)[33m;[39m
+ [90m 11 |[39m   [36mconst[39m [amount[33m,[39m setAmount] [33m=[39m useState([32m'1000'[39m)[33m;[39m [90m// Default 10.00 INR in paise[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/test-payment/page.jsx [Client Component Browser]
+    ./src/app/test-payment/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/test-payment/page.jsx [Client Component SSR]
+    ./src/app/test-payment/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/test-payment/page.jsx:8:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  6 |[39m [36mimport[39m { [33mInput[39m } [36mfrom[39m [32m'@/components/ui/input'[39m[33m;[39m
+ [90m  7 |[39m [36mimport[39m { [33mLabel[39m } [36mfrom[39m [32m'@/components/ui/label'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  8 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  9 |[39m
+ [90m 10 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mTestPaymentPage[39m() {
+ [90m 11 |[39m   [36mconst[39m [testId[33m,[39m setTestId] [33m=[39m useState([32m''[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/test-payment/page.jsx [Client Component Browser]
+    ./src/app/test-payment/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/test-payment/page.jsx [Client Component SSR]
+    ./src/app/test-payment/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/test-upload/page.jsx:10:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  8 |[39m [36mimport[39m { [33mCard[39m[33m,[39m [33mCardContent[39m[33m,[39m [33mCardDescription[39m[33m,[39m [33mCardHeader[39m[33m,[39m [33mCardTitle[39m } [36mfrom[39m [32m'@/components/ui/card'[39m[33m;[39m
+ [90m  9 |[39m [36mimport[39m { [33mTabs[39m[33m,[39m [33mTabsContent[39m[33m,[39m [33mTabsList[39m[33m,[39m [33mTabsTrigger[39m } [36mfrom[39m [32m'@/components/ui/tabs'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 10 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 11 |[39m [36mimport[39m [33mFileUploader[39m [36mfrom[39m [32m'@/components/content/FileUploader'[39m[33m;[39m
+ [90m 12 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mTestUploadPage[39m() {
+ [90m 13 |[39m   [36mconst[39m $ [33m=[39m _c([35m7[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/test-upload/page.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/test-upload/page.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/test-upload/page.jsx:9:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  7 |[39m [36mimport[39m { [33mCard[39m[33m,[39m [33mCardContent[39m[33m,[39m [33mCardDescription[39m[33m,[39m [33mCardHeader[39m[33m,[39m [33mCardTitle[39m } [36mfrom[39m [32m'@/components/ui/card'[39m[33m;[39m
+ [90m  8 |[39m [36mimport[39m { [33mTabs[39m[33m,[39m [33mTabsContent[39m[33m,[39m [33mTabsList[39m[33m,[39m [33mTabsTrigger[39m } [36mfrom[39m [32m'@/components/ui/tabs'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  9 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 10 |[39m [36mimport[39m [33mFileUploader[39m [36mfrom[39m [32m'@/components/content/FileUploader'[39m[33m;[39m
+ [90m 11 |[39m
+ [90m 12 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mTestUploadPage[39m() {[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/test-upload/page.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/test-upload/page.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/content/FileUploader.jsx:7:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  5 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m'@/components/ui/button'[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m { [33mProgress[39m } [36mfrom[39m [32m'@/components/ui/progress'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m { cn } [36mfrom[39m [32m'@/lib/utils'[39m[33m;[39m
+ [90m  9 |[39m [36mconst[39m [33mMAX_FILE_SIZE[39m [33m=[39m [35m500[39m [33m*[39m [35m1024[39m [33m*[39m [35m1024[39m[33m;[39m [90m// 500MB[39m
+ [90m 10 |[39m [36mconst[39m [33mCHUNK_SIZE[39m [33m=[39m [35m5[39m [33m*[39m [35m1024[39m [33m*[39m [35m1024[39m[33m;[39m [90m// 5MB chunks[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/components/content/FileUploader.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/content/FileUploader.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/components/content/FileUploader.jsx:7:1
+Module not found: Can't resolve 'sonner'
+[0m [90m  5 |[39m [36mimport[39m { [33mButton[39m } [36mfrom[39m [32m'@/components/ui/button'[39m[33m;[39m
+ [90m  6 |[39m [36mimport[39m { [33mProgress[39m } [36mfrom[39m [32m'@/components/ui/progress'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  7 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m  8 |[39m [36mimport[39m { cn } [36mfrom[39m [32m'@/lib/utils'[39m[33m;[39m
+ [90m  9 |[39m
+ [90m 10 |[39m [36mconst[39m [33mMAX_FILE_SIZE[39m [33m=[39m [35m500[39m [33m*[39m [35m1024[39m [33m*[39m [35m1024[39m[33m;[39m [90m// 500MB[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/components/content/FileUploader.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Client Component Browser]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/components/content/FileUploader.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Client Component SSR]
+    ./src/app/test-upload/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/hooks/use-cart.js:6:1
+Module not found: Can't resolve 'sonner'
+[0m [90m 4 |[39m [36mimport[39m { useSession } [36mfrom[39m [32m'next-auth/react'[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'next/navigation'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mconst[39m [33mCartContext[39m [33m=[39m createContext()[33m;[39m
+ [90m 8 |[39m [36mexport[39m [36mfunction[39m [33mCartProvider[39m({
+ [90m 9 |[39m   children[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-cart.js [Client Component Browser]
+    ./src/app/cart/page.jsx [Client Component Browser]
+    ./src/app/cart/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-cart.js [Client Component SSR]
+    ./src/app/cart/page.jsx [Client Component SSR]
+    ./src/app/cart/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/hooks/use-cart.js:6:1
+Module not found: Can't resolve 'sonner'
+[0m [90m 4 |[39m [36mimport[39m { useSession } [36mfrom[39m [32m'next-auth/react'[39m[33m;[39m
+ [90m 5 |[39m [36mimport[39m { useRouter } [36mfrom[39m [32m'next/navigation'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mimport[39m { toast } [36mfrom[39m [32m'sonner'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m
+ [90m 8 |[39m [36mconst[39m [33mCartContext[39m [33m=[39m createContext()[33m;[39m
+ [90m 9 |[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./src/hooks/use-cart.js [Client Component Browser]
+    ./src/app/cart/page.jsx [Client Component Browser]
+    ./src/app/cart/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./src/hooks/use-cart.js [Client Component SSR]
+    ./src/app/cart/page.jsx [Client Component SSR]
+    ./src/app/cart/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/connectors/SentinelConnector/index.js:6:15
+Module not found: Can't resolve 'tls'
+[0m [90m 4 |[39m [36mconst[39m net_1 [33m=[39m require([32m"net"[39m)[33m;[39m
+ [90m 5 |[39m [36mconst[39m utils_1 [33m=[39m require([32m"../../utils"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 6 |[39m [36mconst[39m tls_1 [33m=[39m require([32m"tls"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 7 |[39m [36mconst[39m [33mSentinelIterator_1[39m [33m=[39m require([32m"./SentinelIterator"[39m)[33m;[39m
+ [90m 8 |[39m exports[33m.[39m[33mSentinelIterator[39m [33m=[39m [33mSentinelIterator_1[39m[33m.[39m[36mdefault[39m[33m;[39m
+ [90m 9 |[39m [36mconst[39m [33mAbstractConnector_1[39m [33m=[39m require([32m"../AbstractConnector"[39m)[33m;[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/connectors/SentinelConnector/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/connectors/SentinelConnector/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./node_modules/ioredis/built/connectors/StandaloneConnector.js:4:15
+Module not found: Can't resolve 'tls'
+[0m [90m 2 |[39m [33mObject[39m[33m.[39mdefineProperty(exports[33m,[39m [32m"__esModule"[39m[33m,[39m { value[33m:[39m [36mtrue[39m })[33m;[39m
+ [90m 3 |[39m [36mconst[39m net_1 [33m=[39m require([32m"net"[39m)[33m;[39m
+[31m[1m>[22m[39m[90m 4 |[39m [36mconst[39m tls_1 [33m=[39m require([32m"tls"[39m)[33m;[39m
+ [90m   |[39m               [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 5 |[39m [36mconst[39m utils_1 [33m=[39m require([32m"../utils"[39m)[33m;[39m
+ [90m 6 |[39m [36mconst[39m [33mAbstractConnector_1[39m [33m=[39m require([32m"./AbstractConnector"[39m)[33m;[39m
+ [90m 7 |[39m [36mclass[39m [33mStandaloneConnector[39m [36mextends[39m [33mAbstractConnector_1[39m[33m.[39m[36mdefault[39m {[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./node_modules/ioredis/built/connectors/StandaloneConnector.js [Client Component Browser]
+    ./node_modules/ioredis/built/connectors/index.js [Client Component Browser]
+    ./node_modules/ioredis/built/Redis.js [Client Component Browser]
+    ./node_modules/ioredis/built/index.js [Client Component Browser]
+    ./src/lib/redis.js [Client Component Browser]
+    ./src/lib/redis-utils.js [Client Component Browser]
+    ./src/services/content/content.service.js [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Client Component Browser]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+  Client Component SSR:
+    ./node_modules/ioredis/built/connectors/StandaloneConnector.js [Client Component SSR]
+    ./node_modules/ioredis/built/connectors/index.js [Client Component SSR]
+    ./node_modules/ioredis/built/Redis.js [Client Component SSR]
+    ./node_modules/ioredis/built/index.js [Client Component SSR]
+    ./src/lib/redis.js [Client Component SSR]
+    ./src/lib/redis-utils.js [Client Component SSR]
+    ./src/services/content/content.service.js [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Client Component SSR]
+    ./src/app/content/[slug]/page.jsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./src/app/api/dpp/answer/route.js:3:1
+Export DPPError doesn't exist in target module
+[0m [90m 1 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m 2 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { submitDPPAnswer[33m,[39m [33mDPPError[39m } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [90m// POST /api/dpp/answer - Submit an answer for a DPP question[39m
+ [90m 6 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mPOST[39m(request) {[0m
+
+The export DPPError was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import getDPPHistory?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./src/app/api/dpp/history/route.js:3:1
+Export DPPError doesn't exist in target module
+[0m [90m 1 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m 2 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { getDPPHistory[33m,[39m [33mDPPError[39m } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [90m// GET /api/dpp/history - Get DPP history with filters[39m
+ [90m 6 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mGET[39m(request) {[0m
+
+The export DPPError was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import getDPPHistory?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./src/app/api/dpp/route.js:3:1
+Export DPPError doesn't exist in target module
+[0m [90m  1 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m  2 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+[31m[1m>[22m[39m[90m  3 |[39m [36mimport[39m {
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  4 |[39m   getOrCreateDPPConfig[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  5 |[39m   updateDPPConfig[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  6 |[39m   getTodaysDPP[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  7 |[39m   generateDPP[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  8 |[39m   getDPPStats[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m  9 |[39m   getDPPHistory[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 10 |[39m   skipDPPQuestion[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 11 |[39m   [33mDPPError[39m[33m,[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+[31m[1m>[22m[39m[90m 12 |[39m } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m    |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 13 |[39m
+ [90m 14 |[39m [90m// GET /api/dpp - Get today's DPP and user configuration[39m
+ [90m 15 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mGET[39m(request) {[0m
+
+The export DPPError was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import getDPPHistory?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./src/app/api/dpp/skip/route.js:3:1
+Export DPPError doesn't exist in target module
+[0m [90m 1 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m 2 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 3 |[39m [36mimport[39m { skipDPPQuestion[33m,[39m [33mDPPError[39m } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [90m// POST /api/dpp/skip - Skip a DPP question[39m
+ [90m 6 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mPOST[39m(request) {[0m
+
+The export DPPError was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import getDPPHistory?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./src/app/api/dpp/practice-test/route.js:2:1
+Export generatePracticeTest doesn't exist in target module
+[0m [90m 1 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 2 |[39m [36mimport[39m { generatePracticeTest } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 3 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m 4 |[39m
+ [90m 5 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mGET[39m(request) {[0m
+
+The export generatePracticeTest was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import generateDPP?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./src/app/api/dpp/analytics/route.js:1:1
+Export getEnhancedDPPStats doesn't exist in target module
+[0m[31m[1m>[22m[39m[90m 1 |[39m [36mimport[39m { getEnhancedDPPStats } [36mfrom[39m [32m'@/services/dpp/dpp.service'[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 2 |[39m [36mimport[39m { auth } [36mfrom[39m [32m'@/auth'[39m[33m;[39m
+ [90m 3 |[39m
+ [90m 4 |[39m [36mexport[39m [36masync[39m [36mfunction[39m [33mGET[39m() {[0m
+
+The export getEnhancedDPPStats was not found in module [project]/src/services/dpp/dpp.service.js [app-route] (ecmascript).
+Did you mean to import getDPPStats?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+    at <unknown> (./src/app/api/orders/[orderId]/invoice/route.js:309:7)
+    at <unknown> (./src/app/api/orders/[orderId]/invoice/route.js:162:16)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:20:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:22:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:21:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:23:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:19:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:21:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:12:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/(dashboard)/analytics/page.jsx:11:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/api/certificates/generate/route.js:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/api/orders/[orderId]/invoice/route.js:171:32)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/lib/certificateGenerator.js:1:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/lib/pdf-invoice.js:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/lib/services/folderService.js:3:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/cart/page.jsx:12:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/cart/page.jsx:12:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/test-payment/page.jsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/test-payment/page.jsx:8:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/test-upload/page.jsx:10:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/test-upload/page.jsx:9:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/content/FileUploader.jsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/components/content/FileUploader.jsx:7:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/hooks/use-cart.js:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/hooks/use-cart.js:6:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./src/app/api/dpp/answer/route.js:3:1)
+    at <unknown> (./src/app/api/dpp/history/route.js:3:1)
+    at <unknown> (./src/app/api/dpp/route.js:3:1)
+    at <unknown> (./src/app/api/dpp/skip/route.js:3:1)
+    at <unknown> (./src/app/api/dpp/practice-test/route.js:2:1)
+    at <unknown> (./src/app/api/dpp/analytics/route.js:1:1)
