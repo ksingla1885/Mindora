@@ -10,15 +10,18 @@ const inter = Inter({
     display: "swap",
 });
 
+export const viewport = {
+    themeColor: [
+        { media: '(prefers-color-scheme: dark)', color: 'black' },
+    ],
+};
+
 export const metadata = {
     title: {
         default: "Mindora - Master Your Olympiads",
         template: "%s | Mindora",
     },
     description: "AI-powered preparation platform for NSO, IMO, and competitive exams.",
-    themeColor: [
-        { media: '(prefers-color-scheme: dark)', color: 'black' },
-    ],
 };
 
 export default async function RootLayout({ children }) {

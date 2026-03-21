@@ -151,10 +151,4 @@ export default function handler(req, res) {
     });
 }
 
-// Configure Next.js to not parse the body
-// This is important for WebSocket upgrade requests
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+

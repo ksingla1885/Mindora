@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { CONTENT_TYPES, CONTENT_STATUS } from '@/lib/content-utils';
-import { contentService } from '@/services/content/content.service';
 
 export function ContentManager() {
   const router = useRouter();
@@ -27,13 +26,31 @@ export function ContentManager() {
 
   // Fetch content with filters
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['admin-content', filters],
-    queryFn: () => contentService.searchContent(searchTerm, filters)
+    queryKey: ['admin-content', searchTerm, filters],
+    queryFn: async () => {
+        const params = new URLSearchParams({
+            search: searchTerm,
+            type: filters.type,
+            status: filters.status,
+            page: filters.page.toString(),
+            limit: filters.limit.toString()
+        });
+        const response = await fetch(`/api/content?${params}`);
+        if (!response.ok) throw new Error('Failed to fetch content');
+        return await response.json();
+    }
   });
 
   // Delete content mutation
   const deleteMutation = useMutation({
-    mutationFn: (id) => contentService.deleteContent(id),
+    mutationFn: async (id) => {
+        const response = await fetch(`/api/content/${id}`, { method: 'DELETE' });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to delete content');
+        }
+        return await response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries(['admin-content']);
       toast.success('Content deleted successfully');

@@ -8,8 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, ArrowLeft, Bookmark, CheckCircle, Clock, Eye, Heart, MessageSquare, Share2 } from 'lucide-react';
-import { contentService } from '@/services/content/content.service';
-
 export default function ContentViewPage() {
   const { slug } = useParams();
   const { data: session, status } = useSession();
@@ -26,11 +24,12 @@ export default function ContentViewPage() {
     const fetchContent = async () => {
       try {
         setIsLoading(true);
-        const data = await contentService.getContentBySlug(slug, session?.user?.id);
-        
-        if (!data) {
-          throw new Error('Content not found or you do not have access');
+        // Using fetch instead of contentService to avoid bundling server-side code (ioredis/prisma) 
+        const response = await fetch(`/api/content/slug/${slug}`);
+        if (!response.ok) {
+            throw new Error('Content not found or you do not have access');
         }
+        const data = await response.json();
         
         setContent(data);
         setViewCount(data.viewCount || 0);
@@ -40,7 +39,7 @@ export default function ContentViewPage() {
         
         // Track view
         if (session?.user?.id) {
-          await contentService.trackView(data.id, session.user.id);
+            await fetch(`/api/content/slug/${slug}`, { method: 'POST' });
         }
       } catch (err) {
         console.error('Error fetching content:', err);
@@ -62,12 +61,12 @@ export default function ContentViewPage() {
     }
     
     try {
-      if (isBookmarked) {
-        await contentService.removeBookmark(content.id, session.user.id);
-      } else {
-        await contentService.addBookmark(content.id, session.user.id);
+      const method = isBookmarked ? 'DELETE' : 'POST';
+      // hitting potential bookmark API or fallback
+      const response = await fetch(`/api/content/bookmarks/${content.id}`, { method });
+      if (response.ok) {
+        setIsBookmarked(!isBookmarked);
       }
-      setIsBookmarked(!isBookmarked);
     } catch (err) {
       console.error('Error updating bookmark:', err);
     }
@@ -80,14 +79,16 @@ export default function ContentViewPage() {
     }
     
     try {
-      if (isLiked) {
-        await contentService.unlikeContent(content.id, session.user.id);
-        setLikeCount(prev => prev - 1);
-      } else {
-        await contentService.likeContent(content.id, session.user.id);
-        setLikeCount(prev => prev + 1);
+      const method = isLiked ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/content/likes/${content.id}`, { method });
+      if (response.ok) {
+          if (isLiked) {
+            setLikeCount(prev => prev - 1);
+          } else {
+            setLikeCount(prev => prev + 1);
+          }
+          setIsLiked(!isLiked);
       }
-      setIsLiked(!isLiked);
     } catch (err) {
       console.error('Error updating like:', err);
     }

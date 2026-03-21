@@ -18,7 +18,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/use-toast';
-import { contentService } from '@/services/content/content.service';
 
 export function EnhancedContentDisplay({ contentId }) {
   const { data: session } = useSession();
@@ -41,17 +40,27 @@ export function EnhancedContentDisplay({ contentId }) {
     const fetchContent = async () => {
       try {
         setLoading(true);
-        const data = await contentService.getContentById(contentId);
+        // Using fetch to avoid server-side dependency on client
+        const response = await fetch(`/api/content/${contentId}`);
+        if (!response.ok) throw new Error('Failed to load content');
+        const result = await response.json();
+        const data = result.data;
         setContent(data);
         
         // Check if content is bookmarked
         if (session?.user?.id) {
-          const bookmarkStatus = await contentService.checkBookmarkStatus(contentId, session.user.id);
-          setIsBookmarked(bookmarkStatus.isBookmarked);
+            const bookmarkResponse = await fetch(`/api/content/bookmarks/${contentId}/status`);
+            if (bookmarkResponse.ok) {
+                const bookmarkStatus = await bookmarkResponse.json();
+                setIsBookmarked(bookmarkStatus.isBookmarked);
+            }
           
-          // Get user progress
-          const progress = await contentService.getUserProgress(contentId, session.user.id);
-          setUserProgress(progress.percentage);
+            // Get user progress
+            const progressResponse = await fetch(`/api/content/${contentId}/progress`);
+            if (progressResponse.ok) {
+                const progress = await progressResponse.json();
+                setUserProgress(progress.percentage || 0);
+            }
         }
       } catch (err) {
         console.error('Error fetching content:', err);
@@ -75,20 +84,23 @@ export function EnhancedContentDisplay({ contentId }) {
     
     try {
       setIsSubmitting(true);
-      if (isBookmarked) {
-        await contentService.removeBookmark(contentId, session.user.id);
-        toast({
-          title: 'Bookmark removed',
-          description: 'Content removed from your bookmarks',
-        });
-      } else {
-        await contentService.addBookmark(contentId, session.user.id);
-        toast({
-          title: 'Bookmark added',
-          description: 'Content added to your bookmarks',
-        });
+      const method = isBookmarked ? 'DELETE' : 'POST';
+      const response = await fetch(`/api/content/bookmarks/${contentId}`, { method });
+      
+      if (response.ok) {
+          if (isBookmarked) {
+            toast({
+              title: 'Bookmark removed',
+              description: 'Content removed from your bookmarks',
+            });
+          } else {
+            toast({
+              title: 'Bookmark added',
+              description: 'Content added to your bookmarks',
+            });
+          }
+          setIsBookmarked(!isBookmarked);
       }
-      setIsBookmarked(!isBookmarked);
     } catch (err) {
       console.error('Error updating bookmark:', err);
       toast({
@@ -108,22 +120,24 @@ export function EnhancedContentDisplay({ contentId }) {
     
     try {
       setIsSubmitting(true);
-      const newComment = await contentService.addComment({
-        contentId,
-        userId: session.user.id,
-        text: comment,
+      const response = await fetch(`/api/content/${contentId}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: comment })
       });
       
-      setContent(prev => ({
-        ...prev,
-        comments: [newComment, ...(prev.comments || [])]
-      }));
-      
-      setComment('');
-      toast({
-        title: 'Comment added',
-        description: 'Your comment has been posted',
-      });
+      if (response.ok) {
+        const newComment = await response.json();
+        setContent(prev => ({
+            ...prev,
+            comments: [newComment, ...(prev.comments || [])]
+        }));
+        setComment('');
+        toast({
+            title: 'Comment added',
+            description: 'Your comment has been posted',
+        });
+      }
     } catch (err) {
       console.error('Error adding comment:', err);
       toast({
@@ -142,32 +156,34 @@ export function EnhancedContentDisplay({ contentId }) {
     
     try {
       setIsSubmitting(true);
-      const result = await contentService.submitAnswer({
-        contentId,
-        questionId: content.practiceQuestions?.[0]?.id,
-        userId: session?.user?.id,
-        answer: userAnswer,
+      const response = await fetch(`/api/content/${contentId}/questions/${content.practiceQuestions?.[0]?.id}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer: userAnswer })
       });
-      
-      setIsCorrect(result.isCorrect);
-      setFeedback(result.feedback);
-      setShowAnswer(true);
-      
-      if (result.isCorrect) {
-        // Update progress
-        const newProgress = Math.min(userProgress + 25, 100);
-        setUserProgress(newProgress);
+
+      if (response.ok) {
+        const result = await response.json();
+        setIsCorrect(result.isCorrect);
+        setFeedback(result.feedback);
+        setShowAnswer(true);
         
-        toast({
-          title: 'Correct!',
-          description: 'Great job! Your answer is correct.',
-        });
-      } else {
-        toast({
-          title: 'Incorrect',
-          description: 'Check the explanation to learn more.',
-          variant: 'destructive',
-        });
+        if (result.isCorrect) {
+          // Update progress
+          const newProgress = Math.min(userProgress + 25, 100);
+          setUserProgress(newProgress);
+          
+          toast({
+            title: 'Correct!',
+            description: 'Great job! Your answer is correct.',
+          });
+        } else {
+          toast({
+            title: 'Incorrect',
+            description: 'Check the explanation to learn more.',
+            variant: 'destructive',
+          });
+        }
       }
     } catch (err) {
       console.error('Error submitting answer:', err);

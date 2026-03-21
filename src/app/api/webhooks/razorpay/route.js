@@ -2,12 +2,8 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import subscriptionService from '@/services/payment/subscription.service';
 
-// Disable body parsing, we need the raw body for signature verification
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+// Body parsing is handled via request.text() in the POST handler.
+
 
 /**
  * POST /api/webhooks/razorpay

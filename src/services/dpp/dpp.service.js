@@ -16,7 +16,7 @@ import {
 /**
  * Custom error class for DPP-related errors
  */
-class DPPError extends Error {
+export class DPPError extends Error {
   constructor(message, code = 'DPP_ERROR') {
     super(message);
     this.name = 'DPPError';
@@ -635,5 +635,115 @@ export const getDPPHistory = async (userId, options = {}) => {
   } catch (error) {
     console.error('Error in getDPPHistory:', error);
     throw new DPPError('Failed to fetch history');
+  }
+};
+
+/**
+ * Generate a random practice test based on specific criteria
+ */
+export const generatePracticeTest = async (userId, options) => {
+  try {
+    const { count = 10, subjects = [], topics = [], difficulties = [] } = options;
+
+    const questions = await prisma.question.findMany({
+      where: {
+        AND: [
+          subjects.length > 0 ? { topic: { subject: { id: { in: subjects } } } } : {},
+          topics.length > 0 ? { topic: { id: { in: topics } } } : {},
+          difficulties.length > 0 ? { difficulty: { in: difficulties } } : {},
+          { isActive: true }
+        ]
+      },
+      take: count,
+      orderBy: { attempts: 'asc' }, // Get less attempted questions or use random sorting if possible
+      include: {
+        topic: {
+          include: {
+            subject: true
+          }
+        }
+      }
+    });
+
+    return questions.map(q => ({
+      id: q.id,
+      text: q.text,
+      type: q.type,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+      difficulty: q.difficulty,
+      topic: q.topic?.name,
+      subject: q.topic?.subject?.name
+    }));
+  } catch (error) {
+    console.error('Error in generatePracticeTest:', error);
+    throw new DPPError('Failed to generate practice test');
+  }
+};
+
+/**
+ * Get enhanced analytics and stats for DPP
+ */
+export const getEnhancedDPPStats = async (userId, options = {}) => {
+  try {
+    const stats = await getDPPStats(userId);
+    const { includePredictions = false, includeRecommendations = false } = options;
+
+    const enhancedStats = {
+      ...stats,
+      subjectBreakdown: [],
+      recentPerformance: [],
+    };
+
+    if (includePredictions || includeRecommendations) {
+      // Fetch some recent data to make basic predictions/recommendations
+      const recentAttempts = await prisma.dPPAssignment.findMany({
+        where: { userId, status: 'COMPLETED' },
+        take: 20,
+        orderBy: { submittedAt: 'desc' },
+        include: {
+          question: {
+            include: { topic: { include: { subject: true } } }
+          }
+        }
+      });
+
+      // Basic subject breakdown from recent attempts
+      const subjects = {};
+      recentAttempts.forEach(a => {
+        const subName = a.question.topic?.subject?.name || 'General';
+        if (!subjects[subName]) subjects[subName] = { total: 0, correct: 0 };
+        subjects[subName].total++;
+        if (a.isCorrect) subjects[subName].correct++;
+      });
+
+      enhancedStats.subjectBreakdown = Object.entries(subjects).map(([name, s]) => ({
+        name,
+        accuracy: (s.correct / s.total) * 100,
+        total: s.total
+      }));
+
+      if (includeRecommendations) {
+        // Recommend subjects with accuracy < 60%
+        enhancedStats.recommendations = enhancedStats.subjectBreakdown
+          .filter(s => s.accuracy < 60)
+          .map(s => `Improve your score in ${s.name}`)
+          .slice(0, 3);
+        
+        if (enhancedStats.recommendations.length === 0) {
+          enhancedStats.recommendations.push('Keep practicing to maintain your excellent scores!');
+        }
+      }
+
+      if (includePredictions) {
+        enhancedStats.predictedScore = stats.accuracy; // Simplified prediction
+      }
+    }
+
+    return enhancedStats;
+  } catch (error) {
+    console.error('Error in getEnhancedDPPStats:', error);
+    throw new DPPError('Failed to fetch enhanced stats');
   }
 };
