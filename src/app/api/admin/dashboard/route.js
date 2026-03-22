@@ -56,7 +56,8 @@ export async function GET(request) {
     return NextResponse.json(
       {
         error: 'Failed to fetch dashboard data',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: error.message,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       },
       { status: 500 }
     );

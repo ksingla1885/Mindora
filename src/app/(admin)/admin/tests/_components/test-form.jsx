@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, Plus, X, Trash2, ChevronDown } from 'lucide-react';
+import { CalendarIcon, Clock, Plus, X, Trash2, ChevronDown, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -77,6 +77,7 @@ const testFormSchema = z.object({
 export function TestForm({ test, onSuccess }) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [newTag, setNewTag] = useState('');
 
   const form = useForm({
@@ -150,6 +151,7 @@ export function TestForm({ test, onSuccess }) {
       const requestData = {
         ...rest,
         durationMinutes: duration,
+        maxAttempts: maxAttempts || 1,
         startTime: isScheduled && data.startTime ? data.startTime.toISOString() : null,
         endTime: isScheduled && data.startTime && duration
           ? new Date(data.startTime.getTime() + duration * 60000).toISOString()
@@ -157,7 +159,7 @@ export function TestForm({ test, onSuccess }) {
         // Ensure price is 0 if not paid, but allow form value if paid
         price: data.isPaid ? data.price : 0,
         isPaid: data.isPaid,
-        allowMultipleAttempts: maxAttempts > 1,
+        allowMultipleAttempts: (maxAttempts === 0 || maxAttempts > 1),
         // Map topic to tags if needed, or ignore if not supported by backend
         // For now we just sanitize to avoid crashing PATCH
       };
@@ -182,11 +184,15 @@ export function TestForm({ test, onSuccess }) {
         description: test ? 'Test updated successfully.' : 'Test created successfully.',
       });
 
+      setIsSaved(true);
+
       if (onSuccess) {
-        onSuccess(result.data);
+        setTimeout(() => onSuccess(result.data), 1500);
       } else {
-        router.refresh();
-        router.push('/admin/tests');
+        setTimeout(() => {
+          router.refresh();
+          router.push('/admin/tests');
+        }, 1500);
       }
     } catch (error) {
       console.error('Error saving test:', error);
@@ -532,8 +538,23 @@ export function TestForm({ test, onSuccess }) {
           >
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading} className="min-w-[150px] font-bold">
-            {isLoading ? 'Saving...' : (test ? 'Update Test' : 'Create Test')}
+          <Button 
+            type="submit" 
+            disabled={isLoading || isSaved} 
+            className={cn(
+              "min-w-[150px] font-bold transition-all",
+              isSaved && "bg-emerald-500 hover:bg-emerald-500 text-white"
+            )}
+          >
+            {isSaved ? (
+              <span className="flex items-center gap-2">
+                <Check className="size-4" /> Saved!
+              </span>
+            ) : isLoading ? (
+              "Saving..."
+            ) : (
+              test ? 'Update Test' : 'Create Test'
+            )}
           </Button>
         </div>
       </form>

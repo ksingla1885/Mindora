@@ -1,17 +1,31 @@
 import Redis from 'ioredis';
+import { Redis as UpstashRedis } from '@upstash/redis';
 import { redisConfig } from '@/config/redis';
 
 // Only initialize Redis if credentials are configured
 const hasRedisConfig = () =>
-  process.env.REDIS_URL || process.env.REDIS_HOST;
+  process.env.UPSTASH_REDIS_REST_URL || process.env.REDIS_URL || process.env.REDIS_HOST;
 
 let _client = null;
+let _isUpstash = false;
 
 function getRedisClient() {
   if (!hasRedisConfig()) return null;
 
   if (_client) return _client;
 
+  // Use Upstash REST if configured
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.log('[Redis] Using Upstash REST client');
+    _client = new UpstashRedis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+    _isUpstash = true;
+    return _client;
+  }
+
+  // Fallback to ioredis
   if (process.env.REDIS_URL) {
     _client = new Redis(process.env.REDIS_URL, {
       retryStrategy: (times) => {
@@ -159,7 +173,12 @@ class RedisManager {
   async setex(key, seconds, value) {
     const client = getRedisClient();
     if (!client) return null;
-    try { return client.setex(key, seconds, value); }
+    try { 
+      if (_isUpstash) {
+        return client.set(key, value, { ex: seconds });
+      }
+      return client.setex(key, seconds, value); 
+    }
     catch (e) { console.warn('[Redis] setex error:', e.message); return null; }
   }
 
@@ -181,13 +200,22 @@ class RedisManager {
   async publish(channel, message) {
     const client = getRedisClient();
     if (!client) return null;
-    try { return client.publish(channel, JSON.stringify(message)); }
+    try { 
+      // Upstash REST doesn't support pubsub easily, but we'll try 'publish' method anyway
+      return client.publish(channel, JSON.stringify(message)); 
+    }
     catch (e) { console.warn('[Redis] publish error:', e.message); return null; }
   }
 
   async subscribe(channel, callback) {
     const client = getRedisClient();
     if (!client) return () => {};
+    
+    if (_isUpstash) {
+      console.warn('[Redis] Upstash REST client does not support subscribe (pub/sub)');
+      return () => {};
+    }
+
     try {
       const subClient = client.duplicate();
       await subClient.subscribe(channel);

@@ -30,13 +30,16 @@ export async function getDashboardOverview() {
 
   const [
     totalStudents,
-    activeTests,
+    activeTestsCount,
     totalContent,
-    testAttempts,
+    testAttemptsAggregate,
     newStudents,
     recentActivity,
     subjectDistribution,
     testPerformance,
+    revenueToday,
+    totalUsersCount,
+    totalTestAttempts,
   ] = await Promise.all([
     // Total students count
     prisma.user.count({
@@ -54,7 +57,7 @@ export async function getDashboardOverview() {
     // Total content items
     prisma.contentItem.count(),
 
-    // Test attempts and average score for the selected range
+    // Test attempts and average score for the current month
     prisma.testAttempt.aggregate({
       where: {
         submittedAt: {
@@ -66,7 +69,7 @@ export async function getDashboardOverview() {
       _avg: { score: true },
     }),
 
-    // New students in the selected range
+    // New students in the current month
     prisma.user.count({
       where: {
         role: 'STUDENT',
@@ -103,7 +106,7 @@ export async function getDashboardOverview() {
     prisma.subject.findMany({
       include: {
         _count: {
-          select: { contentItems: true },
+          select: { topics: true },
         },
       },
     }),
@@ -126,7 +129,7 @@ export async function getDashboardOverview() {
         attempts: {
           select: {
             score: true,
-            completed: true,
+            status: true,
             submittedAt: true,
           },
           where: {
@@ -137,17 +140,44 @@ export async function getDashboardOverview() {
         },
       },
     }),
+
+    // Revenue Today
+    prisma.payment.aggregate({
+      where: {
+        status: 'COMPLETED',
+        createdAt: {
+          gte: startOfDay(new Date()),
+          lte: endOfDay(new Date()),
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    }),
+
+    // Total Users count (excluding ADMIN)
+    prisma.user.count({
+      where: {
+        role: { not: 'ADMIN' }
+      }
+    }),
+
+    // TOTAL Test Attempts (ever)
+    prisma.testAttempt.count(),
   ]);
 
   // Process subject distribution
-  const formattedSubjectDistribution = subjectDistribution.map((subject) => ({
+  const formattedSubjectDistribution = (subjectDistribution || []).map((subject) => ({
     name: subject.name,
-    value: subject._count.contentItems,
+    value: subject._count?.topics || 0,
   }));
 
   // Process test performance
-  const formattedTestPerformance = testPerformance.map((test) => {
-    const completedAttempts = test.attempts.filter(a => a.completed && a.submittedAt);
+  const formattedTestPerformance = (testPerformance || []).map((test) => {
+    const completedAttempts = test.attempts ? test.attempts.filter(a => 
+      (a.status === 'completed' || a.status === 'submitted') && a.submittedAt
+    ) : [];
+    
     const avgScore = completedAttempts.length > 0
       ? completedAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / completedAttempts.length
       : 0;
@@ -155,9 +185,9 @@ export async function getDashboardOverview() {
     return {
       id: test.id,
       name: test.title,
-      attempts: test._count.attempts,
-      avgScore: Math.round(avgScore * 10) / 10, // Round to 1 decimal
-      completionRate: test._count.attempts > 0
+      attempts: test._count?.attempts || 0,
+      avgScore: Math.round(avgScore * 10) / 10,
+      completionRate: (test._count?.attempts || 0) > 0
         ? Math.round((completedAttempts.length / test._count.attempts) * 100)
         : 0,
     };
@@ -182,12 +212,15 @@ export async function getDashboardOverview() {
 
   return {
     stats: {
-      totalStudents,
-      activeTests,
+      totalUsers: totalUsersCount,
+      totalStudents: totalStudents,
+      activeTests: activeTestsCount,
       totalContent,
-      avgTestScore: Math.round((testAttempts._avg.score || 0) * 10) / 10,
+      avgTestScore: Math.round((testAttemptsAggregate._avg.score || 0) * 10) / 10,
       newStudentsThisMonth: newStudents,
-      testsCompleted: testAttempts._count,
+      testsCompleted: totalTestAttempts,
+      testsThisMonth: testAttemptsAggregate._count,
+      revenueToday: revenueToday._sum.amount || 0,
     },
     recentActivity: formattedActivity,
     performanceData: monthlyData,
@@ -197,59 +230,66 @@ export async function getDashboardOverview() {
 }
 
 // Get monthly analytics data for charts
-async function getMonthlyAnalytics(months = 12) {
-  const endDate = new Date();
-  const startDate = new Date();
-  startDate.setMonth(startDate.getMonth() - (months - 1));
-  startDate.setDate(1);
+async function getMonthlyAnalytics(months = 6) {
+  const endDate = endOfMonth(new Date());
+  const startDate = startOfMonth(subDays(endDate, 30 * (months - 1)));
 
-  // Get all months in range
-  const monthsInRange = eachDayOfInterval({
-    start: startOfMonth(startDate),
-    end: endOfMonth(endDate),
-  }).filter((date) => date.getDate() === 1);
+  try {
+    // Get all months in range
+    const monthsInRange = eachDayOfInterval({
+      start: startDate,
+      end: endDate,
+    }).filter((date) => date.getDate() === 1);
 
-  // Get new users per month
-  const newUsersByMonth = await prisma.$queryRaw`
-    SELECT 
-      DATE_TRUNC('month', "created_at") as month,
-      COUNT(*) as count
-    FROM "users"
-    WHERE "role" = 'STUDENT'
-      AND "created_at" >= ${startDate}
-      AND "created_at" <= ${endDate}
-    GROUP BY DATE_TRUNC('month', "created_at")
-    ORDER BY month ASC
-  `;
+    // Fetch users created in the range
+    const usersInRange = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        createdAt: true,
+      },
+    });
 
-  // Get test attempts per month
-  const testAttemptsByMonth = await prisma.$queryRaw`
-    SELECT 
-      DATE_TRUNC('month', "started_at") as month,
-      COUNT(*) as count
-    FROM "test_attempts"
-    WHERE "started_at" >= ${startDate}
-      AND "started_at" <= ${endDate}
-    GROUP BY DATE_TRUNC('month', "started_at")
-    ORDER BY month ASC
-  `;
+    // Fetch test attempts in the range
+    const testAttemptsInRange = await prisma.testAttempt.findMany({
+      where: {
+        startedAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      select: {
+        startedAt: true,
+      },
+    });
 
-  // Format the data for the chart
-  return monthsInRange.map((month) => {
-    const monthKey = format(month, 'MMM yyyy');
-    const newUsers = newUsersByMonth.find(
-      (m) => m.month && format(new Date(m.month), 'MMM yyyy') === monthKey
-    );
-    const testAttempts = testAttemptsByMonth.find(
-      (m) => m.month && format(new Date(m.month), 'MMM yyyy') === monthKey
-    );
+    // Group the data by month in memory
+    return monthsInRange.map((monthDate) => {
+      const monthLabel = format(monthDate, 'MMM yyyy');
+      
+      const newUsers = usersInRange.filter(u => 
+        format(new Date(u.createdAt), 'MMM yyyy') === monthLabel
+      ).length;
+      
+      const testAttempts = testAttemptsInRange.filter(t => 
+        format(new Date(t.startedAt), 'MMM yyyy') === monthLabel
+      ).length;
 
-    return {
-      name: format(month, 'MMM yyyy'),
-      students: newUsers ? Number(newUsers.count) : 0,
-      tests: testAttempts ? Number(testAttempts.count) : 0,
-    };
-  });
+      return {
+        name: monthLabel,
+        students: newUsers,
+        tests: testAttempts,
+      };
+    });
+  } catch (error) {
+    console.error('Error in getMonthlyAnalytics:', error);
+    return [];
+  }
 }
 
 // Helper function to format time ago

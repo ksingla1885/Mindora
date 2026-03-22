@@ -153,7 +153,8 @@ const WeeklyTestsPage = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filteredTests.map((test) => {
                                 const hasInProgress = test.attempts?.some(a => a.status?.toLowerCase() === 'in_progress');
-                                const isCompleted = !test.allowMultipleAttempts && test.attempts && test.attempts.length > 0 && !hasInProgress;
+                                const maxAttemptsLimit = test.maxAttempts ?? (test.allowMultipleAttempts ? 0 : 1);
+                                const isCompleted = maxAttemptsLimit !== 0 && (test.attempts?.length || 0) >= maxAttemptsLimit && !hasInProgress;
 
                                 return (
                                     <Link
@@ -217,7 +218,13 @@ const WeeklyTestsPage = () => {
                                                     </div>
                                                     <div className="flex items-center gap-2">
                                                         <History className="w-[18px] h-[18px]" />
-                                                        <span>{test.allowMultipleAttempts ? "Unlimited Attempts" : "1 Attempt"}</span>
+                                                        <span>
+                                                          {test.maxAttempts === 0 
+                                                            ? "Unlimited Attempts" 
+                                                            : test.maxAttempts > 1 
+                                                              ? `${test.maxAttempts} Attempts` 
+                                                              : "1 Attempt"}
+                                                        </span>
                                                     </div>
                                                 </div>
 

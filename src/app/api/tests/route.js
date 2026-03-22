@@ -87,7 +87,7 @@ export async function GET(request) {
         where,
         include: includeConfig,
         orderBy: {
-          startTime: 'desc',
+          createdAt: 'desc',
         },
         skip,
         take: limit,
@@ -216,7 +216,8 @@ export async function POST(request) {
       categories: body.categories || [],
       instructions: body.instructions,
       passingScore: body.passingScore ? parseFloat(body.passingScore) : null,
-      allowMultipleAttempts: body.allowMultipleAttempts !== undefined ? body.allowMultipleAttempts : (body.maxAttempts !== 1 && body.maxAttempts !== "1"),
+      allowMultipleAttempts: body.allowMultipleAttempts !== undefined ? body.allowMultipleAttempts : (Number(body.maxAttempts) !== 1),
+      maxAttempts: Number(body.maxAttempts) || 1,
     };
 
     if (body.olympiadId) {

@@ -5,6 +5,7 @@ import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/auth-context";
 import { ThemeProvider as HighContrastProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "react-hot-toast";
+import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 
 function ThemeWrapper({ children }) {
     return (
@@ -28,6 +29,7 @@ export function Providers({ children, session }) {
                     <ThemeWrapper>
                         {children}
                         <Toaster position="top-center" />
+                        <ShadcnToaster />
                     </ThemeWrapper>
                 </NextThemesProvider>
             </AuthProvider>

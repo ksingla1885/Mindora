@@ -77,6 +77,26 @@ export async function POST(request, { params }) {
 
     const now = new Date();
 
+    // Check scheduling (ONLY if not an admin - admins can test anytime)
+    if (session.user.role !== 'ADMIN') {
+      if (test.startTime && now < new Date(test.startTime)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `This test is scheduled to start at ${new Date(test.startTime).toLocaleString()}. Please try again then.` 
+          },
+          { status: 403 }
+        );
+      }
+
+      if (test.endTime && now > new Date(test.endTime)) {
+        return NextResponse.json(
+          { success: false, error: 'This test has expired and is no longer accepting new attempts.' },
+          { status: 403 }
+        );
+      }
+    }
+
     // Check if user has already completed the test
     const completedAttempt = await prisma.testAttempt.findFirst({
       where: {

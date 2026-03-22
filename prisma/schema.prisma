@@ -547,6 +547,7 @@ model Test {
   paymentCurrency        String              @default("INR") @map("payment_currency")
   autoSubmit             Boolean             @default(true) @map("auto_submit")
   allowMultipleAttempts  Boolean             @default(false) @map("allow_multiple_attempts")
+  maxAttempts           Int                 @default(1) @map("max_attempts")
   showResultsImmediately Boolean             @default(false) @map("show_results_immediately")
   passingScore           Float?              @map("passing_score")
   instructions           String?

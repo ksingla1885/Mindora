@@ -73,7 +73,7 @@ export default function TestsManagementPage() {
   const fetchTests = async () => {
     try {
       setIsLoading(true);
-      const res = await fetch('/api/tests');
+      const res = await fetch('/api/tests?isPaid=false&limit=100');
       const data = await res.json();
       if (data.success) {
         setTests(data.data.map(t => ({

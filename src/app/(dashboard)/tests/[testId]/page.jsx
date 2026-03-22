@@ -131,8 +131,17 @@ export default function TestPage() {
   const hasInProgress = userAttempts.some(a => a.status?.toLowerCase() === 'in_progress');
   const hasAnyAttempt = userAttempts.length > 0;
 
-  // Lock if: Single attempt allowed AND has attempts AND no active attempt to resume
-  const isCompleted = !test.allowMultipleAttempts && hasAnyAttempt && !hasInProgress;
+  // New logic for multi-attempt limits
+  const maxAttempts = test.maxAttempts ?? (test.allowMultipleAttempts ? 0 : 1);
+  const isCompleted = maxAttempts !== 0 && userAttempts.length >= maxAttempts && !hasInProgress;
+
+  // Check for scheduling
+  const now = new Date();
+  const testStartTime = test.startTime ? new Date(test.startTime) : null;
+  const isTooEarly = testStartTime && now < testStartTime;
+  
+  // Overall button disabled status
+  const isLocked = isTooEarly || isCompleted;
 
   // Determine the current attempt if any (use the first in_progress one)
   const currentAttempt = userAttempts.find(a => a.status?.toLowerCase() === 'in_progress');
@@ -244,11 +253,16 @@ export default function TestPage() {
                 cn(
                   "w-full md:w-auto px-8 text-lg",
                   isCompleted && "bg-green-600 hover:bg-green-700 cursor-default",
+                  isTooEarly && "bg-slate-400 dark:bg-slate-700 cursor-not-allowed",
                   hasInProgress && "bg-amber-600 hover:bg-amber-700"
                 )}
-              disabled={isCompleted}
+              disabled={isLocked}
             >
-              {isCompleted ? 'Test Completed' : (hasInProgress ? 'Resume Test' : 'Start Test')}
+              {isCompleted 
+                ? 'Test Completed' 
+                : isTooEarly 
+                  ? `Starts at ${new Date(test.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
+                  : (hasInProgress ? 'Resume Test' : 'Start Test')}
             </Button>
           )}
         </CardFooter>

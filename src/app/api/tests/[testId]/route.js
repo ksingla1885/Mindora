@@ -84,7 +84,7 @@ export async function GET(request, { params }) {
           where: {
             userId: session.user.id,
             testId: testId,
-            status: 'CAPTURED',
+            status: 'COMPLETED',
           },
         });
         if (payment) {
@@ -109,26 +109,27 @@ export async function GET(request, { params }) {
     // Aggregated Sales Velocity (Last 7 Days)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const salesVelocityData = await prisma.payment.groupBy({
-      by: ['createdAt'],
+    const recentPayments = await prisma.payment.findMany({
       where: {
         testId: testId,
-        status: 'CAPTURED',
+        status: 'COMPLETED',
         createdAt: {
           gte: sevenDaysAgo
         }
       },
-      _count: {
-        id: true
-      },
+      select: {
+        createdAt: true,
+        amount: true
+      }
     });
 
     // Format for chart (Day Label + Count)
     const salesMap = {};
-    salesVelocityData.forEach(item => {
-      const dateStr = item.createdAt.toISOString().split('T')[0]; // YYYY-MM-DD
-      salesMap[dateStr] = (salesMap[dateStr] || 0) + item._count.id;
+    recentPayments.forEach(item => {
+      const dateStr = item.createdAt.toISOString().split('T')[0];
+      salesMap[dateStr] = (salesMap[dateStr] || 0) + 1;
     });
 
     const salesVelocity = [];
@@ -147,7 +148,7 @@ export async function GET(request, { params }) {
     const recentBuyersRaw = await prisma.payment.findMany({
       where: {
         testId: testId,
-        status: 'CAPTURED'
+        status: 'COMPLETED'
       },
       orderBy: { createdAt: 'desc' },
       take: 5,
@@ -232,6 +233,7 @@ export async function PATCH(request, { params }) {
     // Handle date conversions
     if (body.startTime) updateData.startTime = new Date(body.startTime);
     if (body.endTime) updateData.endTime = new Date(body.endTime);
+    if (body.maxAttempts !== undefined) updateData.maxAttempts = parseInt(body.maxAttempts);
 
     // Validate dates if both are provided
     if (updateData.startTime && updateData.endTime && updateData.startTime >= updateData.endTime) {
