@@ -39,8 +39,10 @@ export default function PremiumTestsPage() {
     const { data: session } = useSession();
     const [premiumTests, setPremiumTests] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const fetchTests = async () => {
             try {
                 const res = await fetch('/api/tests?isPaid=true&isPublished=true');
@@ -121,45 +123,49 @@ export default function PremiumTestsPage() {
                     </div>
 
                     {/* Filters (Chips) */}
-                    <div className="flex flex-wrap items-center gap-3">
-                        <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium mr-2">
-                            <Filter className="w-5 h-5" />
-                            Filter by:
-                        </div>
+                    {mounted ? (
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 text-muted-foreground text-sm font-medium mr-2">
+                                <Filter className="w-5 h-5" />
+                                Filter by:
+                            </div>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button className={cn("group flex h-9 items-center gap-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 hover:bg-accent transition-all", selectedSubject !== 'All' && "border-primary/50 bg-primary/5 text-primary")}>
-                                    <span className="text-sm font-medium">{selectedSubject === 'All' ? 'Subject' : selectedSubject}</span>
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-                                </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                                {subjects.map(s => (
-                                    <DropdownMenuItem key={s} onClick={() => setSelectedSubject(s)}>
-                                        {s}
-                                        {selectedSubject === s && <Check className="ml-auto w-4 h-4" />}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button className={cn("group flex h-9 items-center gap-2 rounded-lg bg-card border border-border px-3 hover:border-primary/50 hover:bg-accent transition-all", selectedSubject !== 'All' && "border-primary/50 bg-primary/5 text-primary")}>
+                                        <span className="text-sm font-medium">{selectedSubject === 'All' ? 'Subject' : selectedSubject}</span>
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
+                                    </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                    {subjects.map(s => (
+                                        <DropdownMenuItem key={s} onClick={() => setSelectedSubject(s)}>
+                                            {s}
+                                            {selectedSubject === s && <Check className="ml-auto w-4 h-4" />}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
 
-                        <button
-                            onClick={() => setShowLiveOnly(!showLiveOnly)}
-                            className={cn(
-                                "group flex h-9 items-center gap-2 rounded-lg border px-3 transition-all",
-                                showLiveOnly
-                                    ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
-                                    : "bg-card border-border hover:border-primary/50 hover:bg-accent text-foreground"
-                            )}
-                        >
-                            <span className="text-sm font-medium">Live Only</span>
-                            {showLiveOnly && <Check className="w-4 h-4" />}
-                        </button>
-                        <div className="ml-auto hidden md:block text-sm text-muted-foreground">
-                            Showing <span className="text-foreground font-bold">{displayedTests.length}</span> tests
+                            <button
+                                onClick={() => setShowLiveOnly(!showLiveOnly)}
+                                className={cn(
+                                    "group flex h-9 items-center gap-2 rounded-lg border px-3 transition-all",
+                                    showLiveOnly
+                                        ? "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20"
+                                        : "bg-card border-border hover:border-primary/50 hover:bg-accent text-foreground"
+                                )}
+                            >
+                                <span className="text-sm font-medium">Live Only</span>
+                                {showLiveOnly && <Check className="w-4 h-4" />}
+                            </button>
+                            <div className="ml-auto hidden md:block text-sm text-muted-foreground">
+                                Showing <span className="text-foreground font-bold">{displayedTests.length}</span> tests
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="h-9 w-full bg-muted/20 animate-pulse rounded-lg"></div>
+                    )}
                 </section>
 
                 {/* Test Cards Grid */}

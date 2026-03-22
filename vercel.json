@@ -1,23 +1,12 @@
 {
-    "framework": "nextjs",
-    "installCommand": "npm install",
-    "buildCommand": "prisma generate && next build",
-    "devCommand": "npm run dev",
-    "regions": [
-        "bom1"
-    ],
-    "env": {
-        "NODE_ENV": "production"
-    },
-    "headers": [
-        {
-            "source": "/api/(.*)",
-            "headers": [
-                {
-                    "key": "Cache-Control",
-                    "value": "no-store"
-                }
-            ]
-        }
-    ]
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm install",
+  "crons": [
+    {
+      "path": "/api/cron/cleanup-sessions",
+      "schedule": "0 0 * * *"
+    }
+  ],
+  "regions": ["bom1"]
 }
