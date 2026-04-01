@@ -173,6 +173,21 @@
   input[type="reset"] {
     cursor: pointer;
   }
+
+  /* Hide scrollbar for all browsers but keep functionality */
+  * {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  *::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, and Opera */
+  }
+
+  /* Hide Radix ScrollArea scrollbars */
+  [data-radix-scroll-area-scrollbar] {
+    display: none !important;
+  }
 }
 
 @layer utilities {
