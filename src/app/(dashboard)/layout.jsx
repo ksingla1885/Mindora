@@ -1,11 +1,12 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { AppSidebar } from "@/components/app-sidebar";
 import { MainNav } from "@/components/main-nav";
 
 import { redirect, useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, Bell, Menu, BookOpen } from "lucide-react";
+import { Search, Bell, Menu, BookOpen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({ children }) {
@@ -13,6 +14,24 @@ export default function DashboardLayout({ children }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { replace } = useRouter();
+    const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+    // Close mobile sidebar on route change
+    useEffect(() => {
+        setIsMobileOpen(false);
+    }, [pathname]);
+
+    // Prevent background scroll when sidebar is open
+    useEffect(() => {
+        if (isMobileOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [isMobileOpen]);
 
     const handleSearch = (term) => {
         const params = new URLSearchParams(searchParams);
@@ -28,8 +47,6 @@ export default function DashboardLayout({ children }) {
         return null;
     }
 
-
-
     // Redirect admins and teachers to admin dashboard
     const userRole = session?.user?.role?.toLowerCase();
     if (userRole === 'admin' || userRole === 'teacher') {
@@ -39,15 +56,63 @@ export default function DashboardLayout({ children }) {
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-foreground font-display">
             {/* Desktop Sidebar */}
-            <AppSidebar className="hidden lg:flex" />
+            <AppSidebar className="hidden lg:flex w-64 shrink-0" />
+
+            {/* Mobile Sidebar Overlay */}
+            {isMobileOpen && (
+                <div
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+                    onClick={() => setIsMobileOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
+            {/* Mobile Sidebar Drawer */}
+            <div
+                className={`
+                    fixed top-0 left-0 z-50 h-full w-72 flex flex-col
+                    bg-card border-r border-border shadow-2xl
+                    transition-transform duration-300 ease-in-out
+                    lg:hidden
+                    ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+                `}
+            >
+                {/* Drawer Header with Close Button */}
+                <div className="flex h-16 items-center justify-between px-4 border-b border-border shrink-0">
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center rounded-lg bg-primary/10 p-1.5">
+                            <BookOpen className="h-5 w-5 text-primary" />
+                        </div>
+                        <span className="text-lg font-bold tracking-tight text-foreground">Mindora</span>
+                    </div>
+                    <button
+                        onClick={() => setIsMobileOpen(false)}
+                        className="rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                        aria-label="Close sidebar"
+                    >
+                        <X className="h-5 w-5" />
+                    </button>
+                </div>
+
+                {/* Reuse the existing AppSidebar content without the logo header */}
+                <div className="flex-1 overflow-y-auto">
+                    <AppSidebar className="flex border-none h-full" hideLogo />
+                </div>
+            </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col h-full overflow-hidden">
+            <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
                 {/* Top Header */}
-                <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 lg:px-8">
+                <header className="flex h-16 items-center justify-between border-b border-border bg-card px-4 lg:px-8 shrink-0">
                     {/* Mobile Menu Button - Visible on small screens */}
                     <div className="lg:hidden flex items-center gap-3">
-                        <Button variant="ghost" size="icon" className="text-[#616f89]">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-foreground"
+                            onClick={() => setIsMobileOpen(true)}
+                            aria-label="Open sidebar"
+                        >
                             <Menu className="h-6 w-6" />
                         </Button>
                         <div className="flex items-center gap-2">
@@ -91,7 +156,7 @@ export default function DashboardLayout({ children }) {
                                             : 'Student')}
                                 </p>
                             </div>
-                            <div className="h-10 w-10 overflow-hidden rounded-full border border-[#e5e7eb]">
+                            <div className="h-10 w-10 overflow-hidden rounded-full border border-[#e5e7eb] shrink-0">
                                 <img
                                     alt="Profile"
                                     className="h-full w-full object-cover"

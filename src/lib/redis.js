@@ -14,7 +14,7 @@ function getRedisClient() {
 
   if (_client) return _client;
 
-  // Use Upstash REST if configured
+  // 1. Try Upstash REST client (preferred for Serverless/Edge)
   if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
     console.log('[Redis] Using Upstash REST client');
     _client = new UpstashRedis({
@@ -25,37 +25,47 @@ function getRedisClient() {
     return _client;
   }
 
-  // Fallback to ioredis
+  // 2. Try ioredis with REDIS_URL
   if (process.env.REDIS_URL) {
-    _client = new Redis(process.env.REDIS_URL, {
-      retryStrategy: (times) => {
-        if (times > 3) return null; // Stop retrying after 3 attempts
-        return Math.min(times * 100, 3000);
-      },
+    console.log('[Redis] Using ioredis with URL');
+    const options = {
+      retryStrategy: (times) => Math.min(times * 100, 3000),
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       lazyConnect: true,
-    });
-  } else {
-    _client = new Redis({
+    };
+
+    // Auto-enable TLS if URL starts with rediss://
+    if (process.env.REDIS_URL.startsWith('rediss://')) {
+      options.tls = { rejectUnauthorized: false };
+    }
+
+    _client = new Redis(process.env.REDIS_URL, options);
+  } 
+  // 3. Fallback to discrete config
+  else {
+    console.log('[Redis] Using ioredis with discrete config');
+    const options = {
       host: redisConfig.host,
       port: redisConfig.port,
       password: redisConfig.password || undefined,
       db: redisConfig.db,
       keyPrefix: redisConfig.keyPrefix,
-      retryStrategy: (times) => {
-        if (times > 3) return null;
-        return Math.min(times * 100, 3000);
-      },
+      retryStrategy: (times) => Math.min(times * 100, 3000),
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       lazyConnect: true,
-    });
+    };
+
+    if (process.env.REDIS_TLS === 'true') {
+      options.tls = { rejectUnauthorized: false };
+    }
+
+    _client = new Redis(options);
   }
 
   _client.on('error', (err) => {
-    // Log but don't crash — Redis is optional
-    console.warn('[Redis] Connection error (non-fatal):', err.message);
+    console.warn('[Redis] Connection error:', err.message);
   });
 
   return _client;
@@ -66,8 +76,20 @@ class RedisManager {
     return getRedisClient();
   }
 
-  get isConnected() {
-    return this.client?.status === 'ready';
+  async getIsConnected() {
+    const client = this.client;
+    if (!client) return false;
+    
+    if (_isUpstash) {
+      try {
+        await client.ping();
+        return true;
+      } catch {
+        return false;
+      }
+    }
+    
+    return client.status === 'ready';
   }
 
   // Test session methods

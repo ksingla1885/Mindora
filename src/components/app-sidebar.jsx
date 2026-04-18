@@ -36,17 +36,19 @@ const analyticsItems = [
     { name: 'AI Doubt Solver', href: '/ai-solver', icon: Brain },
 ];
 
-export function AppSidebar({ className }) {
+export function AppSidebar({ className, hideLogo = false }) {
     const pathname = usePathname();
 
     return (
         <div className={cn("relative flex flex-col h-full border-r bg-card border-border", className)}>
-            <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
-                <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2">
-                    <BookOpen className="h-6 w-6 text-primary" />
+            {!hideLogo && (
+                <div className="flex h-16 items-center gap-3 px-6 border-b border-border">
+                    <div className="flex items-center justify-center rounded-lg bg-primary/10 p-2">
+                        <BookOpen className="h-6 w-6 text-primary" />
+                    </div>
+                    <h2 className="text-xl font-bold tracking-tight text-foreground">Mindora</h2>
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-foreground">Mindora</h2>
-            </div>
+            )}
 
             <div className="flex-1 overflow-y-auto px-4 py-6 gap-6 flex flex-col">
                 {/* Main Nav */}

@@ -2,20 +2,18 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } fro
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.AWS_REGION,
+  endpoint: process.env.AWS_S3_ENDPOINT,
+  forcePathStyle: true,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-export async function uploadFileToS3(
-  file: Buffer,
-  fileName: string,
-  contentType: string
-): Promise<string> {
+export async function uploadFileToS3(file, fileName, contentType) {
   const params = {
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: fileName,
     Body: file,
     ContentType: contentType,
@@ -25,9 +23,9 @@ export async function uploadFileToS3(
   return fileName;
 }
 
-export async function getSignedFileUrl(fileName: string): Promise<string> {
+export async function getSignedFileUrl(fileName) {
   const params = {
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: fileName,
   };
 
@@ -35,9 +33,9 @@ export async function getSignedFileUrl(fileName: string): Promise<string> {
   return getSignedUrl(s3Client, command, { expiresIn: 3600 }); // URL expires in 1 hour
 }
 
-export async function deleteFileFromS3(fileName: string): Promise<void> {
+export async function deleteFileFromS3(fileName) {
   const params = {
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.AWS_S3_BUCKET_NAME,
     Key: fileName,
   };
 

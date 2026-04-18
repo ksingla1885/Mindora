@@ -4,6 +4,8 @@ import crypto from 'crypto';
 
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
+  endpoint: process.env.AWS_S3_ENDPOINT,
+  forcePathStyle: true,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
@@ -32,9 +34,13 @@ export const uploadFile = async (file, folder = 'uploads') => {
 
   await s3Client.send(new PutObjectCommand(params));
   
+  const baseUrl = process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN && process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN !== 'your_cloudfront_domain'
+    ? `https://${process.env.NEXT_PUBLIC_CLOUDFRONT_DOMAIN}`
+    : `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET_NAME}`;
+
   return {
     key,
-    url: `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
+    url: `${baseUrl}/${key}`,
   };
 };
 

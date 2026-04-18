@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 import prisma from '@/lib/prisma';
+import { cache } from '@/lib/redis-utils';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -15,6 +16,20 @@ export async function POST(request) {
         { error: 'Question ID is required' },
         { status: 400 }
       );
+    }
+
+    // Cache key for the explanation
+    const cacheKey = `ai:explanation:${questionId}:${userAnswer || 'none'}`;
+    
+    // Try to get from cache
+    const cachedExplanation = await cache.get(cacheKey);
+    if (cachedExplanation) {
+      return NextResponse.json({
+        success: true,
+        explanation: cachedExplanation,
+        questionId,
+        fromCache: true
+      });
     }
 
     // Fetch real question from database
@@ -78,6 +93,9 @@ export async function POST(request) {
 
       explanation = completion.choices[0].message.content;
     }
+
+    // Store in cache for 24 hours (86400 seconds)
+    await cache.set(cacheKey, explanation, 86400);
 
     return NextResponse.json({
       success: true,

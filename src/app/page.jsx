@@ -369,7 +369,7 @@ const ZLayerOlympiads = () => {
   ];
 
   return (
-    <section ref={containerRef} className="h-[300vh] relative bg-background border-t border-border">
+    <section id="olympiads" ref={containerRef} className="h-[300vh] relative bg-background border-t border-border">
       <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
         <div className="absolute top-10 text-center z-20 mix-blend-difference">
           <h2 className="text-4xl font-light mb-2">Target Acquisition</h2>
@@ -452,7 +452,7 @@ const ReviewsSection = () => {
   ];
 
   return (
-    <section className="py-32 bg-background border-t border-border overflow-hidden relative">
+    <section id="reviews" className="py-32 bg-background border-t border-border overflow-hidden relative">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-transparent to-background z-10 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-6 text-center mb-16 relative z-10">
@@ -538,7 +538,7 @@ const MetricsSection = () => {
 
 const DeveloperSection = () => {
   return (
-    <section className="py-24 bg-background border-t border-border">
+    <section id="about" className="py-24 bg-background border-t border-border">
 
       <div className="max-w-3xl mx-auto px-6 flex flex-col items-center text-center">
         <div className="mb-8">

@@ -10,4 +10,4 @@ export const testRedisConfig = {
   enableOfflineQueue: false,
   // Faster failover in tests
   retryStrategy: () => null,
-} as const;
+};
