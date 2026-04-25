@@ -1,5 +1,8 @@
 # Mindora - Online Test Platform
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 Mindora is a comprehensive online testing platform built with Next.js, featuring secure test administration, real-time test taking, and payment processing.
 
 ## Features
