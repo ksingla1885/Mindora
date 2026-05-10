@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
+import { ReportDownloadButton } from '@/components/tests/ReportDownloadButton';
 
 export default async function TestResultPage({ params }) {
     const session = await auth();
@@ -143,7 +144,11 @@ export default async function TestResultPage({ params }) {
                     <Link href={`/tests/${testId}`}>
                         <Button variant="outline">Retake Test</Button>
                     </Link>
-                    <Button>Download Report</Button>
+                    <ReportDownloadButton 
+                        test={test} 
+                        attempt={attempt} 
+                        analysis={questionAnalysis} 
+                    />
                 </div>
             </div>
 

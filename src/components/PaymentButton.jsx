@@ -108,6 +108,7 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
   const handleSuccess = async (response) => {
     try {
       setIsLoading(true); // Ensure loading is shown during verification
+      setPaymentStatus('verifying'); // Special state for "Heading towards test"
 
       const verifyResponse = await fetch('/api/payments', {
         method: 'PUT',
@@ -128,15 +129,16 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
       }
 
       setPaymentStatus('success');
-      toast.success('Payment successful! You can now take the test.');
+      toast.success('Payment successful! Redirecting to your test...');
 
-      if (onSuccess) {
-        onSuccess(result, response);
-      } else {
-        setTimeout(() => {
+      // Give time for the user to see the success state
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess(result, response);
+        } else {
           window.location.reload();
-        }, 1500);
-      }
+        }
+      }, 2000);
 
     } catch (error) {
       console.error('Payment verification error:', error);
@@ -157,11 +159,25 @@ export default function PaymentButton({ testId, price, disabled = false, buttonT
     setShowMockModal(false);
   };
 
+  if (paymentStatus === 'verifying') {
+    return (
+      <div className="flex flex-col items-center gap-3 py-2 px-4 border border-indigo-100 rounded-lg bg-indigo-50/50">
+        <div className="flex items-center gap-2 text-indigo-700 font-semibold animate-pulse">
+          <FiLoader className="animate-spin h-5 w-5" />
+          Heading towards the test...
+        </div>
+        <div className="w-full h-1 bg-indigo-100 rounded-full overflow-hidden">
+          <div className="h-full bg-indigo-600 animate-[progress_2s_ease-in-out_infinite]" style={{ width: '40%' }} />
+        </div>
+      </div>
+    );
+  }
+
   if (paymentStatus === 'success') {
     return (
-      <div className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600">
-        <FiCheckCircle className="mr-2 h-4 w-4" />
-        Payment Successful
+      <div className="inline-flex items-center px-6 py-3 border border-transparent text-base font-bold rounded-xl shadow-lg text-white bg-green-600 animate-bounce transition-all">
+        <FiCheckCircle className="mr-2 h-6 w-6" />
+        Payment Successful!
       </div>
     );
   }

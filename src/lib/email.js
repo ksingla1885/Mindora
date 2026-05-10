@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { render } from '@react-email/render';
 import { VerificationEmail } from '@/components/emails/VerificationEmail';
+import { RegisterOTPEmail } from '@/components/emails/RegisterOTPEmail';
 import { ResetPasswordEmail } from '@/components/emails/ResetPasswordEmail';
 
 import { TestResultEmail } from '@/components/emails/TestResultEmail';
@@ -80,6 +81,26 @@ export const sendVerificationEmail = async (user, token) => {
     from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
     to: user.email,
     subject: 'Verify your email address',
+    html: emailHtml,
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Preview URL: %s', nodemailer.getTestMessageUrl(info));
+  }
+
+  return info;
+};
+
+export const sendRegisterOTPEmail = async (user, otp) => {
+  const emailHtml = await render(
+    <RegisterOTPEmail username={user.name || 'Student'} otp={otp} />
+  );
+
+  const transporter = await getTransporter();
+  const info = await transporter.sendMail({
+    from: `"Mindora" <${process.env.EMAIL_FROM || 'noreply@mindora.com'}>`,
+    to: user.email,
+    subject: `Your Verification Code: ${otp}`,
     html: emailHtml,
   });
 

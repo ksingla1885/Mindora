@@ -243,6 +243,7 @@ export default function TestPage() {
               testId={test.id}
               price={test.price}
               buttonText="Unlock Now"
+              onSuccess={() => setIsPurchased(true)}
             />
           ) : (
 

@@ -1,28 +1,49 @@
 import { prisma } from "@/lib/prisma";
 import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
+import { createOTPToken } from "@/lib/tokens";
+import { sendRegisterOTPEmail } from "@/lib/email";
 
 const ALLOWED_ROLES = ['STUDENT', 'TEACHER'];
 
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, email, password, role = 'STUDENT', class: userClass } = body;
+    const { name, email, password, role = 'STUDENT', class: userClass, resendOnly } = body;
 
     console.log('[Register] Attempting registration for email:', email);
 
+    if (resendOnly) {
+      if (!email) return NextResponse.json({ message: 'Email is required' }, { status: 400 });
+      
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return NextResponse.json({ message: 'User not found' }, { status: 404 });
+      if (user.emailVerified) return NextResponse.json({ message: 'Email already verified' }, { status: 400 });
+      
+      const otp = await createOTPToken(email, user.id);
+      await sendRegisterOTPEmail(user, otp);
+      
+      return NextResponse.json({ message: 'OTP resent successfully' }, { status: 200 });
+    }
+
     // Validate input
     if (!name || !email || !password) {
-      console.log('[Register] Missing required fields');
       return NextResponse.json(
         { message: 'Name, email, and password are required' },
         { status: 400 }
       );
     }
 
+    // Validate email format
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return NextResponse.json(
+        { message: 'Invalid email format' },
+        { status: 400 }
+      );
+    }
+
     // Validate role
     if (!ALLOWED_ROLES.includes(role)) {
-      console.log('[Register] Invalid role:', role);
       return NextResponse.json(
         { message: 'Invalid role' },
         { status: 400 }
@@ -31,7 +52,6 @@ export async function POST(request) {
 
     // Validate password strength
     if (password.length < 8) {
-      console.log('[Register] Password too short');
       return NextResponse.json(
         { message: 'Password must be at least 8 characters long' },
         { status: 400 }
@@ -39,97 +59,82 @@ export async function POST(request) {
     }
 
     // Check if user already exists
-    console.log('[Register] Checking for existing user...');
-    try {
-      const existingUser = await prisma.user.findUnique({
-        where: { email }
-      });
+    const existingUser = await prisma.user.findUnique({
+      where: { email }
+    });
 
-      if (existingUser) {
-        console.log('[Register] User already exists');
-        return NextResponse.json(
-          { message: 'User already exists with this email' },
-          { status: 409 }
-        );
-      }
-    } catch (dbError) {
-      console.error('[Register] Database error checking user:', dbError);
-
-      // Check if it's a connection error
-      const isConnectionError = dbError.message.includes('Can\'t reach database server') ||
-        dbError.message.includes('Connection failed');
-
+    if (existingUser && existingUser.emailVerified) {
       return NextResponse.json(
-        {
-          message: isConnectionError ? 'Database connection failed. Please check if your database is running.' : 'Database error checking user',
-          error: dbError.message
-        },
-        { status: 500 }
+        { message: 'User already exists with this email' },
+        { status: 409 }
       );
     }
 
-    // Hash password with bcrypt
-    console.log('[Register] Hashing password...');
-    if (!bcrypt || typeof bcrypt.hash !== 'function') {
-      console.error('[Register] Bcrypt is not correctly imported', bcrypt);
-      throw new Error('Server configuration error: Bcrypt not available');
-    }
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
-    console.log('[Register] Creating user in database...');
-    try {
-      const user = await prisma.user.create({
+    let user;
+    if (existingUser && !existingUser.emailVerified) {
+      // Update unverified user
+      user = await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          name,
+          password: hashedPassword,
+          role,
+          class: userClass || null,
+        },
+      });
+    } else {
+      // Create new user
+      user = await prisma.user.create({
         data: {
           name,
           email,
           password: hashedPassword,
           role,
           class: userClass || null,
-          emailVerified: new Date(),
+          emailVerified: null, // Keep it null until verified
           profileMeta: {},
         },
       });
-
-
-      // Remove password from response
-      const { password: _, ...userWithoutPassword } = user;
-
-      console.log('[Register] User created successfully:', user.id);
-
-      // Send verification email in production
-      if (process.env.NODE_ENV === 'production') {
-        // TODO: Implement email verification
-        console.log('[Register] Sending verification email to:', email);
-      }
-
-      return NextResponse.json(
-        {
-          user: userWithoutPassword,
-          message: 'User registered successfully. Please check your email to verify your account.'
-        },
-        { status: 201 }
-      );
-    } catch (createError) {
-      console.error('[Register] Database error creating user:', createError);
-      return NextResponse.json(
-        { message: 'Failed to create user', error: createError.message },
-        { status: 500 }
-      );
     }
+
+    // Generate and store OTP
+    const otp = await createOTPToken(email, user.id);
+
+    // Send OTP email
+    try {
+      await sendRegisterOTPEmail(user, otp);
+      console.log('[Register] OTP sent to:', email);
+    } catch (emailError) {
+      console.error('[Register] Failed to send OTP email:', emailError);
+      // We don't fail registration if email fails in dev, but in prod we might
+      if (process.env.NODE_ENV === 'production') {
+        return NextResponse.json(
+          { message: 'Failed to send verification email. Please try again later.' },
+          { status: 500 }
+        );
+      }
+    }
+
+    return NextResponse.json(
+      {
+        message: 'Registration started. Please check your email for the verification code.',
+        email: email,
+        userId: user.id
+      },
+      { status: 201 }
+    );
 
   } catch (error) {
     console.error('[Register] Unexpected error:', error);
     return NextResponse.json(
       {
         message: 'Internal server error',
-        error: error.message,
-        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        error: error.message
       },
-      {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      }
+      { status: 500 }
     );
   }
 }

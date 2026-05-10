@@ -7,11 +7,16 @@ Mindora is a comprehensive online testing platform built with Next.js, featuring
 
 ## Features
 
-- 🚀 **Test Administration** - Create and manage tests with various question types
-- ⚡ **Real-time Testing** - Live test-taking experience with auto-saving
-- 💳 **Secure Payments** - Integrated Razorpay payment gateway
-- 📊 **Analytics** - Detailed performance analysis and reporting
-- 🔒 **Secure** - Role-based access control and data protection
+- 🚀 **Advanced Question Bank** - Create, edit, and manage questions with support for Multiple Choice, True/False, and Open-ended formats.
+- ⚡ **Real-time Testing** - Premium live test-taking experience with auto-saving and instant transitions.
+- 💳 **Smart Payments** - Seamless Razorpay integration with real-time verification and smooth "Start Test" transitions.
+- 📊 **Dynamic Analytics** - Detailed performance analysis with downloadable PDF reports (jspdf-autotable integration).
+- 🔒 **Secure** - Role-based access control and OTP-verified authentication.
+### Supported Question Types
+- **Multiple Choice (MCQ)**: Configurable options with single correct answer selection.
+- **True / False**: Simplified binary choice with automated option generation.
+- **Short Answer**: Text-based input for concise responses.
+- **Long Answer**: Rich text/essay area for detailed explanations.
 
 ## Getting Started
 

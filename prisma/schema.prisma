@@ -49,6 +49,7 @@ model User {
   userTestAnalytics     UserTestAnalytics[]
   verificationTokens    VerificationToken[]
   xpHistory             XPHistory[]
+  testAccess            TestAccess[]
 
   @@index([createdAt])
   @@index([role, createdAt])
@@ -573,6 +574,7 @@ model Test {
   testQuestions          TestQuestion[]
   olympiad               Olympiad?           @relation(fields: [olympiadId], references: [id])
   userTestAnalytics      UserTestAnalytics[]
+  testAccess             TestAccess[]
 
   @@map("tests")
 }
@@ -616,6 +618,7 @@ model TestAttempt {
   test             Test         @relation(fields: [testId], references: [id])
   user             User         @relation(fields: [userId], references: [id])
 
+  @@unique([userId, testId])
   @@map("test_attempts")
 }
 
@@ -627,15 +630,48 @@ model Payment {
   currency          String   @default("INR")
   status            String
   provider          String
-  providerOrderId   String   @map("provider_order_id")
+  providerOrderId   String   @unique @map("provider_order_id")
   providerPaymentId String?  @map("provider_payment_id")
   signature         String?
+  metadata          Json?
+  completedAt       DateTime? @map("completed_at")
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @updatedAt @map("updated_at")
   test              Test?    @relation(fields: [testId], references: [id])
   user              User     @relation(fields: [userId], references: [id])
 
   @@map("payments")
+}
+
+model TestAccess {
+  id            String    @id @default(cuid())
+  userId        String    @map("user_id")
+  testId        String    @map("test_id")
+  paymentId     String?   @map("payment_id")
+  accessGranted Boolean   @default(true) @map("access_granted")
+  expiresAt     DateTime? @map("expires_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  test          Test      @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, testId])
+  @@map("test_access")
+}
+
+model PaymentLog {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  testId    String?  @map("test_id")
+  orderId   String?  @map("order_id")
+  paymentId String?  @map("payment_id")
+  amount    Float?
+  status    String
+  error     String?
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("payment_logs")
 }
 
 model Discussion {

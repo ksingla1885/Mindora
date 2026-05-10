@@ -16,31 +16,67 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/use-toast';
 
-export default function QuestionForm({ onSuccess, onCancel }) {
+export default function QuestionForm({ onSuccess, onCancel, initialData }) {
+    const isEdit = !!initialData;
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     const [subjects, setSubjects] = useState([]);
     const [topics, setTopics] = useState([]);
 
     // Form States
-    const [selectedSubject, setSelectedSubject] = useState('');
-    const [selectedTopic, setSelectedTopic] = useState('');
-    const [questionText, setQuestionText] = useState('');
-    const [questionType, setQuestionType] = useState('mcq');
-    const [difficulty, setDifficulty] = useState('medium');
-    const [marks, setMarks] = useState(4);
-    const [explanation, setExplanation] = useState('');
-    const [options, setOptions] = useState([
-        { id: '1', text: '' },
-        { id: '2', text: '' },
-        { id: '3', text: '' },
-        { id: '4', text: '' }
-    ]);
-    const [correctAnswer, setCorrectAnswer] = useState('');
+    const [selectedSubject, setSelectedSubject] = useState(initialData?.topic?.subjectId || '');
+    const [selectedTopic, setSelectedTopic] = useState(initialData?.topicId || '');
+    const [questionText, setQuestionText] = useState(initialData?.text || '');
+    const [questionType, setQuestionType] = useState(initialData?.type || 'mcq');
+    const [difficulty, setDifficulty] = useState(initialData?.difficulty || 'medium');
+    const [marks, setMarks] = useState(initialData?.marks || 4);
+    const [explanation, setExplanation] = useState(initialData?.explanation || '');
+    
+    // Parse options from initialData if editing
+    let initialOptionsRaw = initialData?.options || [];
+    if (typeof initialOptionsRaw === 'string') {
+        try {
+            initialOptionsRaw = JSON.parse(initialOptionsRaw);
+        } catch (e) {
+            initialOptionsRaw = [];
+        }
+    }
+    
+    const initialOptions = Array.isArray(initialOptionsRaw) ? initialOptionsRaw : [];
+    
+    const [options, setOptions] = useState(
+        initialOptions.length > 0 
+            ? initialOptions.map((opt, i) => ({ 
+                id: opt.id || (i + 1).toString(), 
+                text: opt.text || '' 
+            }))
+            : [
+                { id: '1', text: '' },
+                { id: '2', text: '' },
+                { id: '3', text: '' },
+                { id: '4', text: '' }
+            ]
+    );
+
+    // Find which option matches the correct answer text
+    const initialCorrectId = initialData?.correctAnswer && (initialData.type === 'mcq' || initialData.type === 'true_false')
+        ? initialOptions.find(o => o.text === initialData.correctAnswer)?.id || ''
+        : '';
+    
+    const [correctAnswer, setCorrectAnswer] = useState(initialCorrectId || initialData?.correctAnswer || '');
 
     useEffect(() => {
         fetchSubjects();
     }, []);
+
+    useEffect(() => {
+        if (subjects.length > 0 && selectedSubject) {
+            const subject = subjects.find(s => s.id === selectedSubject);
+            if (subject) {
+                setTopics(subject.topics || []);
+            }
+        }
+    }, [subjects, selectedSubject]);
 
     const fetchSubjects = async () => {
         try {
@@ -114,7 +150,7 @@ export default function QuestionForm({ onSuccess, onCancel }) {
             toast({ variant: 'destructive', title: 'Missing fields', description: 'Please enter the question text.' });
             return;
         }
-        if (questionType === 'mcq') {
+        if (questionType === 'mcq' || questionType === 'true_false') {
             const validOptions = options.filter(opt => opt.text.trim());
             if (validOptions.length < 2) {
                 toast({ variant: 'destructive', title: 'Invalid options', description: 'Please provide at least 2 valid options.' });
@@ -140,22 +176,19 @@ export default function QuestionForm({ onSuccess, onCancel }) {
             difficulty,
             marks: parseInt(marks),
             explanation,
-            options: questionType === 'mcq' ? options.filter(opt => opt.text.trim()) : null,
-            correctAnswer: questionType === 'mcq' ? options.find(o => o.id === correctAnswer)?.text : correctAnswer // Store exact text as answer for now or ID? Schema says string. Often text is better if IDs are transient. Let's start with Text match or maybe just ID if we stored structured JSON. 
-            // The schema says `options Json?`. Let's store the whole options array stringified or as JSON object.
-            // And correctAnswer as String.
-            // Ideally, store the option text as correct answer to be robust against reordering if just array.
-            // Or store the index/ID. Let's store the Text of the correct answer to be safe?
-            // Wait, if I edit the option text, the correct answer logic might break if I store text.
-            // Let's store the text of the correct answer for simplicity as `correctAnswer` in DB is String.
+            options: (questionType === 'mcq' || questionType === 'true_false') ? options.filter(opt => opt.text.trim()) : null,
+            correctAnswer: (questionType === 'mcq' || questionType === 'true_false') ? options.find(o => o.id === correctAnswer)?.text : correctAnswer
         };
 
         // Refinement: Store options object.
         // options: [{id: '1', text: '...'}, ...]
 
         try {
-            const res = await fetch('/api/questions', {
-                method: 'POST',
+            const url = isEdit ? `/api/questions/${initialData.id}` : '/api/questions';
+            const method = isEdit ? 'PATCH' : 'POST';
+
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
@@ -165,14 +198,14 @@ export default function QuestionForm({ onSuccess, onCancel }) {
             if (data.success) {
                 toast({
                     title: "Success",
-                    description: "Question added successfully"
+                    description: isEdit ? "Question updated successfully" : "Question added successfully"
                 });
                 onSuccess();
             } else {
-                throw new Error(data.error || "Failed to add question");
+                throw new Error(data.error || `Failed to ${isEdit ? 'update' : 'add'} question`);
             }
         } catch (error) {
-            console.error("Error adding question:", error);
+            console.error(`Error ${isEdit ? 'updating' : 'adding'} question:`, error);
             toast({
                 variant: 'destructive',
                 title: 'Error',
@@ -227,12 +260,22 @@ export default function QuestionForm({ onSuccess, onCancel }) {
             <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                     <Label>Type</Label>
-                    <Select value={questionType} onValueChange={setQuestionType}>
+                    <Select value={questionType} onValueChange={(val) => {
+                        setQuestionType(val);
+                        if (val === 'true_false') {
+                            setOptions([
+                                { id: 'true', text: 'True' },
+                                { id: 'false', text: 'False' }
+                            ]);
+                            setCorrectAnswer('');
+                        }
+                    }}>
                         <SelectTrigger>
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="mcq">Multiple Choice</SelectItem>
+                            <SelectItem value="true_false">True / False</SelectItem>
                             <SelectItem value="short_answer">Short Answer</SelectItem>
                             <SelectItem value="long_answer">Long Answer</SelectItem>
                         </SelectContent>
@@ -296,6 +339,22 @@ export default function QuestionForm({ onSuccess, onCancel }) {
                         ))}
                     </RadioGroup>
                     <p className="text-xs text-muted-foreground">Select the radio button next to the correct answer.</p>
+                </div>
+            )}
+
+            {questionType === 'true_false' && (
+                <div className="space-y-4 border rounded-xl p-4 bg-muted/20">
+                    <Label>Correct Answer</Label>
+                    <RadioGroup value={correctAnswer} onValueChange={setCorrectAnswer} className="flex gap-6">
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="true" id="tf-true" />
+                            <Label htmlFor="tf-true" className="cursor-pointer">True</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="false" id="tf-false" />
+                            <Label htmlFor="tf-false" className="cursor-pointer">False</Label>
+                        </div>
+                    </RadioGroup>
                 </div>
             )}
 

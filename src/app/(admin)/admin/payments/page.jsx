@@ -290,13 +290,13 @@ export default function PaymentsPage() {
                                                                 {payment.user.name?.charAt(0) || 'U'}
                                                             </div>
                                                             <div className="flex flex-col">
-                                                                <span className="font-medium text-foreground">{payment.user.name}</span>
-                                                                <span className="text-xs text-muted-foreground">{payment.user.email}</span>
+                                                                <span className="font-medium text-foreground">{payment.user?.name || 'Unknown User'}</span>
+                                                                <span className="text-xs text-muted-foreground">{payment.user?.email || 'No Email'}</span>
                                                             </div>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className="text-sm text-foreground font-medium">{payment.test.title}</span>
+                                                        <span className="text-sm text-foreground font-medium">{payment.test?.title || 'General Payment'}</span>
                                                     </td>
                                                     <td className="px-6 py-4">
                                                         <span className="text-sm font-bold text-foreground">₹{payment.amount}</span>
@@ -348,7 +348,7 @@ export default function PaymentsPage() {
                                                 {payment.user.name?.charAt(0) || 'U'}
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-foreground">{payment.user.name}</h4>
+                                                <h4 className="font-bold text-foreground">{payment.user?.name || 'Unknown User'}</h4>
                                                 <p className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), 'MMM dd, HH:mm')}</p>
                                             </div>
                                         </div>
@@ -360,7 +360,7 @@ export default function PaymentsPage() {
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
-                                        <span className="text-sm font-medium truncate max-w-[150px]">{payment.test.title}</span>
+                                        <span className="text-sm font-medium truncate max-w-[150px]">{payment.test?.title || 'General Payment'}</span>
                                         <span className="font-bold text-foreground">₹{payment.amount}</span>
                                     </div>
                                 </div>
@@ -390,8 +390,8 @@ export default function PaymentsPage() {
                             <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl mb-4">
                                 {selectedPayment.user.name?.charAt(0) || 'U'}
                             </div>
-                            <h4 className="text-xl font-bold text-foreground">{selectedPayment.user.name}</h4>
-                            <p className="text-sm text-muted-foreground mb-4">{selectedPayment.user.email}</p>
+                            <h4 className="text-xl font-bold text-foreground">{selectedPayment.user?.name || 'Unknown User'}</h4>
+                            <p className="text-sm text-muted-foreground mb-4">{selectedPayment.user?.email || 'No Email'}</p>
                             <span className={cn(
                                 "px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider",
                                 selectedPayment.status === 'CAPTURED' ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" :
@@ -428,8 +428,8 @@ export default function PaymentsPage() {
                             <div>
                                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 block">Item Purchased</label>
                                 <div className="bg-muted/30 p-4 rounded-xl">
-                                    <h5 className="font-bold text-foreground mb-1">{selectedPayment.test.title}</h5>
-                                    <p className="text-xs text-muted-foreground italic">Test ID: {selectedPayment.testId}</p>
+                                    <h5 className="font-bold text-foreground mb-1">{selectedPayment.test?.title || 'General Payment'}</h5>
+                                    <p className="text-xs text-muted-foreground italic">Test ID: {selectedPayment.testId || 'N/A'}</p>
                                 </div>
                             </div>
 

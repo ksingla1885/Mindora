@@ -182,106 +182,107 @@ export async function PUT(request) {
       );
     }
 
+    let updatedPayment;
+
     // CHECK FOR MOCK MODE
     if (orderId.startsWith('order_mock_')) {
-      console.log('Verifying MOCK payment for order:', orderId);
-      // Skip signature verification and Razorpay fetch for mock orders
-
-      // Update payment status to captured immediately
-      await prisma.payment.update({
+      updatedPayment = await prisma.payment.update({
         where: { id: payment.id },
         data: {
-          status: 'CAPTURED',
+          status: 'COMPLETED',
           providerPaymentId: paymentId || `pay_mock_${Date.now()}`,
+          completedAt: new Date(),
         },
+        include: {
+          test: {
+            select: { id: true, title: true, durationMinutes: true }
+          }
+        }
       });
+    } else {
+      // REAL MODE VERIFICATION
+      const generatedSignature = crypto
+        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .update(`${orderId}|${paymentId}`)
+        .digest('hex');
 
-      return NextResponse.json({
-        success: true,
-        paymentId: paymentId || `pay_mock_${Date.now()}`,
-        amount: payment.amount,
-        testId: payment.testId,
-        isMock: true
-      });
-    }
+      if (generatedSignature !== signature) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED', providerPaymentId: paymentId }
+        });
+        return NextResponse.json({ error: 'Payment verification failed' }, { status: 400 });
+      }
 
-    // REAL MODE VERIFICATION
-    const generatedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-      .update(`${orderId}|${paymentId}`)
-      .digest('hex');
+      // Verify payment with Razorpay
+      const razorpayPayment = await razorpay.payments.fetch(paymentId);
+      if (razorpayPayment.status !== 'captured') {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED', providerPaymentId: paymentId }
+        });
+        return NextResponse.json({ error: 'Payment not captured' }, { status: 400 });
+      }
 
-    if (generatedSignature !== signature) {
-      // Update payment status to failed
-      await prisma.payment.update({
+      updatedPayment = await prisma.payment.update({
         where: { id: payment.id },
         data: {
-          status: 'FAILED',
+          status: 'COMPLETED',
           providerPaymentId: paymentId,
+          completedAt: new Date(),
+        },
+        include: {
+          test: {
+            select: { id: true, title: true, durationMinutes: true }
+          }
+        }
+      });
+    }
+
+    // Grant test access (Common for both mock and real)
+    if (updatedPayment && updatedPayment.testId) {
+      await prisma.testAccess.upsert({
+        where: {
+          userId_testId: { userId, testId: updatedPayment.testId },
+        },
+        update: {
+          accessGranted: true,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days access
+        },
+        create: {
+          userId,
+          testId: updatedPayment.testId,
+          accessGranted: true,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });
 
-      return NextResponse.json(
-        { error: 'Payment verification failed' },
-        { status: 400 }
-      );
-    }
-
-    // Verify payment with Razorpay
-    const razorpayPayment = await razorpay.payments.fetch(paymentId);
-
-    if (razorpayPayment.status !== 'captured') {
-      // Update payment status to failed
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'FAILED',
-          providerPaymentId: paymentId,
-        },
-      });
-
-      return NextResponse.json(
-        { error: 'Payment not captured' },
-        { status: 400 }
-      );
-    }
-
-    // Update payment status to captured
-    const updatedPayment = await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'CAPTURED', // Or 'completed'
-        providerPaymentId: paymentId,
-      },
-      include: {
-        test: {
-          select: {
-            title: true,
-          },
-        },
-      },
-    });
-
-    // Send email confirmation (non-blocking)
-    if (updatedPayment.test) {
-      sendPaymentConfirmationEmail(session.user, {
-        itemName: updatedPayment.test.title,
-        amount: updatedPayment.amount,
-        orderId: updatedPayment.providerOrderId,
-      }).catch(err => console.error('Failed to send payment confirmation email:', err));
+      // Send email confirmation
+      if (updatedPayment.test) {
+        sendPaymentConfirmationEmail(session.user, {
+          itemName: updatedPayment.test.title,
+          amount: updatedPayment.amount,
+          orderId: updatedPayment.providerOrderId,
+        }).catch(err => console.error('Failed to send payment confirmation email:', err));
+      }
     }
 
     return NextResponse.json({
       success: true,
-      paymentId: razorpayPayment.id,
-      amount: razorpayPayment.amount / 100, // Convert back to rupees
-      testId: payment.testId,
+      paymentId: paymentId,
+      amount: updatedPayment.amount,
+      testId: updatedPayment.testId,
+      isMock: orderId.startsWith('order_mock_'),
     });
 
   } catch (error) {
-    console.error('Error verifying payment:', error);
+    console.error('Error verifying payment (Catch All):', error);
     return NextResponse.json(
-      { error: 'Payment verification failed' },
+      { 
+        error: error.message || 'Payment verification failed',
+        stack: error.stack,
+        details: error
+      },
       { status: 500 }
     );
   }

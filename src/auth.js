@@ -21,26 +21,24 @@ const prismaAdapter = PrismaAdapter(prisma);
 export const authOptions = {
     adapter: {
         ...prismaAdapter,
-        // Custom createUser to handle email verification
         async createUser(user) {
-            const verificationToken = generateToken()
-            const verificationExpires = new Date()
-            verificationExpires.setHours(verificationExpires.getHours() + 24) // 24 hours expiry
-
             const newUser = await prisma.user.create({
                 data: {
                     ...user,
                     emailVerified: null,
-                    verificationToken,
-                    verificationExpires
                 },
             })
+
+            // Generate OTP for registration
+            const { createOTPToken } = await import("@/lib/tokens");
+            const { sendRegisterOTPEmail } = await import("@/lib/email");
+            
+            const otp = await createOTPToken(user.email, newUser.id);
 
             // Send verification email
             if (process.env.NODE_ENV !== 'test') {
                 try {
-                    // Pass the full user object (with email) and the token
-                    await sendVerificationEmail({ ...user, email: user.email }, verificationToken)
+                    await sendRegisterOTPEmail(newUser, otp)
                 } catch (error) {
                     console.error("Failed to send verification email:", error)
                 }
@@ -73,20 +71,34 @@ export const authOptions = {
 
                 // Check if email is verified
                 if (!user.emailVerified) {
-                    // unexpected: if token is null, user is BLOCKED by admin
-                    if (!user.verificationToken) {
-                        throw new BlockedError()
-                    }
+                    // Check if they have a token
+                    const token = await prisma.verificationToken.findFirst({
+                        where: { identifier: user.email, type: 'EMAIL_VERIFICATION' }
+                    });
 
-                    // Resend verification email if not verified and token exists
-                    if (process.env.NODE_ENV !== 'test') {
-                        try {
-                            await sendVerificationEmail(user, user.verificationToken)
-                        } catch (error) {
-                            console.error("Failed to resend verification email:", error)
-                        }
+                    if (!token) {
+                         // Generate new OTP if none exists
+                         const { createOTPToken } = await import("@/lib/tokens");
+                         const { sendRegisterOTPEmail } = await import("@/lib/email");
+                         const otp = await createOTPToken(user.email, user.id);
+                         try {
+                             await sendRegisterOTPEmail(user, otp);
+                         } catch (e) {
+                             console.error("Failed to resend OTP:", e);
+                         }
+                    } else {
+                        // Resend existing OTP if it exists (or generate new one for simplicity)
+                         const { createOTPToken } = await import("@/lib/tokens");
+                         const { sendRegisterOTPEmail } = await import("@/lib/email");
+                         const otp = await createOTPToken(user.email, user.id);
+                         try {
+                             await sendRegisterOTPEmail(user, otp);
+                         } catch (e) {
+                             console.error("Failed to resend OTP:", e);
+                         }
                     }
-                    throw new CredentialsSignin('Please verify your email before logging in. A new verification email has been sent.')
+                    
+                    throw new Error('Please verify your email before logging in. A verification code has been sent to your email.')
                 }
 
                 const passwordMatch = await bcrypt.compare(credentials.password, user.password)

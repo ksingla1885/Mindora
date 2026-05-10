@@ -1,209 +1,239 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
-import { Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Loader2, AlertCircle, CheckCircle2, Mail } from 'lucide-react';
 
 export default function VerifyEmailPage() {
-  const searchParams = useSearchParams();
-  const token = searchParams.get('token');
   const router = useRouter();
-  
-  const [status, setStatus] = useState('verifying'); // 'verifying', 'success', 'error', 'resending', 'resent'
+  const searchParams = useSearchParams();
+  const emailParam = searchParams.get('email');
+
+  const [email, setEmail] = useState(emailParam || '');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [status, setStatus] = useState('idle'); // 'idle', 'loading', 'success', 'error'
   const [error, setError] = useState('');
-  const [email, setEmail] = useState('');
+  const [resendStatus, setResendStatus] = useState('idle');
 
   useEffect(() => {
-    const verifyEmail = async () => {
-      if (!token) return;
-      
-      try {
-        const response = await fetch(`/api/auth/verify-email?token=${token}`, {
-          method: 'GET',
-        });
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to verify email');
-        }
-        
-        setStatus('success');
-        
-        // Redirect to login after 3 seconds
-        setTimeout(() => {
-          router.push('/auth/login');
-        }, 3000);
-        
-      } catch (error) {
-        console.error('Email verification error:', error);
-        setStatus('error');
-        setError(error.message);
-      }
-    };
-    
-    verifyEmail();
-  }, [token, router]);
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [emailParam]);
 
-  const handleResendVerification = async (e) => {
-    e.preventDefault();
-    if (!email) return;
+  const handleOtpChange = (index, value) => {
+    if (value.length > 1) {
+      // Handle paste
+      const pastedData = value.slice(0, 6).split('');
+      const newOtp = [...otp];
+      pastedData.forEach((char, i) => {
+        if (index + i < 6) newOtp[index + i] = char;
+      });
+      setOtp(newOtp);
+      // Focus last filled or next empty
+      const nextIndex = Math.min(index + pastedData.length, 5);
+      document.getElementById(`otp-${nextIndex}`).focus();
+      return;
+    }
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto-focus next input
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`).focus();
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      document.getElementById(`otp-${index - 1}`).focus();
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
     
-    setStatus('resending');
-    
+    const otpString = otp.join('');
+    if (otpString.length !== 6) {
+      setError('Please enter the full 6-digit code');
+      return;
+    }
+
+    setStatus('loading');
+    setError('');
+
     try {
-      const response = await fetch('/api/auth/verify-email', {
+      const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({
+          email,
+          otp: otpString,
+        }),
       });
-      
+
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to resend verification email');
+        throw new Error(data.message || 'Verification failed');
       }
-      
-      setStatus('resent');
-    } catch (error) {
-      console.error('Resend verification error:', error);
+
+      setStatus('success');
+      setTimeout(() => {
+        router.push('/auth/login?verified=true');
+      }, 3000);
+    } catch (err) {
       setStatus('error');
-      setError(error.message);
+      setError(err.message);
     }
   };
 
-  if (status === 'verifying' && token) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Verifying Your Email</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
-            <p className="text-center text-gray-600">Please wait while we verify your email address...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleResendOtp = async () => {
+    setResendStatus('loading');
+    try {
+      // Reuse the register API or a dedicated resend API
+      // For now, let's assume we need to trigger a resend
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          resendOnly: true // We should update the register API to handle this
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to resend OTP');
+      
+      setResendStatus('success');
+      setTimeout(() => setResendStatus('idle'), 3000);
+    } catch (err) {
+      setResendStatus('error');
+    }
+  };
 
   if (status === 'success') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Email Verified!</CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center justify-center space-y-4">
-            <div className="rounded-full bg-green-100 p-3">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-4">
+        <Card className="w-full max-w-md p-8 text-center shadow-2xl border-none">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100 mb-6">
+            <CheckCircle2 className="h-10 w-10 text-green-600" />
+          </div>
+          <CardTitle className="text-2xl font-bold text-gray-900 mb-2">Email Verified!</CardTitle>
+          <p className="text-gray-600 mb-8">
+            Awesome! Your email has been verified. You're all set to start your learning journey with Mindora.
+          </p>
+          <div className="space-y-4">
+            <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-green-500 animate-progress"></div>
             </div>
-            <p className="text-center text-gray-600">
-              Your email has been verified successfully. You'll be redirected to the login page shortly.
-            </p>
-          </CardContent>
-          <CardFooter className="flex justify-center">
-            <Button onClick={() => router.push('/auth/login')}>
-              Go to Login
-            </Button>
-          </CardFooter>
+            <p className="text-sm text-gray-500">Redirecting you to login...</p>
+          </div>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-center">
-            {status === 'resent' ? 'Verification Email Sent' : 'Verify Your Email'}
-          </CardTitle>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 p-4">
+      <Card className="w-full max-w-md shadow-2xl border-none">
+        <CardHeader className="space-y-2 pb-8">
+          <div className="flex justify-center mb-4">
+            <div className="bg-indigo-600 p-4 rounded-2xl shadow-lg">
+              <Mail className="w-8 h-8 text-white" />
+            </div>
+          </div>
+          <CardTitle className="text-3xl font-extrabold text-center text-gray-900">Verify your email</CardTitle>
+          <p className="text-center text-gray-500 font-medium">
+            We've sent a 6-digit code to <span className="text-indigo-600 font-bold">{email}</span>
+          </p>
         </CardHeader>
-        <CardContent className="space-y-4">
+
+        <CardContent className="space-y-6">
           {status === 'error' && (
-            <div className="rounded-md bg-red-50 p-4 mb-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    {error || 'An error occurred during verification'}
-                  </h3>
-                </div>
-              </div>
+            <div className="flex items-center gap-3 p-4 text-sm text-red-800 bg-red-50 border border-red-100 rounded-xl">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="font-medium">{error}</span>
             </div>
           )}
-          
-          {status === 'resent' ? (
-            <div className="rounded-md bg-green-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <CheckCircle className="h-5 w-5 text-green-400" aria-hidden="true" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-green-700">
-                    We've sent a new verification link to your email. Please check your inbox.
-                  </p>
-                </div>
-              </div>
+
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="flex justify-between gap-2">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={digit}
+                  onChange={(e) => handleOtpChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  className="w-12 h-14 text-center text-2xl font-bold text-indigo-600 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white focus:ring-0 transition-all outline-none"
+                  disabled={status === 'loading'}
+                />
+              ))}
             </div>
-          ) : (
-            <>
-              <p className="text-sm text-gray-600">
-                {token 
-                  ? 'The verification link is invalid or has expired. Please request a new verification email.'
-                  : 'A verification link is required to verify your email address. Please check your email or request a new verification link below.'}
-              </p>
-              
-              <div className="mt-4">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-end space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => router.push('/')}
-          >
-            Back to Home
-          </Button>
-          {status !== 'resent' && (
-            <Button 
-              onClick={handleResendVerification}
-              disabled={status === 'resending' || !email}
+
+            <Button
+              type="submit"
+              className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-indigo-200 transition-all active:scale-95"
+              disabled={status === 'loading' || otp.join('').length !== 6}
             >
-              {status === 'resending' ? (
+              {status === 'loading' ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Sending...
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Verifying...
                 </>
               ) : (
-                'Resend Verification Email'
+                'Verify Account'
               )}
             </Button>
-          )}
+          </form>
+
+          <div className="text-center">
+            <p className="text-gray-500 font-medium">
+              Didn't receive the code?{' '}
+              <button
+                onClick={handleResendOtp}
+                disabled={resendStatus === 'loading'}
+                className="text-indigo-600 font-bold hover:underline disabled:opacity-50"
+              >
+                {resendStatus === 'loading' ? 'Sending...' : 'Resend Code'}
+              </button>
+            </p>
+            {resendStatus === 'success' && (
+              <p className="text-green-600 text-sm font-bold mt-2">New code sent successfully!</p>
+            )}
+          </div>
+        </CardContent>
+
+        <CardFooter className="flex justify-center pb-8">
+          <Link href="/auth/register" className="text-sm font-bold text-gray-500 hover:text-indigo-600 transition-colors">
+            ← Back to registration
+          </Link>
         </CardFooter>
       </Card>
+      
+      <style jsx>{`
+        @keyframes progress {
+          0% { width: 0%; }
+          100% { width: 100%; }
+        }
+        .animate-progress {
+          animation: progress 3s linear forwards;
+        }
+      `}</style>
     </div>
   );
 }

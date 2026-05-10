@@ -10,6 +10,10 @@ export const generateToken = async (length = 32) => {
   return buffer.toString('hex');
 };
 
+export const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 export const createVerificationToken = async (userId) => {
   // Delete any existing verification tokens for this user
   await prisma.verificationToken.deleteMany({
@@ -23,6 +27,29 @@ export const createVerificationToken = async (userId) => {
   const verificationToken = await prisma.verificationToken.create({
     data: {
       token,
+      type: 'EMAIL_VERIFICATION',
+      expiresAt,
+      userId,
+    },
+  });
+
+  return verificationToken.token;
+};
+
+export const createOTPToken = async (email, userId = null) => {
+  // Delete any existing OTP tokens for this email
+  await prisma.verificationToken.deleteMany({
+    where: { identifier: email, type: 'EMAIL_VERIFICATION' },
+  });
+
+  const otp = generateOTP();
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
+
+  const verificationToken = await prisma.verificationToken.create({
+    data: {
+      token: otp,
+      identifier: email,
       type: 'EMAIL_VERIFICATION',
       expiresAt,
       userId,
@@ -89,7 +116,31 @@ export const verifyToken = async (token, type) => {
     where: { id: verificationToken.id },
   });
 
-  return verificationToken.user;
+  return verificationToken.user || { email: verificationToken.identifier };
+};
+
+export const verifyOTP = async (email, otp) => {
+  const verificationToken = await prisma.verificationToken.findFirst({
+    where: {
+      identifier: email,
+      token: otp,
+      type: 'EMAIL_VERIFICATION',
+      expiresAt: {
+        gt: new Date(), // Token not expired
+      },
+    },
+  });
+
+  if (!verificationToken) {
+    return false;
+  }
+
+  // Delete the token so it can't be used again
+  await prisma.verificationToken.delete({
+    where: { id: verificationToken.id },
+  });
+
+  return true;
 };
 
 export const hashPassword = async (password) => {

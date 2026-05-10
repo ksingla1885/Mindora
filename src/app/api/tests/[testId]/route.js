@@ -84,7 +84,7 @@ export async function GET(request, { params }) {
           where: {
             userId: session.user.id,
             testId: testId,
-            status: 'COMPLETED',
+            status: { in: ['COMPLETED', 'CAPTURED'] },
           },
         });
         if (payment) {

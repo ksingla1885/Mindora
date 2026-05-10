@@ -41,6 +41,12 @@ export default function QuestionManagementPage() {
     const [questions, setQuestions] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const [editingQuestion, setEditingQuestion] = useState(null);
+
+    const handleEdit = (question) => {
+        setEditingQuestion(question);
+        setIsFormOpen(true);
+    };
 
     // AI Generation State
     const [isAIDialogOpen, setIsAIDialogOpen] = useState(false);
@@ -211,6 +217,7 @@ export default function QuestionManagementPage() {
 
     const handleQuestionAdded = () => {
         setIsFormOpen(false);
+        setEditingQuestion(null);
         fetchQuestions();
     };
 
@@ -396,7 +403,12 @@ export default function QuestionManagementPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-2 mt-4 md:mt-0">
-                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all">
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                                                onClick={() => handleEdit(q)}
+                                            >
                                                 <Edit className="size-5" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all">
@@ -433,14 +445,18 @@ export default function QuestionManagementPage() {
             <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>Add New Question</DialogTitle>
+                        <DialogTitle>{editingQuestion ? 'Edit Question' : 'Add New Question'}</DialogTitle>
                         <DialogDescription>
-                            Fill in the details below to add a new question to the bank.
+                            {editingQuestion ? 'Modify the question details below.' : 'Fill in the details below to add a new question to the bank.'}
                         </DialogDescription>
                     </DialogHeader>
                     <QuestionForm
+                        initialData={editingQuestion}
                         onSuccess={handleQuestionAdded}
-                        onCancel={() => setIsFormOpen(false)}
+                        onCancel={() => {
+                            setIsFormOpen(false);
+                            setEditingQuestion(null);
+                        }}
                     />
                 </DialogContent>
             </Dialog>
