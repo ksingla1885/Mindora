@@ -101,36 +101,20 @@ export async function POST(request) {
 
     // Hash the new password
     const hashedPassword = await hashPassword(password);
-    const newSessionToken = crypto.randomUUID();
 
     // Update the user's password and invalidate all sessions in a transaction
     await prisma.$transaction([
-      // Update password and increment session version
+      // Update password
       prisma.user.update({
         where: { id: user.id },
         data: {
-          password: hashedPassword,
-          sessionVersion: { increment: 1 },
-          lastPasswordChange: new Date()
+          password: hashedPassword
         },
       }),
       
       // Delete all existing sessions
       prisma.session.deleteMany({
         where: { userId: user.id },
-      }),
-      
-      // Create audit log
-      prisma.auditLog.create({
-        data: {
-          action: 'PASSWORD_RESET_SUCCESS',
-          userId: user.id,
-          metadata: {
-            ip: request.headers.get('x-forwarded-for') || 'unknown',
-            userAgent: request.headers.get('user-agent') || 'unknown',
-            timestamp: new Date().toISOString()
-          }
-        }
       })
     ]);
 
@@ -158,21 +142,6 @@ export async function POST(request) {
   } catch (error) {
     console.error('Reset password error:', error);
     
-    // Log the error for monitoring (non-blocking)
-    if (user?.id) {
-      prisma.auditLog.create({
-        data: {
-          action: 'PASSWORD_RESET_FAILURE',
-          userId: user.id,
-          metadata: {
-            error: error.message,
-            ip: request?.headers?.get('x-forwarded-for') || 'unknown',
-            userAgent: request?.headers?.get('user-agent') || 'unknown',
-            timestamp: new Date().toISOString(),
-          },
-        },
-      }).catch(console.error);
-    }
 
     // Return generic error message to avoid leaking sensitive information
     return NextResponse.json(

@@ -73,13 +73,27 @@ export default function ResetPasswordPage() {
         },
         body: JSON.stringify({ 
           token,
-          newPassword: password 
+          password 
         }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to reset password');
+        let errorMessage = 'Failed to reset password';
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+          } else {
+            const text = await response.text();
+            if (text && !text.includes('<!DOCTYPE html>') && text.length < 200) {
+              errorMessage = text;
+            }
+          }
+        } catch (_) {
+          // Fallback to default message
+        }
+        throw new Error(errorMessage);
       }
       
       setStatus('success');
@@ -157,6 +171,7 @@ export default function ResetPasswordPage() {
             size="sm" 
             className="w-max p-0 mb-2" 
             onClick={() => router.back()}
+            suppressHydrationWarning
           >
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
@@ -187,6 +202,7 @@ export default function ResetPasswordPage() {
               <Input
                 id="password"
                 type="password"
+                suppressHydrationWarning
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -209,6 +225,7 @@ export default function ResetPasswordPage() {
               <Input
                 id="confirmPassword"
                 type="password"
+                suppressHydrationWarning
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
@@ -223,6 +240,7 @@ export default function ResetPasswordPage() {
             <Button 
               type="submit" 
               className="w-full"
+              suppressHydrationWarning
               disabled={status === 'loading' || !password || !confirmPassword || !!passwordError}
             >
               {status === 'loading' ? (
