@@ -1,6 +1,6 @@
 # Mindora - Online Test Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 
 Mindora is a comprehensive online testing platform built with Next.js, featuring secure test administration, real-time test taking, and payment processing.
@@ -133,4 +133,4 @@ Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTIN
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the AGPL-3.0 License - see the [LICENSE](LICENSE) file for details.
