@@ -96,23 +96,34 @@ export async function POST(request) {
                 });
 
                 if (stats._count.id > 0) {
+                    const existingOverall = await prisma.leaderboardEntry.findFirst({
+                        where: {
+                            userId: student.id,
+                            subjectId: null
+                        }
+                    });
+
+                    const totalScore = stats._sum.score || 0;
+                    const testCount = stats._count.id;
+                    const averageScore = Math.round(totalScore / testCount);
+
                     await prisma.leaderboardEntry.upsert({
                         where: {
-                            userId_subjectId: {
-                                userId: student.id,
-                                subjectId: "overall" // placeholder for overall
-                            }
+                            id: existingOverall?.id || 'new-overall-entry'
                         },
                         update: {
-                            totalScore: stats._sum.score || 0,
-                            testsTaken: stats._count.id,
+                            totalScore,
+                            testCount,
+                            averageScore,
                             lastUpdated: new Date()
                         },
                         create: {
                             userId: student.id,
-                            subjectId: "overall",
-                            totalScore: stats._sum.score || 0,
-                            testsTaken: stats._count.id,
+                            subjectId: null,
+                            totalScore,
+                            testCount,
+                            averageScore,
+                            lastUpdated: new Date()
                         }
                     });
                 }

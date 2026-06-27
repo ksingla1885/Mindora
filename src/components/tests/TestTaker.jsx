@@ -617,7 +617,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       }
 
       // Send final answers to server
-      const response = await fetch(`${apiBaseUrl}/${currentAttemptId}/submit`, {
+      const response = await fetch(`${apiBaseUrl}/${currentAttemptId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -618,7 +618,8 @@ model TestAttempt {
   test             Test         @relation(fields: [testId], references: [id])
   user             User         @relation(fields: [userId], references: [id])
 
-  @@unique([userId, testId])
+  @@index([userId, testId])
+  @@index([status, startedAt])
   @@map("test_attempts")
 }
 
@@ -640,6 +641,8 @@ model Payment {
   test              Test?    @relation(fields: [testId], references: [id])
   user              User     @relation(fields: [userId], references: [id])
 
+  @@index([userId, status])
+  @@index([testId])
   @@map("payments")
 }
 
@@ -855,6 +858,8 @@ model DPPAssignment {
   question    Question              @relation(fields: [questionId], references: [id])
   user        User                  @relation(fields: [userId], references: [id])
 
+  @@index([userId, status])
+  @@index([dppId])
   @@map("dpp_assignments")
 }
 
