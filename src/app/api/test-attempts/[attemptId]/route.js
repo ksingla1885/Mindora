@@ -109,7 +109,7 @@ export async function PATCH(request, { params }) {
 
   try {
     const { attemptId } = await params;
-    const { answers, currentQuestionIndex, timeSpentSeconds } = await request.json();
+    const { answers, currentQuestionIndex, timeSpentSeconds, violation } = await request.json();
 
     // Verify the attempt exists and belongs to the user
     const existingAttempt = await prisma.testAttempt.findUnique({
@@ -118,6 +118,17 @@ export async function PATCH(request, { params }) {
         userId: session.user.id,
         submittedAt: null,
         finishedAt: null,
+      },
+      include: {
+        test: {
+          include: {
+            testQuestions: {
+              include: {
+                question: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -129,12 +140,46 @@ export async function PATCH(request, { params }) {
       );
     }
 
+    const existingMetadata = existingAttempt.metadata || {};
+    let newViolations = existingMetadata.violations || [];
+
+    if (violation) {
+      const isDuplicate = newViolations.some(
+        (v) => v.type === violation.type && v.timestamp === violation.timestamp
+      );
+      if (!isDuplicate) {
+        newViolations = [...newViolations, violation];
+      }
+    }
+
+    const test = existingAttempt.test;
+    const maxTabSwitches = test.maxTabSwitches !== null && test.maxTabSwitches !== undefined ? test.maxTabSwitches : 3;
+    const maxViolationsAllowed = test.maxViolationsAllowed !== null && test.maxViolationsAllowed !== undefined ? test.maxViolationsAllowed : 5;
+
+    const tabSwitchesCount = newViolations.filter((v) => v.type === 'TAB_SWITCH_DETECTED').length;
+    const totalViolationsCount = newViolations.length;
+
+    let shouldDisqualify = false;
+    let disqualificationReason = '';
+
+    if (tabSwitchesCount >= maxTabSwitches) {
+      shouldDisqualify = true;
+      disqualificationReason = `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
+    } else if (totalViolationsCount >= maxViolationsAllowed) {
+      shouldDisqualify = true;
+      disqualificationReason = `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
+    }
+
+    const now = new Date();
     const attemptUpdateData = {
       answers: answers !== undefined ? answers : undefined,
       metadata: {
-        ...(existingAttempt.metadata || {}),
+        ...existingMetadata,
         ...(currentQuestionIndex !== undefined ? { currentQuestionIndex } : {}),
-        lastSavedAt: new Date().toISOString(),
+        violations: newViolations,
+        violationCount: newViolations.length,
+        lastSavedAt: now.toISOString(),
+        ...(shouldDisqualify ? { disqualified: true, disqualificationReason } : {}),
       },
     };
 
@@ -145,6 +190,89 @@ export async function PATCH(request, { params }) {
       }
     }
 
+    if (shouldDisqualify) {
+      attemptUpdateData.status = 'disqualified';
+      attemptUpdateData.submittedAt = now;
+      attemptUpdateData.finishedAt = now;
+
+      // Calculate score and results for the disqualified attempt
+      let score = 0;
+      let maxScore = 0;
+      let correctAnswersCount = 0;
+      const results = {};
+      const activeAnswers = answers !== undefined ? answers : (existingAttempt.answers || {});
+
+      test.testQuestions.forEach((tq) => {
+        const question = tq.question;
+        const userAnswer = activeAnswers[question.id] || null;
+        const isCorrect = userAnswer && question.correctAnswer
+          ? userAnswer === question.correctAnswer
+          : null;
+
+        maxScore += tq.marks;
+
+        if (isCorrect) {
+          score += tq.marks;
+          correctAnswersCount++;
+        }
+
+        results[question.id] = {
+          questionId: question.id,
+          userAnswer,
+          correctAnswer: question.correctAnswer,
+          isCorrect,
+          marks: isCorrect ? tq.marks : 0,
+          maxMarks: tq.marks,
+        };
+      });
+
+      attemptUpdateData.results = results;
+      attemptUpdateData.score = score;
+      attemptUpdateData.metadata.maxScore = maxScore;
+
+      // Update learning progress
+      await prisma.learningProgress.upsert({
+        where: {
+          userId_testId: {
+            userId: session.user.id,
+            testId: test.id,
+          },
+        },
+        update: {
+          progress: 100,
+          status: 'completed',
+          score,
+          completedAt: now,
+        },
+        create: {
+          userId: session.user.id,
+          testId: test.id,
+          progress: 100,
+          status: 'completed',
+          score,
+          completedAt: now,
+        },
+      });
+
+      // Record study session
+      await prisma.studySession.create({
+        data: {
+          userId: session.user.id,
+          testId: test.id,
+          startTime: existingAttempt.startedAt,
+          endTime: now,
+          duration: Math.floor((now - existingAttempt.startedAt) / 1000),
+          activityType: 'test_disqualified',
+          metadata: {
+            score,
+            maxScore,
+            disqualified: true,
+            disqualificationReason,
+          },
+        },
+      });
+    }
+
     const updatedAttempt = await prisma.testAttempt.update({
       where: { id: attemptId },
       data: attemptUpdateData,
@@ -153,6 +281,8 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({
       success: true,
       attempt: updatedAttempt,
+      disqualified: shouldDisqualify,
+      disqualificationReason: shouldDisqualify ? disqualificationReason : undefined,
     });
   } catch (error) {
     console.error('Error updating test attempt:', error);

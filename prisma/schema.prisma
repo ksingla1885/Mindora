@@ -564,6 +564,8 @@ model Test {
   faceDetectionEnabled   Boolean             @default(false) @map("face_detection_enabled")
   proctoringEnabled      Boolean             @default(false) @map("proctoring_enabled")
   tabMonitoringEnabled   Boolean             @default(false) @map("tab_monitoring_enabled")
+  maxTabSwitches          Int                 @default(3) @map("max_tab_switches")
+  maxViolationsAllowed    Int                 @default(5) @map("max_violations_allowed")
   certificates           Certificate[]
   discussions            Discussion[]
   learningProgress       LearningProgress[]

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTestWebSocket } from '@/hooks/useTestWebSocket';
@@ -56,6 +57,39 @@ const QUESTION_TYPE_LABELS = {
 };
 
 export function TestTaker({ test, questions: initialQuestions = [], onComplete, initialAttempt, apiBaseUrl = '/api/test-attempts' }) {
+  const { toast } = useToast();
+  const { data: session } = useSession();
+  const router = useRouter();
+  const testId = test?.id;
+
+  // State management
+  const [attemptId, setAttemptId] = useState(initialAttempt?.id || null);
+  const [answers, setAnswers] = useState({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState({});
+  const [timeLeft, setTimeLeft] = useState(test?.durationMinutes * 60 || 1800);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [testResults, setTestResults] = useState(null);
+  const [showTestResults, setShowTestResults] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState(null);
+  const [questions, setQuestions] = useState(initialQuestions);
+
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
+  const [showNavigation, setShowNavigation] = useState(false);
+  const [autoSaved, setAutoSaved] = useState(false);
+  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
+  const [timeSpent, setTimeSpent] = useState({});
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
+
+  // Proctoring specific states
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [warningCount, setWarningCount] = useState(0);
+  const [isDisqualified, setIsDisqualified] = useState(false);
+  const [disqualificationReason, setDisqualificationReason] = useState('');
+  const [hasStarted, setHasStarted] = useState(false);
+  const [attemptStatus, setAttemptStatus] = useState(initialAttempt?.status || 'in_progress');
+
   // AI Assistant Hook
   const {
     isLoading: isAILoading,
@@ -69,6 +103,58 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     getAnswerFeedback,
   } = useTestAssistant(test?.id);
 
+  // Keep a ref to the current attemptId to avoid stale closures in callbacks
+  const attemptIdRef = useRef(initialAttempt?.id || null);
+
+  // Sync ref with state
+  useEffect(() => {
+    attemptIdRef.current = attemptId;
+  }, [attemptId]);
+
+  const handleDisqualification = useCallback((reason) => {
+    setIsDisqualified(true);
+    setDisqualificationReason(reason || 'Exceeded proctoring violations limit.');
+  }, []);
+
+  const handleLogViolation = useCallback(async (violation) => {
+    // Always show UI feedback immediately — regardless of attemptId
+    setWarningCount(prev => prev + 1);
+    setShowWarningModal(true);
+
+    // Only persist to backend if we have an active attempt
+    const currentAttemptId = attemptIdRef.current;
+    if (!currentAttemptId) return;
+
+    try {
+      const response = await fetch(`${apiBaseUrl}/${currentAttemptId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          violation,
+          timeSpentSeconds: Math.floor((test?.durationMinutes * 60) - timeLeft),
+          currentQuestionIndex,
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Sync the actual violation count from server response
+        if (result.attempt?.metadata?.violationCount !== undefined) {
+          setWarningCount(result.attempt.metadata.violationCount);
+        } else if (result.attempt?.metadata?.violations?.length !== undefined) {
+          setWarningCount(result.attempt.metadata.violations.length);
+        }
+
+        if (result.disqualified) {
+          handleDisqualification(result.disqualificationReason);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to log violation to backend:', error);
+    }
+  }, [timeLeft, currentQuestionIndex, apiBaseUrl, test?.durationMinutes, handleDisqualification]);
+
   // Proctoring Hook
   const {
     isActive: isProctoringActive,
@@ -81,21 +167,28 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     enableFaceDetection: test?.faceDetectionEnabled,
     enableTabMonitoring: test?.tabMonitoringEnabled || test?.proctoringEnabled,
     enforceFullscreen: test?.enforceFullscreen,
+    onViolation: handleLogViolation,
   });
 
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [warningCount, setWarningCount] = useState(0);
+  const anyProctoringFeature = test?.proctoringEnabled || test?.enforceFullscreen || test?.tabMonitoringEnabled || test?.faceDetectionEnabled;
 
-  // Synchronize violation count
-  useEffect(() => {
-    if (violationCount > warningCount) {
-      setWarningCount(violationCount);
-      setShowWarningModal(true);
+  const handleStartTestClick = useCallback(async () => {
+    setHasStarted(true);
+    if (anyProctoringFeature) {
+      try {
+        await startProctoring();
+      } catch (err) {
+        console.error('Failed to start proctoring:', err);
+      }
     }
-  }, [violationCount, warningCount]);
-  const { toast } = useToast();
-  const { data: session } = useSession();
-  const router = useRouter();
+  }, [anyProctoringFeature, startProctoring]);
+
+  // Stop proctoring if disqualified
+  useEffect(() => {
+    if (isDisqualified) {
+      stopProctoring();
+    }
+  }, [isDisqualified, stopProctoring]);
 
   // State for analytics and AI features
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -103,20 +196,6 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const [currentExplanation, setCurrentExplanation] = useState('');
   const [studyPlan, setStudyPlan] = useState(null);
   const [personalizedTips, setPersonalizedTips] = useState([]);
-
-  // State management
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  // State management
-  const [answers, setAnswers] = useState({});
-  const [flaggedQuestions, setFlaggedQuestions] = useState({});
-  const [timeLeft, setTimeLeft] = useState(test?.durationMinutes * 60 || 1800);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [testResults, setTestResults] = useState(null);
-  const [showTestResults, setShowTestResults] = useState(false);
-  const [aiFeedback, setAiFeedback] = useState(null);
-  const [attemptId, setAttemptId] = useState(initialAttempt?.id || null);
-  const [questions, setQuestions] = useState(initialQuestions);
 
   // Sync state if initialAttempt is provided or changes
   useEffect(() => {
@@ -137,12 +216,6 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       }
     }
   }, [initialAttempt, attemptId, answers, flaggedQuestions]);
-  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [showNavigation, setShowNavigation] = useState(false);
-  const [autoSaved, setAutoSaved] = useState(false);
-  const [questionStartTime, setQuestionStartTime] = useState(Date.now());
-  const [timeSpent, setTimeSpent] = useState({});
-  const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   // Initialize WebSocket connection
   const { sendAnswerUpdate, isConnected } = useTestWebSocket(test?.id, (data) => {
@@ -168,8 +241,6 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const questionTimerRef = useRef(null);
   const mainContentRef = useRef(null);
   const isInitializing = useRef(false);
-  // Keep a ref to the current attemptId to avoid stale closures in useCallback
-  const attemptIdRef = useRef(initialAttempt?.id || null);
 
   // Derived state
   const currentQuestion = questions[currentQuestionIndex];
@@ -251,17 +322,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
         console.log('TestTaker: Created/Resumed attempt', newAttemptId);
       }
 
-      // Start proctoring if enabled
-      if (test?.proctoringEnabled) {
-        startProctoring().catch(err => {
-          console.error('Failed to start proctoring:', err);
-          toast({
-            title: 'Proctoring Error',
-            description: 'Could not initialize proctoring features.',
-            variant: 'destructive'
-          });
-        });
-      }
+      setAttemptStatus(attemptData.status || 'in_progress');
 
       // Calculate remaining time if resuming
       if (attemptData.startedAt) {
@@ -278,6 +339,15 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       setFlaggedQuestions(attemptData.metadata?.flaggedQuestions || attemptData.flaggedQuestions || {});
       setTimeSpent(attemptData.timeSpent || {});
       setCurrentQuestionIndex(attemptData.details?.currentQuestionIndex || 0);
+
+      // Load initial violation count and check if disqualified
+      const initialViolationsCount = attemptData.metadata?.violationCount || attemptData.metadata?.violations?.length || 0;
+      setWarningCount(initialViolationsCount);
+
+      if (attemptData.status === 'disqualified') {
+        setIsDisqualified(true);
+        setDisqualificationReason(attemptData.metadata?.disqualificationReason || 'Exceeded proctoring violations limit.');
+      }
 
       console.log('TestTaker: Initializing', { testId: test?.id, questionsLength: questions.length });
 
@@ -1214,6 +1284,92 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     );
   }
 
+  // Show disqualified lockout UI if applicable
+  if (isDisqualified || initialAttempt?.status === 'disqualified') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center space-y-6">
+        <div className="bg-destructive/10 p-6 rounded-full text-destructive animate-pulse">
+          <AlertCircle className="h-16 w-16" />
+        </div>
+        <h2 className="text-3xl font-black text-destructive tracking-tight">Test Terminated</h2>
+        <p className="text-muted-foreground max-w-md text-lg">
+          This test session has been terminated due to security violations. Your answers up to this point have been saved.
+        </p>
+        <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md">
+          <p className="text-sm font-bold text-slate-500 mb-1">Reason for Lockout</p>
+          <p className="text-lg font-black text-slate-850 dark:text-slate-100">
+            {disqualificationReason || initialAttempt?.metadata?.disqualificationReason || 'Exceeded security limits.'}
+          </p>
+        </div>
+        <Button onClick={() => router.push('/dashboard')} size="lg" className="rounded-2xl px-8 py-6 font-black text-lg">
+          Back to Dashboard
+        </Button>
+      </div>
+    );
+  }
+
+  // Instruction gate before entering fullscreen / starting test
+  if (!hasStarted && anyProctoringFeature && !isLoading && !isDisqualified && attemptStatus !== 'disqualified') {
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] p-4">
+        <Card className="w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6">
+          <CardHeader className="text-center pb-2">
+            <CardTitle className="text-2xl font-black">Security & Instructions</CardTitle>
+            <div className="text-muted-foreground mt-1">
+              Please read the rules carefully before starting the test.
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
+              <h4 className="font-bold text-slate-850 dark:text-slate-200">Anti-Cheat Rules:</h4>
+              <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-2">
+                {test?.enforceFullscreen && (
+                  <li><strong>Fullscreen Enforcement:</strong> The test will run in fullscreen mode. Exiting fullscreen will trigger a security violation.</li>
+                )}
+                {(test?.tabMonitoringEnabled || test?.proctoringEnabled) && (
+                  <li><strong>Tab Switch Monitoring:</strong> Switching tabs or opening other apps is strictly monitored. Max allowed tab switches: <span className="font-bold text-primary">{test?.maxTabSwitches || 3}</span>.</li>
+                )}
+                {test?.faceDetectionEnabled && (
+                  <li><strong>Webcam Proctoring:</strong> The front camera is monitored to verify you remain in front of the screen.</li>
+                )}
+                <li><strong>Browser Security:</strong> Copying, pasting, and right-clicking are disabled.</li>
+              </ul>
+            </div>
+            {test?.instructions && (
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-850 dark:text-slate-200">Test Instructions:</h4>
+                <p className="text-sm text-slate-600 dark:text-slate-400 border-l-4 border-primary pl-3 italic">
+                  {test.instructions}
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4 pt-2 text-center text-sm">
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
+                <p className="text-muted-foreground text-xs font-bold">Duration</p>
+                <p className="text-base font-black">{test?.durationMinutes || 30} mins</p>
+              </div>
+              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
+                <p className="text-muted-foreground text-xs font-bold">Total Questions</p>
+                <p className="text-base font-black">{questions.length}</p>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col gap-3">
+            <Button
+              onClick={handleStartTestClick}
+              className="w-full py-6 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+            >
+              Start Test & Enter Fullscreen
+            </Button>
+            <Button variant="ghost" onClick={() => router.push('/dashboard')} className="w-full">
+              Cancel and Return
+            </Button>
+          </CardFooter>
+        </Card>
+      </div>
+    );
+  }
+
   // Show empty state if questions validly loaded but empty
   if (questions.length === 0 && !isLoading) {
     return (
@@ -1246,7 +1402,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   }
 
   return (
-    <div className="space-y-6" ref={mainContentRef}>
+    <div className="space-y-6 select-none" ref={mainContentRef}>
       {/* Header with test info and timer */}
       <Card className="relative overflow-hidden">
         <div
@@ -1501,6 +1657,77 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
 
       {/* Submit Confirmation Dialog */}
       {renderSubmitConfirmation()}
+
+      {/* ===== PROCTORING WARNING MODAL ===== */}
+      <Dialog open={showWarningModal} onOpenChange={setShowWarningModal}>
+        <DialogContent className="sm:max-w-[480px] border-2 border-destructive">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive text-xl">
+              <AlertTriangle className="h-6 w-6 text-destructive" />
+              Proctoring Violation Detected
+            </DialogTitle>
+            <DialogDescription className="text-base pt-1">
+              You have left the test window. This activity has been recorded and reported.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Warning #{warningCount}</AlertTitle>
+              <AlertDescription>
+                Switching tabs, clicking outside the test window, or using other applications during the test is strictly prohibited.
+              </AlertDescription>
+            </Alert>
+            <p className="text-sm text-muted-foreground">
+              Continued violations may result in automatic disqualification from this test.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => setShowWarningModal(false)}
+            >
+              I Understand — Return to Test
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== DISQUALIFICATION OVERLAY ===== */}
+      {isDisqualified && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/95 backdrop-blur-sm">
+          <div className="max-w-md w-full mx-4 text-center space-y-6">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-destructive/10 p-6">
+                <AlertCircle className="h-16 w-16 text-destructive" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-bold text-destructive">Disqualified</h2>
+              <p className="text-muted-foreground text-lg">
+                You have been disqualified from this test due to proctoring violations.
+              </p>
+              {disqualificationReason && (
+                <p className="text-sm text-muted-foreground bg-muted rounded-lg p-3 mt-2">
+                  Reason: {disqualificationReason}
+                </p>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Your attempt has been recorded. Please contact your instructor if you believe this is an error.
+            </p>
+            <Button
+              variant="outline"
+              size="lg"
+              className="w-full"
+              onClick={() => router.push('/tests')}
+            >
+              Return to Tests
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

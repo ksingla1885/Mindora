@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Minimize2, Maximize2, Brain } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
 
 export default function ChatWidget() {
     const { data: session } = useSession();
+    const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
     const [messages, setMessages] = useState([
@@ -63,7 +65,13 @@ export default function ChatWidget() {
         }
     };
 
-    if (!session) return null;
+    // Hide on test-taking pages to prevent cheating
+    const isTestPage = pathname?.startsWith('/tests/') &&
+        !pathname.includes('/results/') &&
+        pathname !== '/tests' &&
+        pathname !== '/tests/premium';
+
+    if (!session || isTestPage) return null;
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">

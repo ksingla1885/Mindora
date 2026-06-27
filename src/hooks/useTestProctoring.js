@@ -20,12 +20,16 @@ export const useTestProctoring = ({
   enableTabMonitoring = true,
   enforceFullscreen = true,
   blockKeyboardShortcuts = true,
+  blockRightClick = true,
+  blockCopyPaste = true,
 } = {}) => {
   const { toast } = useToast();
   const router = useRouter();
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const faceDetectionInterval = useRef(null);
+  const proctoringStartedRef = useRef(false); // true only after startProctoring completes
+  const gracePeriodRef = useRef(false);        // true during the 3s grace window after start
   
   const [proctoringState, setProctoringState] = useState({
     isActive: false,
@@ -138,6 +142,32 @@ export const useTestProctoring = ({
     }
   }, [enableTabMonitoring, logViolation]);
 
+  // Handle window focus loss (clicking outside the window / split screen / tab switch)
+  const handleWindowBlur = useCallback(() => {
+    if (!enableTabMonitoring) return;
+    // Ignore blur events during grace period (fullscreen entry) or before proctoring starts
+    if (!proctoringStartedRef.current || gracePeriodRef.current) return;
+    
+    setProctoringState(prev => ({
+      ...prev,
+      tabFocusLost: true,
+    }));
+    
+    logViolation(
+      'TAB_SWITCH_DETECTED',
+      'Please return to the test window. Switching tabs or clicking outside is not allowed.'
+    );
+  }, [enableTabMonitoring, logViolation]);
+
+  const handleWindowFocus = useCallback(() => {
+    if (!enableTabMonitoring) return;
+    
+    setProctoringState(prev => ({
+      ...prev,
+      tabFocusLost: false,
+    }));
+  }, [enableTabMonitoring]);
+
   // Handle fullscreen changes
   const handleFullscreenChange = useCallback(() => {
     if (!enforceFullscreen) return;
@@ -198,6 +228,24 @@ export const useTestProctoring = ({
     }
   }, [blockKeyboardShortcuts, logViolation]);
 
+  // Block copy, paste, and cut
+  const handleCopyPaste = useCallback((e) => {
+    e.preventDefault();
+    logViolation(
+      'CLIPBOARD_ACTION_BLOCKED',
+      'Copying or pasting is not allowed during the test.'
+    );
+  }, [logViolation]);
+
+  // Block right-click / context menu
+  const handleContextMenu = useCallback((e) => {
+    e.preventDefault();
+    logViolation(
+      'CONTEXT_MENU_BLOCKED',
+      'Right-clicking or opening context menu is not allowed during the test.'
+    );
+  }, [logViolation]);
+
   // Request camera and microphone access
   const startMediaCapture = useCallback(async () => {
     if (!enableFaceDetection) return;
@@ -241,6 +289,8 @@ export const useTestProctoring = ({
     // Set up event listeners
     if (enableTabMonitoring) {
       document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', handleWindowBlur);
+      window.addEventListener('focus', handleWindowFocus);
     }
     
     if (enforceFullscreen) {
@@ -270,18 +320,42 @@ export const useTestProctoring = ({
       document.addEventListener('keydown', handleKeyDown, true);
     }
     
+    if (blockCopyPaste) {
+      document.addEventListener('copy', handleCopyPaste);
+      document.addEventListener('cut', handleCopyPaste);
+      document.addEventListener('paste', handleCopyPaste);
+    }
+    
+    if (blockRightClick) {
+      document.addEventListener('contextmenu', handleContextMenu);
+    }
+    
     // Start media capture and face detection
     await startMediaCapture();
     startFaceDetection();
+
+    // Mark proctoring as active and start a 3-second grace period
+    // to ignore blur events caused by the fullscreen transition itself
+    proctoringStartedRef.current = true;
+    gracePeriodRef.current = true;
+    setTimeout(() => {
+      gracePeriodRef.current = false;
+    }, 3000);
     
     return true;
   }, [
     enableTabMonitoring,
     enforceFullscreen,
     blockKeyboardShortcuts,
+    blockCopyPaste,
+    blockRightClick,
     handleVisibilityChange,
+    handleWindowBlur,
+    handleWindowFocus,
     handleFullscreenChange,
     handleKeyDown,
+    handleCopyPaste,
+    handleContextMenu,
     isProctoringSupported,
     logViolation,
     startFaceDetection,
@@ -304,10 +378,16 @@ export const useTestProctoring = ({
     
     // Remove event listeners
     document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('blur', handleWindowBlur);
+    window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
     document.removeEventListener('msfullscreenchange', handleFullscreenChange);
     document.removeEventListener('keydown', handleKeyDown, true);
+    document.removeEventListener('copy', handleCopyPaste);
+    document.removeEventListener('cut', handleCopyPaste);
+    document.removeEventListener('paste', handleCopyPaste);
+    document.removeEventListener('contextmenu', handleContextMenu);
     
     // Exit fullscreen
     const isFullscreen = !!(document.fullscreenElement || 
@@ -338,6 +418,9 @@ export const useTestProctoring = ({
       }
     }
     
+    proctoringStartedRef.current = false;
+    gracePeriodRef.current = false;
+
     setProctoringState(prev => ({
       ...prev,
       isActive: false,
@@ -348,6 +431,10 @@ export const useTestProctoring = ({
     handleFullscreenChange,
     handleKeyDown,
     handleVisibilityChange,
+    handleWindowBlur,
+    handleWindowFocus,
+    handleCopyPaste,
+    handleContextMenu,
   ]);
 
   // Clean up on unmount

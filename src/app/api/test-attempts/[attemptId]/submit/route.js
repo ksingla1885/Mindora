@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
 
   try {
     const { attemptId } = await params;
-    const { answers } = await request.json();
+    const { answers, status } = await request.json();
 
     // Get the test attempt with test and questions
     // Remove submittedAt/finishedAt filter to handle idempotency
@@ -116,6 +116,25 @@ export async function POST(request, { params }) {
       };
     });
 
+    const existingMetadata = attempt.metadata || {};
+    const violations = existingMetadata.violations || [];
+    const maxTabSwitches = test.maxTabSwitches !== null && test.maxTabSwitches !== undefined ? test.maxTabSwitches : 3;
+    const maxViolationsAllowed = test.maxViolationsAllowed !== null && test.maxViolationsAllowed !== undefined ? test.maxViolationsAllowed : 5;
+
+    const tabSwitchesCount = violations.filter((v) => v.type === 'TAB_SWITCH_DETECTED').length;
+    const totalViolationsCount = violations.length;
+
+    let finalStatus = status === 'disqualified' ? 'disqualified' : 'submitted';
+    let disqualificationReason = existingMetadata.disqualificationReason || '';
+
+    if (tabSwitchesCount >= maxTabSwitches) {
+      finalStatus = 'disqualified';
+      disqualificationReason = disqualificationReason || `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
+    } else if (totalViolationsCount >= maxViolationsAllowed) {
+      finalStatus = 'disqualified';
+      disqualificationReason = disqualificationReason || `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
+    }
+
     // Update the attempt with submission data
     const updatedAttempt = await prisma.testAttempt.update({
       where: { id: attemptId },
@@ -124,10 +143,11 @@ export async function POST(request, { params }) {
         results,
         score,
         metadata: {
-          ...(attempt.metadata || {}),
+          ...existingMetadata,
           maxScore,
+          ...(finalStatus === 'disqualified' ? { disqualified: true, disqualificationReason } : {}),
         },
-        status: 'submitted',
+        status: finalStatus,
         submittedAt: now,
         finishedAt: now,
       },
@@ -165,11 +185,12 @@ export async function POST(request, { params }) {
         startTime: attempt.startedAt,
         endTime: now,
         duration: Math.floor((now - attempt.startedAt) / 1000), // in seconds
-        activityType: 'test_completed',
+        activityType: finalStatus === 'disqualified' ? 'test_disqualified' : 'test_completed',
         metadata: {
           score,
           maxScore,
           percentage: Math.round((score / maxScore) * 100),
+          ...(finalStatus === 'disqualified' ? { disqualified: true, disqualificationReason } : {}),
         },
       },
     });

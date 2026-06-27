@@ -53,6 +53,24 @@ export default function DashboardLayout({ children }) {
         redirect('/admin');
     }
 
+    // Hide sidebar and top header on test-taking pages for focus/security
+    const isTestPage = pathname.startsWith('/tests/') && 
+                       pathname !== '/tests/premium' && 
+                       pathname !== '/tests' && 
+                       !pathname.includes('/results/');
+
+    if (isTestPage) {
+        return (
+            <div className="flex h-screen overflow-hidden bg-[#f3f4f6] dark:bg-background-dark text-foreground font-display">
+                <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+                    <main className="flex-1 overflow-y-auto p-0 scroll-smooth">
+                        {children}
+                    </main>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-foreground font-display">
             {/* Desktop Sidebar */}
