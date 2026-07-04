@@ -1,17 +1,15 @@
 import { NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const GEMINI_API_URL =
+  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
 
 export async function POST(request) {
   try {
     const { testId, results } = await request.json();
 
     // Check if API key is configured
-    const apiKey = process.env.OPENAI_API_KEY;
-    const isMock = !apiKey || apiKey === 'your_api_key_here';
+    const apiKey = process.env.GEMINI_API_KEY;
+    const isMock = !apiKey;
 
     let analysis;
 
@@ -25,30 +23,33 @@ export async function POST(request) {
 4. Focus on reading the questions carefully to avoid simple mistakes.
 5. Use the elimination method for multiple-choice questions when unsure.`;
     } else {
-      const prompt = `Analyze the following test results and provide improvement suggestions:
-    
+      const prompt = `System Instruction: You are a helpful test preparation assistant. Analyze the test results and provide constructive feedback and improvement suggestions.
+
 Test Results:
 ${JSON.stringify(results, null, 2)}
 
 Provide 3-5 specific suggestions for improvement, focusing on areas where the user scored poorly.`;
 
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful test preparation assistant. Analyze the test results and provide constructive feedback and improvement suggestions.'
+      const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: prompt }] }
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 500,
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 500,
+        }),
       });
 
-      analysis = completion.choices[0].message.content;
+      if (!geminiRes.ok) {
+        throw new Error('Gemini API request failed');
+      }
+
+      const data = await geminiRes.json();
+      analysis = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
 
     // Parse the response to extract structured suggestions

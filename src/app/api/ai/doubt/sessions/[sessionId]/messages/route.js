@@ -1,0 +1,381 @@
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+import prisma from '@/lib/prisma';
+
+const GEMINI_API_URL =
+  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
+
+const SYSTEM_INSTRUCTION =
+  "You are Mindora AI, a helpful and encouraging tutor for students preparing for Olympiads (NSO, IMO, Mathematics, Science, etc.). " +
+  "Answer questions concisely and provide step-by-step explanations for problems. " +
+  "Use Markdown and clean LaTeX math notation (e.g., $$x^2 + y^2 = z^2$$ or $$E = mc^2$$) when explaining mathematical or scientific formulas so they render beautifully. " +
+  "If an image is provided, examine it carefully to solve the question inside the image. Be friendly, encouraging, and motivating.";
+
+// Helper: Download a public image URL and convert to Gemini base64 inlineData
+async function downloadImageAsBase64(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    return {
+      inlineData: {
+        mimeType: contentType,
+        data: buffer.toString('base64'),
+      },
+    };
+  } catch (error) {
+    console.error('Failed to convert image to base64:', error);
+    return null;
+  }
+}
+
+// Helper: Generate structured mock replies when GEMINI_API_KEY is missing or rate-limited
+function generateMockResponse(userQuery) {
+  const query = userQuery.trim();
+  const lowerQuery = query.toLowerCase();
+
+  // Helper to capitalize words
+  const capitalize = (str) => str.replace(/\b\w/g, c => c.toUpperCase());
+
+  // Clean stop words to get a clean topic name
+  let cleanTopic = query
+    .replace(/^(what is the|what is|explain|solve|calculate|find|give me the|formula of|formula for|concept of)\s+/i, '')
+    .replace(/\?+$/, '')
+    .trim();
+  
+  if (!cleanTopic) cleanTopic = "this concept";
+  const titleTopic = capitalize(cleanTopic);
+
+  // 1. MATH & GEOMETRY SPECIFIC TRIGGERS
+  if (lowerQuery.includes('triangle')) {
+    return `### Math Solution: Equilateral Triangle 📐
+
+An equilateral triangle is a triangle in which all three sides are equal.
+
+- **Area Formula:**
+  $$\\text{Area} = \\frac{\\sqrt{3}}{4} s^2$$
+  Where $$s$$ is the length of any side.
+
+- **Perimeter Formula:**
+  $$\\text{Perimeter} = 3s$$
+
+- **Height (Altitude):**
+  $$\\text{Height} = \\frac{\\sqrt{3}}{2} s$$
+
+**Example calculation:**
+If the side length of the triangle is $$s = 4\\text{ cm}$$, the area is:
+$$\\text{Area} = \\frac{\\sqrt{3}}{4} \\cdot 4^2 = 4\\sqrt{3} \\approx 6.93\\text{ cm}^2$$
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  if (lowerQuery.includes('circle')) {
+    return `### Math Solution: Circle Geometry 📐
+
+For a circle of radius $$r$$:
+
+- **Area Formula:**
+  $$\\text{Area} = \\pi r^2$$
+
+- **Circumference Formula:**
+  $$\\text{Circumference} = 2 \\pi r$$
+
+- **Diameter:**
+  $$d = 2r$$
+
+**Example calculation:**
+If the radius of the circle is $$r = 7\\text{ cm}$$ and we use $$\\pi \\approx \\frac{22}{7}$$:
+$$\\text{Circumference} = 2 \\cdot \\frac{22}{7} \\cdot 7 = 44\\text{ cm}$$
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  if (lowerQuery.includes('quadratic') || lowerQuery.includes('roots')) {
+    return `### Algebra: Quadratic Equations 📐
+
+A quadratic equation is expressed in the standard form:
+$$ax^2 + bx + c = 0$$
+
+- **Quadratic Formula (Roots):**
+  $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$
+
+- **Discriminant ($$D$$):**
+  $$D = b^2 - 4ac$$
+  * If $$D > 0$$: Two distinct real roots.
+  * If $$D = 0$$: One real root (repeated).
+  * If $$D < 0$$: Two complex conjugate roots.
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  // 2. SCIENCE SPECIFIC TRIGGERS
+  if (lowerQuery.includes('gravity') || lowerQuery.includes('gravitation')) {
+    return `### Physics Concept: Gravitation 🔬
+
+**Gravitation** is a natural phenomenon by which all things with mass or energy are brought toward one another.
+
+- **Newton's Law of Universal Gravitation:**
+  $$F = G \\frac{m_1 m_2}{r^2}$$
+  Where:
+  * $$F$$ is the gravitational force between two masses.
+  * $$G$$ is the gravitational constant ($$6.674 \\times 10^{-11}\\text{ N}\\cdot\\text{m}^2/\\text{kg}^2$$).
+  * $$m_1, m_2$$ are the masses of the two objects.
+  * $$r$$ is the distance between the centers of their masses.
+
+- **Acceleration due to gravity ($$g$$):**
+  On Earth's surface, $$g \\approx 9.8\\text{ m/s}^2$$.
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  if (lowerQuery.includes('photosynthesis')) {
+    return `### Biology Concept: Photosynthesis 🔬
+
+**Photosynthesis** is the process used by plants, algae, and certain bacteria to harness energy from sunlight and turn it into chemical energy.
+
+- **Chemical Equation of Photosynthesis:**
+  $$6\\text{CO}_2 + 6\\text{H}_2\\text{O} \\xrightarrow{\\text{Light/Chlorophyll}} \\text{C}_6\\text{H}_{12}\\text{O}_6 + 6\\text{O}_2$$
+
+- **Key Components:**
+  1. **Carbon Dioxide ($$\\text{CO}_2$$):** Absorbed from the air through stomata.
+  2. **Water ($$\\text{H}_2\\text{O}$$):** Absorbed by the roots from the soil.
+  3. **Light:** Captured by chlorophyll pigments in chloroplasts.
+  4. **Glucose ($$\\text{C}_6\\text{H}_{12}\\text{O}_6$$):** Used by the plant as food/energy.
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  // 3. GENERIC MATH/FORMULA GENERATOR
+  if (lowerQuery.includes('solve') || lowerQuery.includes('math') || lowerQuery.includes('equation') || lowerQuery.includes('formula') || lowerQuery.includes('value of')) {
+    return `### Mathematics: ${titleTopic} 📐
+
+Let's explore the mathematical formula or solution for **${cleanTopic}**:
+
+1. **Core Concept:**
+   Olympiad math questions relating to **${cleanTopic}** require identifying the key variables and mathematical relations.
+
+2. **Standard Equation:**
+   Let's assume the relation is defined by:
+   $$y = f(x)$$
+   
+   If we analyze the factors:
+   * Dependent variable: $$y$$
+   * Independent variable: $$x$$
+
+3. **Step-by-Step Approach:**
+   * Step 1: Identify all given constants and values.
+   * Step 2: Substitute these values into the standard formula.
+   * Step 3: Simplify the equation and solve for the unknown parameter.
+
+Would you like to try a specific practice question on **${cleanTopic}**? Let me know the exact parameters!
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  // 4. GENERIC SCIENCE/CONCEPT GENERATOR
+  if (lowerQuery.includes('explain') || lowerQuery.includes('science') || lowerQuery.includes('concept') || lowerQuery.includes('what is') || lowerQuery.includes('definition')) {
+    return `### Science Concept: ${titleTopic} 🔬
+
+Let's understand **${cleanTopic}** clearly:
+
+- **Definition:** **${titleTopic}** represents a fundamental topic in Olympiad science and critical thinking.
+- **Key Principle:** This concept describes physical, chemical, or biological interactions where:
+  $$E = mc^2$$ or other proportional relationships govern the state.
+- **Why It Matters:** Mastering **${cleanTopic}** helps solve multiple-choice and conceptual problems in competitive exams.
+
+If you have a specific numerical question or sub-topic related to **${cleanTopic}**, paste it here and we can solve it step-by-step!
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+  }
+
+  // 5. DEFAULT MOTIVATING FALLBACK
+  return `Hello! I am **Mindora AI**, your personal Olympiad tutor. 🏆
+
+I am ready to help you solve questions, verify your answers, or explain complex science and math concepts step-by-step.
+
+You asked about: **"${query}"**
+
+To help me give you a detailed walkthrough:
+1. Provide the numbers or equations if it's a math problem.
+2. Specify the subject (Physics, Chemistry, Biology) if it's a science question.
+
+Let me know what you'd like to work on next!
+
+*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+}
+
+// POST /api/ai/doubt/sessions/[sessionId]/messages - Send a doubt message
+export async function POST(request, { params }) {
+  try {
+    const session = await auth();
+    if (!session || !session.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { sessionId } = await params;
+
+    // Check ownership of session
+    const doubtSession = await prisma.aIDoubtSession.findFirst({
+      where: {
+        id: sessionId,
+        userId: session.user.id,
+      },
+    });
+
+    if (!doubtSession) {
+      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
+    }
+
+    const { content, imageUrl } = await request.json();
+
+    if (!content && !imageUrl) {
+      return NextResponse.json({ error: 'Message content or image is required' }, { status: 400 });
+    }
+
+    // 1. Save user message to database
+    const userMessage = await prisma.aIDoubtMessage.create({
+      data: {
+        sessionId,
+        role: 'user',
+        content: content || 'Analyze this image:',
+        imageUrl: imageUrl || null,
+      },
+    });
+
+    // 2. Fetch full session history to feed context to AI
+    const history = await prisma.aIDoubtMessage.findMany({
+      where: {
+        sessionId,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    // Use mock mode if API key is not set
+    if (!apiKey) {
+      const mockText = generateMockResponse(content || '');
+      const assistantMessage = await prisma.aIDoubtMessage.create({
+        data: {
+          sessionId,
+          role: 'assistant',
+          content: mockText,
+        },
+      });
+
+      // Update session's updatedAt time
+      await prisma.aIDoubtSession.update({
+        where: { id: sessionId },
+        data: { updatedAt: new Date() },
+      });
+
+      return NextResponse.json({
+        success: true,
+        userMessage,
+        assistantMessage,
+      });
+    }
+
+    // 3. Prepare Gemini API parts (multimodal user prompts + text context)
+    const contents = [
+      { role: 'user', parts: [{ text: SYSTEM_INSTRUCTION }] },
+      { role: 'model', parts: [{ text: 'Understood! I am Mindora AI, ready to tutor the student.' }] },
+    ];
+
+    for (const msg of history) {
+      const parts = [];
+
+      if (msg.imageUrl) {
+        const imagePart = await downloadImageAsBase64(msg.imageUrl);
+        if (imagePart) parts.push(imagePart);
+      }
+
+      if (msg.content) {
+        parts.push({ text: msg.content });
+      }
+
+      // If we failed to get image and text is empty, send a default text placeholder
+      if (parts.length === 0) {
+        parts.push({ text: '[Attached Media]' });
+      }
+
+      contents.push({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts,
+      });
+    }
+
+    // 4. Query Gemini API
+    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 2048,
+        },
+      }),
+    });
+
+    let assistantText = '';
+
+    if (!geminiRes.ok) {
+      const errBody = await geminiRes.json();
+      console.error('Gemini API error in Doubt Solver:', errBody);
+
+      if (geminiRes.status === 429) {
+        // Falling back to smart mock if rate limit / quota exceeded
+        assistantText = generateMockResponse(content || '') + 
+          `\n\n*(Note: Displayed above is a fallback solution because the Gemini API free tier rate limit was temporarily exceeded.)*`;
+      } else {
+        return NextResponse.json(
+          { error: errBody?.error?.message || 'AI request failed' },
+          { status: geminiRes.status }
+        );
+      }
+    } else {
+      const data = await geminiRes.json();
+      assistantText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      if (!assistantText) {
+        assistantText = 'I am sorry, I was not able to generate a response. Please try again.';
+      }
+    }
+
+    // 5. Save assistant reply to database
+    const assistantMessage = await prisma.aIDoubtMessage.create({
+      data: {
+        sessionId,
+        role: 'assistant',
+        content: assistantText,
+      },
+    });
+
+    // Update the session's title to be the first user prompt if it was the first message
+    const isFirstPair = history.length <= 2; // only includes current user prompt + model prepends
+    const updateData = { updatedAt: new Date() };
+    if (isFirstPair && content) {
+      const cleanTitle = content.substring(0, 35) + (content.length > 35 ? '...' : '');
+      updateData.title = cleanTitle;
+    }
+
+    await prisma.aIDoubtSession.update({
+      where: { id: sessionId },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      userMessage,
+      assistantMessage,
+    });
+
+  } catch (error) {
+    console.error('Error posting doubt message:', error);
+    return NextResponse.json({ error: 'Failed to process message' }, { status: 500 });
+  }
+}

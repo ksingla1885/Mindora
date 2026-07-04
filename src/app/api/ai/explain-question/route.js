@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { OpenAI } from 'openai';
 import prisma from '@/lib/prisma';
 import { cache } from '@/lib/redis-utils';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const GEMINI_API_URL =
+  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
 
 export async function POST(request) {
   try {
@@ -48,50 +46,52 @@ export async function POST(request) {
     }
 
     // Construct the prompt with real data
-    const prompt = `Explain the following question and why the correct answer is correct. 
-    Also, provide additional context or related concepts that would help understand this topic better.
+    const prompt = `System Instruction: You are a helpful tutor. Explain the question and answer in a clear, educational way.
 
-    Topic: ${question.topic?.name || 'General'}
-    Question: ${question.text}
-    Options: ${question.options ? JSON.stringify(question.options) : 'N/A'}
-    Correct Answer: ${question.correctAnswer || 'Hidden'}
-    User's Answer: ${userAnswer || 'Not answered'}
+Topic: ${question.topic?.name || 'General'}
+Question: ${question.text}
+Options: ${question.options ? JSON.stringify(question.options) : 'N/A'}
+Correct Answer: ${question.correctAnswer || 'Hidden'}
+User's Answer: ${userAnswer || 'Not answered'}
 
-    Provide a detailed, educational explanation suitable for a student.`;
+Provide a detailed, educational explanation suitable for a student.`;
 
     // Check if API key is configured
-    const apiKey = process.env.OPENAI_API_KEY;
-    const isMock = !apiKey || apiKey === 'your_api_key_here';
+    const apiKey = process.env.GEMINI_API_KEY;
+    const isMock = !apiKey;
 
     let explanation;
 
     if (isMock) {
       explanation = `[Simulated Explanation]
        
-       This is a mock explanation because the OpenAI API key is not configured.
+This is a mock explanation because the Gemini API key is not configured.
        
-       The correct answer is correct because it matches the definition provided in the study materials.
+The correct answer is correct because it matches the definition provided in the study materials.
        
-       Concept: ${question.topic?.name || 'General Knowledge'}
-       Key Point: Understanding this concept is crucial for solving similar problems.`;
+Concept: ${question.topic?.name || 'General Knowledge'}
+Key Point: Understanding this concept is crucial for solving similar problems.`;
     } else {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a helpful tutor. Explain the question and answer in a clear, educational way.'
+      const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            { role: 'user', parts: [{ text: prompt }] }
+          ],
+          generationConfig: {
+            temperature: 0.5,
+            maxOutputTokens: 500,
           },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.5,
-        max_tokens: 500,
+        }),
       });
 
-      explanation = completion.choices[0].message.content;
+      if (!geminiRes.ok) {
+        throw new Error('Gemini API request failed');
+      }
+
+      const data = await geminiRes.json();
+      explanation = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
     }
 
     // Store in cache for 24 hours (86400 seconds)

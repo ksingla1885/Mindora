@@ -50,6 +50,7 @@ model User {
   verificationTokens    VerificationToken[]
   xpHistory             XPHistory[]
   testAccess            TestAccess[]
+  doubtSessions         AIDoubtSession[]
 
   @@index([createdAt])
   @@index([role, createdAt])
@@ -173,6 +174,7 @@ model Topic {
   questions        Question[]
   studySessions    StudySession[]
   subject          Subject            @relation(fields: [subjectId], references: [id])
+  doubtSessions    AIDoubtSession[]
 
   @@map("topics")
 }
@@ -949,3 +951,33 @@ enum TokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
 }
+
+model AIDoubtSession {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  subject   String?
+  topicId   String?          @map("topic_id")
+  title     String           @default("New Doubt")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  AIDoubtMessage[]
+  topic     Topic?           @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("ai_doubt_sessions")
+}
+
+model AIDoubtMessage {
+  id        String         @id @default(cuid())
+  sessionId String         @map("session_id")
+  role      String         // "user" or "assistant"
+  content   String         @db.Text
+  imageUrl  String?        @map("image_url")
+  createdAt DateTime       @default(now()) @map("created_at")
+  session   AIDoubtSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("ai_doubt_messages")
+}
+

@@ -39,7 +39,7 @@
 **Still Remaining:**
 - [x] **Auto-save answers** to backend — FIXED (2026-02-25) — `PATCH /api/tests/[testId]/attempts/[attemptId]` endpoint implemented and handles partial saves.
 - [x] **Resuming an in-progress attempt** — DONE (2026-02-24) — Frontend now restores `currentQuestionIndex` and `answers` from `attempt.details` on resume.
-- [x] **Proctoring / anti-cheat** — DONE (2026-02-24) — `useTestProctoring.js` hook now integrated into `TestTaker.jsx`.
+- [x] **Proctoring / anti-cheat** — DONE (2026-07-04) — Integrated `useTestProctoring.js` hook into `TestTaker.jsx`. Added secure mode status bar, user-gesture re-entry overlay, and premium Security Briefing acknowledgment screen.
 - [x] **Test attempt locking** — DONE (2026-02-24) — Server-side enforcement added to prevent re-attempts for single-attempt tests.
 
 **Files to Touch:**
@@ -352,6 +352,7 @@
 | 8 | Dashboard stats inaccurate (including Admins in counts) | `dashboard.js` | MEDIUM | ✅ FIXED |
 | 9 | Analytics page restricted incorrectly | `analytics/page.jsx` | MEDIUM | ✅ FIXED |
 | 10 | Vercel Build script missing Prisma generation | `vercel.json` | HIGH | ✅ FIXED |
+| 11 | Proctoring warnings count exceeded limits (due to invalid `updatedAt` field in Prisma PATCH payload) | `attempts/[attemptId]/route.js` | HIGH | ✅ FIXED |
 
 ---
 
@@ -362,7 +363,7 @@
 - [x] Fix result redirect post-submission (DONE)
 - [x] Create `src/app/(dashboard)/settings/page.jsx` (DONE)
 - [ ] Create `src/app/(dashboard)/settings/profile/page.jsx`
-- [ ] Add PATCH handler to `/api/tests/[testId]/attempts/[attemptId]` for auto-save
+- [x] Add PATCH handler to `/api/tests/[testId]/attempts/[attemptId]` for auto-save (Resolved invalid `updatedAt` validation error)
 - [ ] Fix `src/lib/email.js` top-level await issue
 - [ ] Connect Razorpay payment to real keys (not mock)
 - [ ] Add SMTP credentials to `.env` and test emails
@@ -373,7 +374,7 @@
 - [x] Wire DPP Today widget on dashboard (DONE)
 - [x] Fix "Register" button on upcoming tests (DONE)
 - [x] Connect Accuracy + Global Rank on dashboard (DONE)
-- [x] Add proctoring hooks to TestTaker (DONE)
+- [x] Add proctoring hooks, status bar, and user-gesture re-entry overlay to TestTaker (DONE - 2026-07-04)
 - [x] Implement test resume logic (restore answers from `attempt.details`) (DONE)
 - [ ] Build settings/profile page with form
 
@@ -404,6 +405,8 @@
 | `src/app/(dashboard)/settings/page.jsx` | Settings section had no root page — caused 404 | ✅ CREATED |
 | `src/app/(dashboard)/settings/profile/page.jsx` | Settings profile sub-page missing | ✅ CREATED |
 | `src/app/(dashboard)/leaderboard/_components/` | Leaderboard components | ✅ INTEGRATED |
+| `src/components/tests/TestSecurityOverlay.jsx` | Fullscreen re-entry blocking overlay (anti-cheat) | ✅ CREATED (2026-07-04) |
+| `src/components/tests/TestSecurityBar.jsx` | Real-time secure test mode status bar | ✅ CREATED (2026-07-04) |
 | `src/components/emails/TestResultEmail.jsx` | Email after test completion | ✅ CREATED |
 | `src/components/emails/PaymentConfirmEmail.jsx` | Email after purchase | ✅ CREATED |
 | `src/components/emails/CertificateEarnedEmail.jsx` | Email when certificate awarded | ❌ MISSING |
