@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FcGoogle } from 'react-icons/fc';
-import { Loader2, AlertCircle, Mail, CheckCircle2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, Mail, CheckCircle2, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SignUp() {
@@ -21,6 +20,7 @@ export default function SignUp() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendStatus, setResendStatus] = useState('idle');
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleChange = (e) => {
@@ -135,6 +135,22 @@ export default function SignUp() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#050816] py-12 px-4 relative overflow-hidden font-sans">
+      {/* Back to Home Button */}
+      <Link
+        href="/"
+        className="absolute top-6 left-6 z-20 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.03] backdrop-blur-md border border-white/10 text-sm font-medium text-slate-400 hover:text-white hover:border-indigo-500/40 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all duration-300 group cursor-pointer"
+      >
+        <svg
+          className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform duration-200"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+        </svg>
+        <span>Back to Home</span>
+      </Link>
       {/* Dynamic Animated Background */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/20 blur-[120px] animate-pulse" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-purple-600/20 blur-[120px] animate-pulse delay-1000" />
@@ -151,9 +167,40 @@ export default function SignUp() {
               exit={{ opacity: 0, y: -20 }}
               className="bg-white/[0.03] backdrop-blur-xl p-8 sm:p-10 rounded-[32px] shadow-2xl border border-white/10"
             >
-              <div className="mb-8">
-                <h2 className="text-3xl font-black text-white tracking-tight mb-2">Create Account</h2>
-                <p className="text-slate-400 text-sm font-medium">
+              <div className="flex flex-col items-center justify-center mb-6">
+                <div className="flex items-center justify-center rounded-2xl bg-indigo-500/10 p-3 mb-3 border border-indigo-500/20">
+                  <svg
+                    className="w-10 h-10 text-indigo-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707"
+                    />
+                  </svg>
+                </div>
+                <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400 tracking-wider">
+                  MINDORA
+                </h1>
+                <p className="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">
+                  Master Your Olympiads
+                </p>
+              </div>
+
+              <div className="mb-6 text-center">
+                <h2 className="text-2xl font-bold text-white tracking-tight">Create Account</h2>
+                <p className="text-slate-400 text-sm font-medium mt-1">
                   Join Mindora or{' '}
                   <Link href="/auth/signin" className="text-indigo-400 hover:text-indigo-300 transition-colors">
                     Sign in here
@@ -197,28 +244,46 @@ export default function SignUp() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 mb-1.5 ml-1">Password</label>
-                      <input
-                        name="password"
-                        type="password"
-                        required
-                        minLength={8}
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="••••••••"
-                        className="w-full px-5 py-3.5 bg-white/[0.05] border border-white/10 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          name="password"
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          minLength={8}
+                          value={formData.password}
+                          onChange={handleChange}
+                          placeholder="••••••••"
+                          className="w-full pl-5 pr-10 py-3.5 bg-white/[0.05] border border-white/10 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase tracking-widest font-black text-slate-500 mb-1.5 ml-1">Confirm</label>
-                      <input
-                        name="confirmPassword"
-                        type="password"
-                        required
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        placeholder="••••••••"
-                        className="w-full px-5 py-3.5 bg-white/[0.05] border border-white/10 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
-                      />
+                      <div className="relative">
+                        <input
+                          name="confirmPassword"
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          placeholder="••••••••"
+                          className="w-full pl-5 pr-10 py-3.5 bg-white/[0.05] border border-white/10 rounded-2xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -245,14 +310,7 @@ export default function SignUp() {
                 </button>
               </form>
 
-              <div className="mt-8 pt-8 border-t border-white/5">
-                <button
-                  onClick={() => window.location.href = '/api/auth/signin/google'}
-                  className="w-full py-3.5 bg-white text-black font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-100 transition-all active:scale-[0.98]"
-                >
-                  <FcGoogle className="h-5 w-5" /> Sign up with Google
-                </button>
-              </div>
+
             </motion.div>
           )}
 
