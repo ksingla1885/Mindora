@@ -28,8 +28,14 @@ export const useTestProctoring = ({
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const faceDetectionInterval = useRef(null);
-  const proctoringStartedRef = useRef(false); // true only after startProctoring completes
-  const gracePeriodRef = useRef(false);        // true during the 3s grace window after start
+  const fullscreenGraceTimerRef = useRef(null);
+  
+  // Use a ref for onViolation to prevent stale closures in event listeners
+  // without needing to recreate the listeners every time it changes.
+  const onViolationRef = useRef(onViolation);
+  useEffect(() => {
+    onViolationRef.current = onViolation;
+  }, [onViolation]);
   
   const [proctoringState, setProctoringState] = useState({
     isActive: false,
@@ -43,7 +49,14 @@ export const useTestProctoring = ({
 
   // Check if proctoring is supported
   const isProctoringSupported = useCallback(() => {
-    const basicSupport = 'mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices;
+    if (typeof window === 'undefined') {
+      return {
+        basic: false,
+        faceDetection: false,
+        fullscreen: false,
+      };
+    }
+    const basicSupport = !!(navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function');
     const faceDetectionSupport = 'FaceDetector' in window;
     return {
       basic: basicSupport,
@@ -68,8 +81,8 @@ export const useTestProctoring = ({
       lastWarning: violation,
     }));
     
-    if (onViolation) {
-      onViolation(violation);
+    if (onViolationRef.current) {
+      onViolationRef.current(violation);
     }
     
     // Show a warning toast
@@ -81,7 +94,7 @@ export const useTestProctoring = ({
     });
     
     return violation;
-  }, [testId, onViolation, toast]);
+  }, [testId, toast]);
 
   // Handle face detection (simplified - in a real app, use a proper face detection library)
   const startFaceDetection = useCallback(() => {
@@ -120,21 +133,40 @@ export const useTestProctoring = ({
     };
   }, [enableFaceDetection, logViolation]);
 
-  // Handle tab focus changes
+  // Tracks whether we've already logged a violation for the current focus-loss event
+  const focusLostRef = useRef(false);
+  // Tracks whether proctoring is in startup grace period (to ignore transient focus events on init)
+  const isStartupGraceRef = useRef(false);
+  // Timer for the blur grace period (short blur events like permission dialogs are ignored)
+  const blurGraceTimerRef = useRef(null);
+
+  // Handle tab focus changes via the Page Visibility API.
+  // This is the PRIMARY source of truth for tab switching.
   const handleVisibilityChange = useCallback(() => {
     if (!enableTabMonitoring) return;
-    
+    if (isStartupGraceRef.current) return;
+
     if (document.hidden) {
-      setProctoringState(prev => ({
-        ...prev,
-        tabFocusLost: true,
-      }));
-      
-      logViolation(
-        'TAB_SWITCH_DETECTED',
-        'Please return to the test window. Switching tabs is not allowed.'
-      );
+      // Cancel any pending blur grace timer since visibility API confirms the tab is hidden
+      if (blurGraceTimerRef.current) {
+        clearTimeout(blurGraceTimerRef.current);
+        blurGraceTimerRef.current = null;
+      }
+
+      if (!focusLostRef.current) {
+        focusLostRef.current = true;
+        setProctoringState(prev => ({
+          ...prev,
+          tabFocusLost: true,
+        }));
+
+        logViolation(
+          'TAB_SWITCH_DETECTED',
+          'Please return to the test window. Switching tabs is not allowed.'
+        );
+      }
     } else {
+      focusLostRef.current = false;
       setProctoringState(prev => ({
         ...prev,
         tabFocusLost: false,
@@ -142,59 +174,92 @@ export const useTestProctoring = ({
     }
   }, [enableTabMonitoring, logViolation]);
 
-  // Handle window focus loss (clicking outside the window / split screen / tab switch)
+  // Handle window blur — used as a secondary signal for switching to another app/window
+  // (e.g., Alt+Tab to another app, where the tab stays "visible" but focus is lost).
+  // Uses a 500ms grace period to ignore transient blur events (permission dialogs, etc.).
   const handleWindowBlur = useCallback(() => {
     if (!enableTabMonitoring) return;
-    // Ignore blur events during grace period (fullscreen entry) or before proctoring starts
-    if (!proctoringStartedRef.current || gracePeriodRef.current) return;
-    
-    setProctoringState(prev => ({
-      ...prev,
-      tabFocusLost: true,
-    }));
-    
-    logViolation(
-      'TAB_SWITCH_DETECTED',
-      'Please return to the test window. Switching tabs or clicking outside is not allowed.'
-    );
+    if (isStartupGraceRef.current) return;
+    // Don't schedule another timer if one is already pending
+    if (blurGraceTimerRef.current) return;
+
+    blurGraceTimerRef.current = setTimeout(() => {
+      blurGraceTimerRef.current = null;
+      // After grace period, only log if the tab is still focused (not hidden).
+      // If document.hidden is true, visibilitychange already logged the violation.
+      if (!document.hidden && !focusLostRef.current) {
+        focusLostRef.current = true;
+        setProctoringState(prev => ({
+          ...prev,
+          tabFocusLost: true,
+        }));
+
+        logViolation(
+          'TAB_SWITCH_DETECTED',
+          'Please return to the test window. Switching to another application is not allowed.'
+        );
+      }
+    }, 500);
   }, [enableTabMonitoring, logViolation]);
 
   const handleWindowFocus = useCallback(() => {
     if (!enableTabMonitoring) return;
-    
+
+    // Cancel any pending blur grace timer
+    if (blurGraceTimerRef.current) {
+      clearTimeout(blurGraceTimerRef.current);
+      blurGraceTimerRef.current = null;
+    }
+
+    focusLostRef.current = false;
     setProctoringState(prev => ({
       ...prev,
       tabFocusLost: false,
     }));
   }, [enableTabMonitoring]);
 
-  // Handle fullscreen changes
+  // Handle fullscreen changes — uses a 2s grace period to avoid false positives
+  // from transient exits (e.g., permission dialogs, screen sharing prompts).
+  // Violation is only logged if the user hasn't re-entered fullscreen after the grace period.
   const handleFullscreenChange = useCallback(() => {
     if (!enforceFullscreen) return;
-    
-    const isFullscreen = !!(document.fullscreenElement || 
-                          document.webkitFullscreenElement || 
-                          document.msFullscreenElement);
-    
+
+    const currentlyFullscreen = !!(document.fullscreenElement ||
+      document.webkitFullscreenElement ||
+      document.msFullscreenElement);
+
     setProctoringState(prev => ({
       ...prev,
-      isFullscreen,
+      isFullscreen: currentlyFullscreen,
     }));
-    
-    if (!isFullscreen) {
-      logViolation(
-        'FULLSCREEN_EXIT',
-        'Please keep the test in fullscreen mode.'
-      );
-      
-      // Try to re-enter fullscreen
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(console.error);
-      } else if (document.documentElement.webkitRequestFullscreen) {
-        document.documentElement.webkitRequestFullscreen();
-      } else if (document.documentElement.msRequestFullscreen) {
-        document.documentElement.msRequestFullscreen();
+
+    if (currentlyFullscreen) {
+      // Re-entered fullscreen — cancel any pending grace timer
+      if (fullscreenGraceTimerRef.current) {
+        clearTimeout(fullscreenGraceTimerRef.current);
+        fullscreenGraceTimerRef.current = null;
       }
+    } else {
+      // Exited fullscreen — start grace period before logging violation
+      if (fullscreenGraceTimerRef.current) return; // already counting down
+
+      fullscreenGraceTimerRef.current = setTimeout(() => {
+        fullscreenGraceTimerRef.current = null;
+
+        // Check again — user may have re-entered during grace period
+        const stillNotFullscreen = !(
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.msFullscreenElement
+        );
+
+        if (stillNotFullscreen) {
+          logViolation(
+            'FULLSCREEN_EXIT',
+            'Please keep the test in fullscreen mode. Exiting fullscreen is not allowed.'
+          );
+        }
+      }, 2000);
     }
   }, [enforceFullscreen, logViolation]);
 
@@ -276,29 +341,14 @@ export const useTestProctoring = ({
   const startProctoring = useCallback(async () => {
     const support = isProctoringSupported();
     
-    if (!support.basic) {
-      console.warn('Proctoring not supported in this browser');
-      return false;
+    // If face detection is explicitly enabled but not supported, we can warn,
+    // but we should STILL start tab monitoring and fullscreen.
+    if (enableFaceDetection && !support.basic) {
+      console.warn('Camera proctoring not supported in this browser, but other features will still run.');
     }
     
-    setProctoringState(prev => ({
-      ...prev,
-      isActive: true,
-    }));
-    
-    // Set up event listeners
-    if (enableTabMonitoring) {
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('blur', handleWindowBlur);
-      window.addEventListener('focus', handleWindowFocus);
-    }
-    
+    // 1. Enter fullscreen IMMEDIATELY as the very first synchronous action in response to user gesture.
     if (enforceFullscreen) {
-      document.addEventListener('fullscreenchange', handleFullscreenChange);
-      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-      document.addEventListener('msfullscreenchange', handleFullscreenChange);
-      
-      // Request fullscreen
       try {
         if (document.documentElement.requestFullscreen) {
           await document.documentElement.requestFullscreen();
@@ -315,47 +365,35 @@ export const useTestProctoring = ({
         );
       }
     }
-    
-    if (blockKeyboardShortcuts) {
-      document.addEventListener('keydown', handleKeyDown, true);
-    }
-    
-    if (blockCopyPaste) {
-      document.addEventListener('copy', handleCopyPaste);
-      document.addEventListener('cut', handleCopyPaste);
-      document.addEventListener('paste', handleCopyPaste);
-    }
-    
-    if (blockRightClick) {
-      document.addEventListener('contextmenu', handleContextMenu);
-    }
+
+    setProctoringState(prev => ({
+      ...prev,
+      isActive: true,
+      // Immediately sync the real fullscreen state — the fullscreenchange event fired
+      // during requestFullscreen() above will be missed because the listener isn't
+      // registered yet (it's set up in the useEffect that reacts to isActive becoming true).
+      // Without this, isFullscreen stays false and the overlay shows even though we ARE
+      // already in fullscreen, making the "Return to Fullscreen" button a no-op.
+      isFullscreen: !!(document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.msFullscreenElement),
+    }));
+
+    // Enter startup grace period: ignore focus/blur events during initialization
+    // (e.g., fullscreen request, permission dialogs temporarily steal focus)
+    isStartupGraceRef.current = true;
+    setTimeout(() => {
+      isStartupGraceRef.current = false;
+    }, 2000);
     
     // Start media capture and face detection
     await startMediaCapture();
     startFaceDetection();
-
-    // Mark proctoring as active and start a 3-second grace period
-    // to ignore blur events caused by the fullscreen transition itself
-    proctoringStartedRef.current = true;
-    gracePeriodRef.current = true;
-    setTimeout(() => {
-      gracePeriodRef.current = false;
-    }, 3000);
     
     return true;
   }, [
-    enableTabMonitoring,
+    enableFaceDetection,
     enforceFullscreen,
-    blockKeyboardShortcuts,
-    blockCopyPaste,
-    blockRightClick,
-    handleVisibilityChange,
-    handleWindowBlur,
-    handleWindowFocus,
-    handleFullscreenChange,
-    handleKeyDown,
-    handleCopyPaste,
-    handleContextMenu,
     isProctoringSupported,
     logViolation,
     startFaceDetection,
@@ -370,24 +408,21 @@ export const useTestProctoring = ({
       streamRef.current = null;
     }
     
-    // Clear intervals
+    // Clear intervals and timers
     if (faceDetectionInterval.current) {
       clearInterval(faceDetectionInterval.current);
       faceDetectionInterval.current = null;
     }
-    
-    // Remove event listeners
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    window.removeEventListener('blur', handleWindowBlur);
-    window.removeEventListener('focus', handleWindowFocus);
-    document.removeEventListener('fullscreenchange', handleFullscreenChange);
-    document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
-    document.removeEventListener('msfullscreenchange', handleFullscreenChange);
-    document.removeEventListener('keydown', handleKeyDown, true);
-    document.removeEventListener('copy', handleCopyPaste);
-    document.removeEventListener('cut', handleCopyPaste);
-    document.removeEventListener('paste', handleCopyPaste);
-    document.removeEventListener('contextmenu', handleContextMenu);
+    if (blurGraceTimerRef.current) {
+      clearTimeout(blurGraceTimerRef.current);
+      blurGraceTimerRef.current = null;
+    }
+    if (fullscreenGraceTimerRef.current) {
+      clearTimeout(fullscreenGraceTimerRef.current);
+      fullscreenGraceTimerRef.current = null;
+    }
+    isStartupGraceRef.current = false;
+    focusLostRef.current = false;
     
     // Exit fullscreen
     const isFullscreen = !!(document.fullscreenElement || 
@@ -418,34 +453,120 @@ export const useTestProctoring = ({
       }
     }
     
-    proctoringStartedRef.current = false;
-    gracePeriodRef.current = false;
-
     setProctoringState(prev => ({
       ...prev,
       isActive: false,
       faceDetected: true,
       tabFocusLost: false,
     }));
+  }, []);
+
+  // React-compliant Event Listener Management
+  useEffect(() => {
+    if (!proctoringState.isActive) return;
+
+    // Set up event listeners
+    if (enableTabMonitoring) {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('blur', handleWindowBlur);
+      window.addEventListener('focus', handleWindowFocus);
+    }
+    
+    if (enforceFullscreen) {
+      // Sync actual fullscreen state at listener-registration time.
+      // This is a safety net: if the fullscreenchange event fired before
+      // this effect ran (e.g., initial startProctoring race), we catch it here.
+      const currentlyFullscreen = !!(document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.msFullscreenElement);
+      setProctoringState(prev => {
+        if (prev.isFullscreen !== currentlyFullscreen) {
+          return { ...prev, isFullscreen: currentlyFullscreen };
+        }
+        return prev;
+      });
+
+      document.addEventListener('fullscreenchange', handleFullscreenChange);
+      document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    }
+    
+    if (blockKeyboardShortcuts) {
+      document.addEventListener('keydown', handleKeyDown, true);
+    }
+    
+    if (blockCopyPaste) {
+      document.addEventListener('copy', handleCopyPaste);
+      document.addEventListener('cut', handleCopyPaste);
+      document.addEventListener('paste', handleCopyPaste);
+    }
+    
+    if (blockRightClick) {
+      document.addEventListener('contextmenu', handleContextMenu);
+    }
+    
+    return () => {
+      // Clean up event listeners
+      if (enableTabMonitoring) {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('blur', handleWindowBlur);
+        window.removeEventListener('focus', handleWindowFocus);
+      }
+      
+      if (enforceFullscreen) {
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
+        document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+      }
+      
+      if (blockKeyboardShortcuts) {
+        document.removeEventListener('keydown', handleKeyDown, true);
+      }
+      
+      if (blockCopyPaste) {
+        document.removeEventListener('copy', handleCopyPaste);
+        document.removeEventListener('cut', handleCopyPaste);
+        document.removeEventListener('paste', handleCopyPaste);
+      }
+      
+      if (blockRightClick) {
+        document.removeEventListener('contextmenu', handleContextMenu);
+      }
+    };
   }, [
-    handleFullscreenChange,
-    handleKeyDown,
+    proctoringState.isActive,
+    enableTabMonitoring,
+    enforceFullscreen,
+    blockKeyboardShortcuts,
+    blockCopyPaste,
+    blockRightClick,
     handleVisibilityChange,
     handleWindowBlur,
     handleWindowFocus,
+    handleFullscreenChange,
+    handleKeyDown,
     handleCopyPaste,
     handleContextMenu,
   ]);
 
-  // Clean up on unmount
+  const stopProctoringRef = useRef(stopProctoring);
+  useEffect(() => {
+    stopProctoringRef.current = stopProctoring;
+  }, [stopProctoring]);
+
+  // Clean up on unmount ONLY
   useEffect(() => {
     return () => {
-      stopProctoring();
+      if (stopProctoringRef.current) {
+        stopProctoringRef.current();
+      }
     };
-  }, [stopProctoring]);
+  }, []);
 
   return {
     ...proctoringState,
+    // Explicitly surface isFullscreen so consumers can react without spreading all state
+    isFullscreen: proctoringState.isFullscreen,
     videoRef,
     startProctoring,
     stopProctoring,

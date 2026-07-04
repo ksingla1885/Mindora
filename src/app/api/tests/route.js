@@ -218,6 +218,12 @@ export async function POST(request) {
       passingScore: body.passingScore ? parseFloat(body.passingScore) : null,
       allowMultipleAttempts: body.allowMultipleAttempts !== undefined ? body.allowMultipleAttempts : (Number(body.maxAttempts) !== 1),
       maxAttempts: Number(body.maxAttempts) || 1,
+      enforceFullscreen: body.enforceFullscreen || false,
+      tabMonitoringEnabled: body.tabMonitoringEnabled || false,
+      faceDetectionEnabled: body.faceDetectionEnabled || false,
+      proctoringEnabled: body.proctoringEnabled || false,
+      maxTabSwitches: body.maxTabSwitches !== undefined ? Number(body.maxTabSwitches) : 3,
+      maxViolationsAllowed: body.maxViolationsAllowed !== undefined ? Number(body.maxViolationsAllowed) : 5,
     };
 
     if (body.olympiadId) {

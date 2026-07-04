@@ -6,21 +6,11 @@ import { motion } from 'framer-motion';
 import { CheckCircle, Home, Award, ArrowRight, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import JSConfetti from 'js-confetti';
-
 function TestSubmittedContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const testId = searchParams.get('testId');
     const attemptId = searchParams.get('attemptId');
-
-    useEffect(() => {
-        const jsConfetti = new JSConfetti();
-        jsConfetti.addConfetti({
-            emojis: ['🎉', '✨', '🎓', '✅', '⭐'],
-            confettiNumber: 120,
-        });
-    }, []);
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center p-4">

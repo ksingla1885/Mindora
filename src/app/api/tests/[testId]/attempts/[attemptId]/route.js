@@ -80,9 +80,9 @@ export async function PATCH(request, { params }) {
 
   try {
     const body = await request.json();
-    const { answers, timeSpentSeconds, currentQuestionIndex, submit = false } = body;
+    const { answers, timeSpentSeconds, currentQuestionIndex, submit = false, violation } = body;
 
-    // Get the attempt
+    // Get the attempt (include test proctoring config)
     const attempt = await prisma.testAttempt.findUnique({
       where: {
         id: attemptId,
@@ -93,6 +93,10 @@ export async function PATCH(request, { params }) {
         test: {
           select: {
             durationMinutes: true,
+            tabMonitoringEnabled: true,
+            proctoringEnabled: true,
+            maxTabSwitches: true,
+            maxViolationsAllowed: true,
           },
         },
       },
@@ -114,9 +118,7 @@ export async function PATCH(request, { params }) {
     }
 
     // Update attempt data
-    const updatedData = {
-      updatedAt: new Date(),
-    };
+    const updatedData = {};
 
     if (answers && typeof answers === 'object') {
       updatedData.answers = answers;
@@ -146,6 +148,59 @@ export async function PATCH(request, { params }) {
       };
     }
 
+    // ── Violation handling ────────────────────────────────────────────────
+    const existingMetadata = attempt.metadata || {};
+    let newViolations = Array.isArray(existingMetadata.violations)
+      ? existingMetadata.violations
+      : [];
+
+    let shouldDisqualify = false;
+    let disqualificationReason = '';
+
+    if (violation && typeof violation === 'object') {
+      // De-duplicate: don't append the exact same event twice
+      const isDuplicate = newViolations.some(
+        (v) => v.type === violation.type && v.timestamp === violation.timestamp
+      );
+      if (!isDuplicate) {
+        newViolations = [...newViolations, violation];
+      }
+
+      // Check limits (fall back to safe defaults if fields aren't set on the test)
+      const maxTabSwitches =
+        attempt.test.maxTabSwitches != null ? attempt.test.maxTabSwitches : 3;
+      const maxViolationsAllowed =
+        attempt.test.maxViolationsAllowed != null ? attempt.test.maxViolationsAllowed : 5;
+
+      const tabSwitchCount = newViolations.filter(
+        (v) => v.type === 'TAB_SWITCH_DETECTED'
+      ).length;
+      const totalViolationCount = newViolations.length;
+
+      if (tabSwitchCount >= maxTabSwitches) {
+        shouldDisqualify = true;
+        disqualificationReason = `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
+      } else if (totalViolationCount >= maxViolationsAllowed) {
+        shouldDisqualify = true;
+        disqualificationReason = `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
+      }
+
+      // Persist updated violation list into metadata
+      updatedData.metadata = {
+        ...existingMetadata,
+        violations: newViolations,
+        violationCount: newViolations.length,
+        ...(shouldDisqualify ? { disqualified: true, disqualificationReason } : {}),
+      };
+
+      if (shouldDisqualify) {
+        updatedData.status = 'disqualified';
+        updatedData.finishedAt = new Date();
+        updatedData.submittedAt = new Date();
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     const updatedAttempt = await prisma.testAttempt.update({
       where: { id: attemptId },
       data: updatedData,
@@ -160,6 +215,12 @@ export async function PATCH(request, { params }) {
     return NextResponse.json({
       success: true,
       message: 'Progress saved',
+      attempt: {
+        ...updatedAttempt,
+        metadata: updatedAttempt.metadata || {},
+      },
+      disqualified: shouldDisqualify,
+      disqualificationReason: shouldDisqualify ? disqualificationReason : undefined,
       data: {
         ...updatedAttempt,
         timeRemaining

@@ -8,6 +8,8 @@ import { useTestWebSocket } from '@/hooks/useTestWebSocket';
 import { useTestProctoring } from '@/hooks/useTestProctoring';
 import { useTestAssistant } from '@/lib/ai/testAssistant';
 import { TestAnalytics } from '@/components/analytics/TestAnalytics';
+import { TestSecurityOverlay } from '@/components/tests/TestSecurityOverlay';
+import { TestSecurityBar } from '@/components/tests/TestSecurityBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -21,7 +23,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Loader2, Clock, AlertCircle, CheckCircle, Send,
   Flag, FlagOff, Save, AlertTriangle, ChevronLeft,
-  ChevronRight, List, X, Check, CheckSquare, Square
+  ChevronRight, List, X, Check, CheckSquare, Square,
+  Shield, Lock, Eye, Keyboard, Copy, Maximize,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import {
@@ -89,6 +92,8 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   const [disqualificationReason, setDisqualificationReason] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
   const [attemptStatus, setAttemptStatus] = useState(initialAttempt?.status || 'in_progress');
+  // Whether the candidate has checked the acknowledgment checkbox on the instruction gate
+  const [acknowledgedRules, setAcknowledgedRules] = useState(false);
 
   // AI Assistant Hook
   const {
@@ -117,13 +122,12 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   }, []);
 
   const handleLogViolation = useCallback(async (violation) => {
-    // Always show UI feedback immediately — regardless of attemptId
-    setWarningCount(prev => prev + 1);
-    setShowWarningModal(true);
-
-    // Only persist to backend if we have an active attempt
     const currentAttemptId = attemptIdRef.current;
     if (!currentAttemptId) return;
+
+    // Show warning modal and increment warning count locally
+    setWarningCount(prev => prev + 1);
+    setShowWarningModal(true);
 
     try {
       const response = await fetch(`${apiBaseUrl}/${currentAttemptId}`, {
@@ -158,22 +162,29 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   // Proctoring Hook
   const {
     isActive: isProctoringActive,
+    isFullscreen,
     violationCount,
     videoRef,
     startProctoring,
     stopProctoring,
   } = useTestProctoring({
     testId: test?.id,
-    enableFaceDetection: test?.faceDetectionEnabled,
-    enableTabMonitoring: test?.tabMonitoringEnabled || test?.proctoringEnabled,
-    enforceFullscreen: test?.enforceFullscreen,
+    enableFaceDetection: test?.faceDetectionEnabled ?? false,
+    // Enable tab monitoring when the test has any proctoring flag set,
+    // or default to true if the fields aren't present (legacy tests).
+    enableTabMonitoring:
+      test?.tabMonitoringEnabled ??
+      test?.proctoringEnabled ??
+      true,
+    enforceFullscreen: test?.enforceFullscreen ?? true,
     onViolation: handleLogViolation,
   });
 
-  const anyProctoringFeature = test?.proctoringEnabled || test?.enforceFullscreen || test?.tabMonitoringEnabled || test?.faceDetectionEnabled;
+  // Proctoring is always started — tab monitoring defaults to true, so we
+  // always want to register the visibility/blur event listeners.
+  const anyProctoringFeature = true;
 
   const handleStartTestClick = useCallback(async () => {
-    setHasStarted(true);
     if (anyProctoringFeature) {
       try {
         await startProctoring();
@@ -181,6 +192,7 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
         console.error('Failed to start proctoring:', err);
       }
     }
+    setHasStarted(true);
   }, [anyProctoringFeature, startProctoring]);
 
   // Stop proctoring if disqualified
@@ -1308,64 +1320,144 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     );
   }
 
-  // Instruction gate before entering fullscreen / starting test
+  // Instruction gate — shown before the test starts (security briefing)
   if (!hasStarted && anyProctoringFeature && !isLoading && !isDisqualified && attemptStatus !== 'disqualified') {
+    // Security rules list with icons for the briefing screen
+    const securityRules = [
+      {
+        icon: <Maximize className="h-5 w-5 text-blue-400" />,
+        bg: 'bg-blue-900/30 border-blue-700/40',
+        title: 'Fullscreen Enforcement',
+        desc: 'The test runs in fullscreen. Exiting triggers a security violation.',
+        show: true,
+      },
+      {
+        icon: <Eye className="h-5 w-5 text-purple-400" />,
+        bg: 'bg-purple-900/30 border-purple-700/40',
+        title: 'Activity Monitoring',
+        desc: `Tab switching and app switching are logged. Allowed: ${test?.maxTabSwitches ?? 3} event(s) before action.`,
+        show: test?.tabMonitoringEnabled ?? test?.proctoringEnabled ?? true,
+      },
+      {
+        icon: <Eye className="h-5 w-5 text-green-400" />,
+        bg: 'bg-green-900/30 border-green-700/40',
+        title: 'Webcam Monitoring',
+        desc: 'Your front camera is monitored to verify your presence.',
+        show: test?.faceDetectionEnabled,
+      },
+      {
+        icon: <Keyboard className="h-5 w-5 text-orange-400" />,
+        bg: 'bg-orange-900/30 border-orange-700/40',
+        title: 'Keyboard Restrictions',
+        desc: 'Ctrl+C, Ctrl+V, F12, Print Screen and other shortcuts are blocked.',
+        show: true,
+      },
+      {
+        icon: <Copy className="h-5 w-5 text-red-400" />,
+        bg: 'bg-red-900/30 border-red-700/40',
+        title: 'Copy & Paste Disabled',
+        desc: 'Copying, pasting, cutting, and right-clicking are not allowed.',
+        show: true,
+      },
+    ].filter(r => r.show);
+
     return (
-      <div className="flex items-center justify-center min-h-[70vh] p-4">
-        <Card className="w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-6 space-y-6">
-          <CardHeader className="text-center pb-2">
-            <CardTitle className="text-2xl font-black">Security & Instructions</CardTitle>
-            <div className="text-muted-foreground mt-1">
-              Please read the rules carefully before starting the test.
+      <div className="flex items-center justify-center min-h-[80vh] p-4">
+        <div className="w-full max-w-2xl">
+          {/* Header */}
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 mb-4">
+              <Shield className="h-10 w-10 text-primary" />
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 space-y-3">
-              <h4 className="font-bold text-slate-850 dark:text-slate-200">Anti-Cheat Rules:</h4>
-              <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 space-y-2">
-                {test?.enforceFullscreen && (
-                  <li><strong>Fullscreen Enforcement:</strong> The test will run in fullscreen mode. Exiting fullscreen will trigger a security violation.</li>
-                )}
-                {(test?.tabMonitoringEnabled || test?.proctoringEnabled) && (
-                  <li><strong>Tab Switch Monitoring:</strong> Switching tabs or opening other apps is strictly monitored. Max allowed tab switches: <span className="font-bold text-primary">{test?.maxTabSwitches || 3}</span>.</li>
-                )}
-                {test?.faceDetectionEnabled && (
-                  <li><strong>Webcam Proctoring:</strong> The front camera is monitored to verify you remain in front of the screen.</li>
-                )}
-                <li><strong>Browser Security:</strong> Copying, pasting, and right-clicking are disabled.</li>
-              </ul>
+            <h1 className="text-3xl font-black tracking-tight">Security Briefing</h1>
+            <p className="text-muted-foreground mt-1">
+              Please read and acknowledge all security rules before starting
+            </p>
+          </div>
+
+          {/* Test info strip */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-muted/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-wide">Duration</p>
+              <p className="text-xl font-black mt-0.5">{test?.durationMinutes ?? 30} min</p>
             </div>
-            {test?.instructions && (
-              <div className="space-y-2">
-                <h4 className="font-bold text-slate-850 dark:text-slate-200">Test Instructions:</h4>
-                <p className="text-sm text-slate-600 dark:text-slate-400 border-l-4 border-primary pl-3 italic">
-                  {test.instructions}
-                </p>
+            <div className="bg-muted/50 rounded-xl p-3 text-center">
+              <p className="text-xs text-muted-foreground font-bold uppercase tracking-wide">Questions</p>
+              <p className="text-xl font-black mt-0.5">{questions.length}</p>
+            </div>
+          </div>
+
+          {/* Security rules */}
+          <div className="space-y-3 mb-6">
+            <p className="text-sm font-bold text-muted-foreground uppercase tracking-wide">Active Security Rules</p>
+            {securityRules.map((rule, i) => (
+              <div key={i} className={`flex items-start gap-3 p-3 rounded-xl border ${rule.bg}`}>
+                <div className="flex-shrink-0 mt-0.5">{rule.icon}</div>
+                <div>
+                  <p className="font-semibold text-sm">{rule.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{rule.desc}</p>
+                </div>
               </div>
+            ))}
+          </div>
+
+          {/* Test-specific instructions */}
+          {test?.instructions && (
+            <div className="mb-6 p-4 bg-muted/40 rounded-xl border border-border">
+              <p className="text-sm font-bold mb-1">Test Instructions</p>
+              <p className="text-sm text-muted-foreground leading-relaxed italic">{test.instructions}</p>
+            </div>
+          )}
+
+          {/* Acknowledgment checkbox */}
+          <label
+            htmlFor="ack-rules-checkbox"
+            className={cn(
+              'flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors mb-4',
+              acknowledgedRules
+                ? 'bg-green-950/40 border-green-700/50'
+                : 'bg-muted/30 border-border hover:border-primary/40'
             )}
-            <div className="grid grid-cols-2 gap-4 pt-2 text-center text-sm">
-              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
-                <p className="text-muted-foreground text-xs font-bold">Duration</p>
-                <p className="text-base font-black">{test?.durationMinutes || 30} mins</p>
-              </div>
-              <div className="bg-slate-100 dark:bg-slate-800 rounded-xl p-3">
-                <p className="text-muted-foreground text-xs font-bold">Total Questions</p>
-                <p className="text-base font-black">{questions.length}</p>
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-3">
+          >
+            <input
+              id="ack-rules-checkbox"
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-primary cursor-pointer"
+              checked={acknowledgedRules}
+              onChange={(e) => setAcknowledgedRules(e.target.checked)}
+            />
+            <span className="text-sm leading-relaxed">
+              I have read and understand all security rules. I agree that my activity will be
+              monitored and violations may result in disqualification.
+            </span>
+          </label>
+
+          {/* Action buttons */}
+          <div className="flex flex-col gap-3">
             <Button
+              id="start-test-btn"
               onClick={handleStartTestClick}
-              className="w-full py-6 rounded-2xl font-black text-lg shadow-xl shadow-primary/20"
+              disabled={!acknowledgedRules}
+              size="lg"
+              className={cn(
+                'w-full py-6 rounded-2xl font-black text-lg shadow-xl transition-all duration-200',
+                acknowledgedRules
+                  ? 'shadow-primary/30 hover:scale-[1.01]'
+                  : 'opacity-50 cursor-not-allowed'
+              )}
             >
-              Start Test & Enter Fullscreen
+              <Maximize className="mr-2 h-5 w-5" />
+              Start Test &amp; Enter Fullscreen
             </Button>
-            <Button variant="ghost" onClick={() => router.push('/dashboard')} className="w-full">
-              Cancel and Return
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/dashboard')}
+              className="w-full"
+            >
+              Cancel and Return to Dashboard
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1402,7 +1494,22 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
   }
 
   return (
-    <div className="space-y-6 select-none" ref={mainContentRef}>
+    <div className={cn("space-y-6 select-none", hasStarted && isProctoringActive && "pt-10")} ref={mainContentRef}>
+      {/* Security bar — fixed at top during active test */}
+      <TestSecurityBar
+        isFullscreen={isFullscreen}
+        isTabMonitoring={test?.tabMonitoringEnabled ?? test?.proctoringEnabled ?? true}
+        violationCount={warningCount}
+        isProctoringActive={isProctoringActive}
+        isVisible={hasStarted && !isSubmitting}
+      />
+
+      {/* Fullscreen-exit blocking overlay */}
+      <TestSecurityOverlay
+        isVisible={hasStarted && isProctoringActive && !isFullscreen && !isSubmitting}
+        warningCount={warningCount}
+      />
+
       {/* Header with test info and timer */}
       <Card className="relative overflow-hidden">
         <div

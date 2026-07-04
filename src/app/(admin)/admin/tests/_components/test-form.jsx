@@ -72,6 +72,14 @@ const testFormSchema = z.object({
   maxAttempts: z.coerce.number().min(0).optional(),
   instructions: z.string().optional(),
   tags: z.array(z.string()).default([]),
+
+  // Proctoring Settings
+  enforceFullscreen: z.boolean().default(false),
+  tabMonitoringEnabled: z.boolean().default(false),
+  faceDetectionEnabled: z.boolean().default(false),
+  proctoringEnabled: z.boolean().default(false),
+  maxTabSwitches: z.coerce.number().min(1).default(3),
+  maxViolationsAllowed: z.coerce.number().min(1).default(5),
 });
 
 export function TestForm({ test, onSuccess }) {
@@ -100,6 +108,12 @@ export function TestForm({ test, onSuccess }) {
       tags: test?.tags || [],
       startTime: test?.startTime,
       endTime: test?.endTime,
+      enforceFullscreen: test?.enforceFullscreen ?? false,
+      tabMonitoringEnabled: test?.tabMonitoringEnabled ?? false,
+      faceDetectionEnabled: test?.faceDetectionEnabled ?? false,
+      proctoringEnabled: test?.proctoringEnabled ?? false,
+      maxTabSwitches: test?.maxTabSwitches ?? 3,
+      maxViolationsAllowed: test?.maxViolationsAllowed ?? 5,
     },
   });
 
@@ -506,6 +520,110 @@ export function TestForm({ test, onSuccess }) {
               />
               <Button type="button" variant="secondary" onClick={addTag} size="sm"><Plus className="size-4" /></Button>
             </div>
+          </div>
+        </div>
+
+        {/* SECTION 5: PROCTORING & SECURITY */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold tracking-tight">Proctoring & Security</h3>
+          <div className="bg-muted/10 p-6 rounded-xl border border-border space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="proctoringEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
+                    <div className="space-y-0.5">
+                      <FormLabel>Enable Proctoring</FormLabel>
+                      <FormDescription>Turn on general proctoring features</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="enforceFullscreen"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
+                    <div className="space-y-0.5">
+                      <FormLabel>Enforce Fullscreen</FormLabel>
+                      <FormDescription>Requires user to stay in fullscreen mode</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="tabMonitoringEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
+                    <div className="space-y-0.5">
+                      <FormLabel>Tab Monitoring</FormLabel>
+                      <FormDescription>Detect when user switches tabs or apps</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="faceDetectionEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm bg-card">
+                    <div className="space-y-0.5">
+                      <FormLabel>Webcam Proctoring</FormLabel>
+                      <FormDescription>Monitor webcam for face presence</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {(form.watch('tabMonitoringEnabled') || form.watch('proctoringEnabled')) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
+                <FormField
+                  control={form.control}
+                  name="maxTabSwitches"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Tab Switches Allowed</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="maxViolationsAllowed"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Max Proctoring Violations Allowed</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            )}
           </div>
         </div>
 
