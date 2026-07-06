@@ -26,6 +26,42 @@ import { cn } from "@/lib/cn";
 // No static data - will be fetched from API
 const WEEKLY_TESTS = [];
 
+function TestCardSkeleton() {
+    return (
+        <div className="bg-white dark:bg-[#1a2332] rounded-xl overflow-hidden border border-slate-200 dark:border-[#232f48] p-0 animate-pulse flex flex-col h-full">
+            {/* Image Header Skeleton */}
+            <div className="h-40 bg-slate-200 dark:bg-slate-800 w-full relative" />
+
+            {/* Content Skeleton */}
+            <div className="p-5 flex flex-col flex-1 gap-4">
+                <div className="flex flex-col gap-2">
+                    {/* Tag */}
+                    <div className="h-3.5 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                    {/* Title */}
+                    <div className="h-6 bg-slate-200 dark:bg-slate-800 rounded w-5/6" />
+                </div>
+
+                {/* Meta Info Grid Skeleton */}
+                <div className="grid grid-cols-2 gap-y-3 gap-x-4 mt-2">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-16" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-24" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                </div>
+
+                {/* Footer Divider and actions */}
+                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-[#232f48] flex items-center justify-between">
+                    <div className="space-y-1">
+                        <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-12" />
+                        <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-20" />
+                    </div>
+                    <div className="h-9 bg-slate-200 dark:bg-slate-800 rounded-lg w-28" />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const WeeklyTestsPage = () => {
     const [activeTab, setActiveTab] = useState("Free");
     const [tests, setTests] = useState([]);
@@ -136,8 +172,10 @@ const WeeklyTestsPage = () => {
                 {/* Grid Content */}
                 <section>
                     {loading ? (
-                        <div className="flex items-center justify-center min-h-[50vh]">
-                            <p className="text-muted-foreground">Loading tests...</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {[...Array(6)].map((_, i) => (
+                                <TestCardSkeleton key={i} />
+                            ))}
                         </div>
                     ) : filteredTests.length === 0 ? (
                         <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">

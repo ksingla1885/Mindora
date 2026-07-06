@@ -67,14 +67,6 @@ export default function SubjectsPage() {
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="size-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
@@ -84,7 +76,9 @@ export default function SubjectsPage() {
                         <BookOpen className="size-8 text-primary" />
                         <h1 className="text-3xl font-bold">Subjects</h1>
                     </div>
-                    {userClass && (
+                    {isLoading ? (
+                        <div className="h-5 bg-muted rounded w-48 animate-pulse mt-2" />
+                    ) : userClass && (
                         <p className="text-muted-foreground flex items-center gap-2">
                             <GraduationCap className="size-4" />
                             Showing subjects for {userClass}
@@ -95,7 +89,13 @@ export default function SubjectsPage() {
 
             {/* Subjects Grid */}
             <main className="container mx-auto px-4 py-8">
-                {subjects.length === 0 ? (
+                {isLoading ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {[...Array(4)].map((_, i) => (
+                            <SubjectCardSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : subjects.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="p-6 bg-muted/30 rounded-full mb-6">
                             <BookOpen className="size-16 text-muted-foreground/30" />
@@ -118,6 +118,32 @@ export default function SubjectsPage() {
                     </div>
                 )}
             </main>
+        </div>
+    );
+}
+
+function SubjectCardSkeleton() {
+    return (
+        <div className="bg-card/50 rounded-2xl border border-border/60 p-6 animate-pulse">
+            <div className="flex flex-col gap-4">
+                <div className="flex items-start justify-between">
+                    <div className="p-3 bg-muted rounded-xl w-12 h-12 shrink-0" />
+                    <div className="w-5 h-5 bg-muted rounded shrink-0" />
+                </div>
+
+                <div className="space-y-3">
+                    <div className="h-6 bg-muted rounded w-2/3" />
+                    <div className="space-y-2">
+                        <div className="h-4 bg-muted rounded w-full" />
+                        <div className="h-4 bg-muted rounded w-5/6" />
+                    </div>
+                </div>
+
+                <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+                    <div className="h-4 bg-muted rounded w-16" />
+                    <div className="h-7 bg-muted rounded w-24" />
+                </div>
+            </div>
         </div>
     );
 }

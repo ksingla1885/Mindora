@@ -51,14 +51,6 @@ export default function SubjectDetailPage() {
         }
     };
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="size-8 animate-spin text-primary" />
-            </div>
-        );
-    }
-
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
@@ -74,14 +66,23 @@ export default function SubjectDetailPage() {
                             <ArrowLeft className="size-5" />
                         </Button>
                         <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
-                                <BookOpen className="size-6 text-primary" />
-                                <h1 className="text-2xl font-bold">{subject?.name || 'Subject'}</h1>
-                            </div>
-                            {subject?.description && (
-                                <p className="text-sm text-muted-foreground">
-                                    {subject.description}
-                                </p>
+                            {isLoading ? (
+                                <div className="space-y-2 animate-pulse">
+                                    <div className="h-7 bg-muted rounded w-1/4" />
+                                    <div className="h-4 bg-muted rounded w-1/3" />
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="flex items-center gap-3 mb-1">
+                                        <BookOpen className="size-6 text-primary" />
+                                        <h1 className="text-2xl font-bold">{subject?.name || 'Subject'}</h1>
+                                    </div>
+                                    {subject?.description && (
+                                        <p className="text-sm text-muted-foreground">
+                                            {subject.description}
+                                        </p>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
@@ -95,13 +96,23 @@ export default function SubjectDetailPage() {
                         <BookOpen className="size-4" />
                         <span className="font-semibold">Curriculum Path</span>
                     </div>
-                    <p className="text-muted-foreground text-sm">
-                        {topics.length} Topics Available
-                    </p>
+                    {isLoading ? (
+                        <div className="h-4 bg-muted rounded w-24 animate-pulse" />
+                    ) : (
+                        <p className="text-muted-foreground text-sm">
+                            {topics.length} Topics Available
+                        </p>
+                    )}
                 </div>
 
                 {/* Topics List */}
-                {topics.length === 0 ? (
+                {isLoading ? (
+                    <div className="space-y-4">
+                        {[...Array(3)].map((_, i) => (
+                            <TopicCardSkeleton key={i} />
+                        ))}
+                    </div>
+                ) : topics.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
                         <div className="p-6 bg-muted/30 rounded-full mb-6">
                             <FileText className="size-16 text-muted-foreground/30" />
@@ -124,6 +135,39 @@ export default function SubjectDetailPage() {
                     </div>
                 )}
             </main>
+        </div>
+    );
+}
+
+function TopicCardSkeleton() {
+    return (
+        <div className="bg-card/50 rounded-2xl border border-border/60 p-6 animate-pulse">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="flex-1">
+                    <div className="flex items-start gap-3 mb-3">
+                        <div className="p-2 bg-muted rounded-lg w-10 h-10 shrink-0" />
+                        <div className="flex-1">
+                            <div className="h-3 bg-muted rounded w-20 mb-2" />
+                            <h3 className="h-6 bg-muted rounded w-1/3 mb-2" />
+                            <div className="space-y-1.5 mt-2">
+                                <div className="h-4 bg-muted rounded w-full" />
+                                <div className="h-4 bg-muted rounded w-3/4" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-4 mt-4">
+                        <div className="h-4 bg-muted rounded w-24" />
+                        <div className="h-4 bg-muted rounded w-16" />
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex gap-2 shrink-0">
+                    <div className="h-10 bg-muted rounded-lg w-32" />
+                </div>
+            </div>
         </div>
     );
 }

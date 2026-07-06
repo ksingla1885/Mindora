@@ -4,6 +4,14 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, useScroll, useTransform, useSpring, useInView, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import Link from "next/link";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useGSAP } from "@gsap/react";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
 import {
   ChevronRight,
   Check,
@@ -28,7 +36,8 @@ import {
   BookOpen,
   Timer,
   MessageSquare,
-  User
+  User,
+  Cpu
 } from "lucide-react";
 
 // --- Components ---
@@ -356,75 +365,153 @@ const StickyNarrative = () => {
 
 const ZLayerOlympiads = () => {
   const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
+  const pinLeftRef = useRef(null);
+  const pinRightRef = useRef(null);
 
   const items = [
-    { title: "NSO", desc: "Science Olympiad", icon: <Brain />, color: "from-blue-500/20 to-cyan-500/20", border: "border-blue-500/50", text: "text-blue-500" },
-    { title: "IMO", desc: "Math Olympiad", icon: <Zap />, color: "from-green-500/20 to-emerald-500/20", border: "border-green-500/50", text: "text-green-500" },
-    { title: "NSTSE", desc: "Talent Search", icon: <Search />, color: "from-purple-500/20 to-pink-500/20", border: "border-purple-500/50", text: "text-purple-500" },
-    { title: "Astronomy", desc: "Space Science", icon: <Star />, color: "from-indigo-500/20 to-violet-500/20", border: "border-indigo-500/50", text: "text-indigo-500" },
+    { 
+      id: "01",
+      title: "NSO", 
+      desc: "National Science Olympiad", 
+      longDesc: "Master conceptual physics, chemistry, biology, and logical reasoning modules designed to stimulate deep scientific inquiry.",
+      icon: <Brain />, 
+      color: "from-blue-500/10 to-cyan-500/10 border-blue-500/20 text-blue-400" 
+    },
+    { 
+      id: "02",
+      title: "IMO", 
+      desc: "International Mathematics Olympiad", 
+      longDesc: "Hone advanced problem-solving speed, algebraic logic, number systems, and geometry shortcuts tailored for top ranking percentile.",
+      icon: <Zap />, 
+      color: "from-green-500/10 to-emerald-500/10 border-green-500/20 text-green-400" 
+    },
+    { 
+      id: "03",
+      title: "NSTSE", 
+      desc: "National Level Science Talent Search Exam", 
+      longDesc: "Build strong cognitive reasoning and analytical foundations across multiple subject disciplines with unified diagnostic testing.",
+      icon: <Search />, 
+      color: "from-purple-500/10 to-pink-500/10 border-purple-500/20 text-purple-400" 
+    },
+    { 
+      id: "04",
+      title: "Astronomy", 
+      desc: "International Astronomy Olympiad", 
+      longDesc: "Explore stellar physics, orbital mechanics, planetary models, and cosmic logic pathways using interactive celestial map data.",
+      icon: <Star />, 
+      color: "from-indigo-500/10 to-violet-500/10 border-indigo-500/20 text-indigo-400" 
+    },
+    { 
+      id: "05",
+      title: "NCO", 
+      desc: "National Cyber Olympiad", 
+      longDesc: "Master algorithms, logical reasoning, computer networks, HTML/CSS, basic programming concepts, and cyber security fundamentals.",
+      icon: <Cpu />, 
+      color: "from-orange-500/10 to-amber-500/10 border-orange-500/20 text-orange-400" 
+    },
+    { 
+      id: "06",
+      title: "IEO", 
+      desc: "International English Olympiad", 
+      longDesc: "Develop advanced verbal proficiency, reading comprehension, grammar mechanics, and structural linguistic logic for competitive edge.",
+      icon: <BookOpen />, 
+      color: "from-rose-500/10 to-pink-500/10 border-rose-500/20 text-rose-400" 
+    },
   ];
 
   return (
-    <section id="olympiads" ref={containerRef} className="h-[300vh] relative bg-background border-t border-border">
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
-        <div className="absolute top-10 text-center z-20 mix-blend-difference">
-          <h2 className="text-4xl font-light mb-2">Target Acquisition</h2>
-          <p className="text-muted-foreground font-mono text-xs">MODULES_LOADING...</p>
+    <section 
+      id="olympiads" 
+      ref={containerRef} 
+      className="relative border-t border-border bg-background flex flex-col md:flex-row items-stretch"
+    >
+      {/* Left Side: Pinned panel */}
+      <div
+        ref={pinLeftRef}
+        className="md:w-1/2 h-screen md:sticky md:top-0 flex flex-col justify-center p-8 md:p-16 lg:p-24 border-b md:border-b-0 md:border-r border-border/50 z-10"
+      >
+        <div className="max-w-md">
+          <span className="text-xs font-mono tracking-widest text-primary uppercase mb-2 block">
+            Target Acquisition
+          </span>
+          <h2 className="text-4xl md:text-5xl font-light tracking-tight mb-6">
+            SELECT OLYMPIADS
+          </h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed font-light text-base">
+            Configure your focus area to activate personalized learning pathways. Our AI diagnostic engine shapes recommendations based on your selected target discipline.
+          </p>
+          <div className="flex gap-4 items-center p-4 rounded-xl bg-card border border-border/80 max-w-sm">
+            <div className="w-2.5 h-2.5 rounded-full bg-primary animate-pulse" />
+            <span className="text-xs font-mono text-muted-foreground">
+              DISCOVERY_ENGINE: ONLINE &bull; READY
+            </span>
+          </div>
         </div>
+      </div>
 
-        <div className="relative w-full max-w-lg h-[400px] flex items-center justify-center perspective-1000">
-          {items.map((item, i) => {
-            const start = i * 0.25;
-            const end = start + 0.5;
-            const scale = useTransform(scrollYProgress, [start, end], [0.5, 1.5]);
-            const opacity = useTransform(scrollYProgress, [start, start + 0.1, end - 0.1, end], [0, 1, 1, 0]);
-            const y = useTransform(scrollYProgress, [start, end], [100, -100]);
-            const blur = useTransform(scrollYProgress, [start, end], [5, 0]);
+      {/* Right Side: Scrollable content cards */}
+      <div ref={pinRightRef} className="md:w-1/2 p-8 md:p-16 lg:p-24 flex flex-col gap-12 md:gap-24 justify-center">
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className={`p-8 rounded-2xl border bg-gradient-to-b ${item.color} relative overflow-hidden group hover:border-primary/50 transition-colors max-w-lg shadow-xl backdrop-blur-sm`}
+          >
+            <div className="absolute top-0 right-0 w-32 h-32 bg-foreground/5 rounded-full blur-3xl group-hover:bg-foreground/10 transition-all duration-500 -translate-y-16 translate-x-16" />
+            
+            <div className="flex justify-between items-start mb-6">
+              <div className="w-12 h-12 rounded-xl border border-border/50 bg-background/50 flex items-center justify-center">
+                {React.cloneElement(item.icon, { className: "w-6 h-6" })}
+              </div>
+              <div className="text-4xl font-mono font-black opacity-30 select-none">{item.id}</div>
+            </div>
 
-            return (
-              <motion.div
-                key={i}
-                style={{ scale, opacity, y, filter: blur ? `blur(${blur}px)` : "none", zIndex: i }}
-                className="absolute inset-0 flex items-center justify-center p-6"
-              >
-                <div className={`w-full h-full bg-gradient-to-br ${item.color} backdrop-blur-md rounded-3xl flex flex-col items-center justify-center text-center border ${item.border} shadow-2xl relative overflow-hidden group hover:scale-105 transition-transform duration-500`}>
-
-                  {/* Inner Glow */}
-                  <div className={`absolute inset-0 bg-gradient-to-tr ${item.color} opacity-20`} />
-
-                  <div className={`w-20 h-20 border-2 ${item.border} flex items-center justify-center rounded-full mb-6 bg-background/50 backdrop-blur-xl shadow-lg group-hover:rotate-12 transition-transform duration-500`}>
-                    {React.cloneElement(item.icon, { size: 36, className: item.text })}
-                  </div>
-                  <h3 className={`text-5xl font-thin tracking-tighter mb-4 ${item.text} drop-shadow-sm`}>{item.title}</h3>
-                  <p className="text-sm font-mono text-muted-foreground uppercase tracking-widest bg-background/50 px-3 py-1 rounded-full">{item.desc}</p>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+            <h3 className="text-2xl font-semibold mb-2 text-foreground">{item.title}</h3>
+            <div className="text-sm font-mono text-muted-foreground uppercase tracking-wider mb-4">{item.desc}</div>
+            <p className="text-sm text-muted-foreground leading-relaxed font-light">{item.longDesc}</p>
+          </div>
+        ))}
       </div>
     </section>
   );
 };
 
 const ParallaxCards = () => {
+  const containerRef = useRef(null);
+
+  useGSAP(() => {
+    const cards = gsap.utils.toArray(".parallax-feat-card");
+    cards.forEach((card, index) => {
+      gsap.fromTo(
+        card,
+        { y: 80 * (index + 0.5), opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          scrollTrigger: {
+            trigger: card,
+            start: "top 95%",
+            end: "top 75%",
+            scrub: 1.5,
+            toggleActions: "play none none reverse",
+          }
+        }
+      );
+    });
+  }, { scope: containerRef });
+
   return (
-    <section id="features" className="py-32 bg-background border-t border-border">
+    <section id="features" ref={containerRef} className="py-32 bg-background border-t border-border">
       <div className="max-w-7xl mx-auto px-6 mb-20 text-center">
         <h2 className="text-3xl font-light mb-6">Core Architectures</h2>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 ">
+      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8">
         {[
           { title: "Structured Data", desc: "Topic-wise content categorization.", icon: <BookOpen /> },
           { title: "Recursive Practice", desc: "Daily problem loops.", icon: <Repeat /> },
           { title: "Performance Logic", desc: "Timed execution tests.", icon: <Timer /> }
         ].map((feat, i) => (
-          <FragmentReveal key={i}>
+          <div key={i} className="parallax-feat-card">
             <div className="group border border-border p-8 h-full hover:border-primary transition-colors cursor-none relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-100 transition-opacity">
                 <div className="text-[10px] font-mono">ID_{i + 1}</div>
@@ -433,7 +520,7 @@ const ParallaxCards = () => {
               <h3 className="text-xl font-medium mb-2">{feat.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{feat.desc}</p>
             </div>
-          </FragmentReveal>
+          </div>
         ))}
       </div>
     </section>

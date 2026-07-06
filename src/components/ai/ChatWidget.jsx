@@ -65,13 +65,15 @@ export default function ChatWidget() {
         }
     };
 
-    // Hide on test-taking pages to prevent cheating
+    // Hide on landing page and test-taking pages to prevent cheating
     const isTestPage = pathname?.startsWith('/tests/') &&
         !pathname.includes('/results/') &&
         pathname !== '/tests' &&
         pathname !== '/tests/premium';
 
-    if (!session || isTestPage) return null;
+    const isLandingPage = pathname === '/';
+
+    if (!session || isTestPage || isLandingPage) return null;
 
     return (
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
