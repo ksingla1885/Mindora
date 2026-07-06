@@ -149,13 +149,13 @@ export default function PaymentSettingsPage() {
       try {
         // In a real app, you would fetch this from your API
         const [gatewaysRes, plansRes, couponsRes, taxRatesRes] = await Promise.all([
-          fetch('/api/admin/settings/payment/gateways').then(res => res.json()),
+          fetch('/api/admin/settings/payment').then(res => res.json()),
           fetch('/api/admin/settings/payment/plans').then(res => res.json()),
           fetch('/api/admin/settings/payment/coupons').then(res => res.json()),
           fetch('/api/admin/settings/payment/tax-rates').then(res => res.json()),
         ]);
 
-        if (gatewaysRes.data) setGateways(gatewaysRes.data);
+        if (gatewaysRes.data?.gateways) setGateways(gatewaysRes.data.gateways);
         if (plansRes.data) setPlans(plansRes.data);
         if (couponsRes.data) setCoupons(couponsRes.data);
         if (taxRatesRes.data) setTaxRates(taxRatesRes.data);
@@ -178,20 +178,36 @@ export default function PaymentSettingsPage() {
   const saveGatewaySettings = async (gateway, data) => {
     try {
       setIsSaving(true);
-      // In a real app, you would save this to your API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const updatedGatewayData = {
+        ...gateways[gateway],
+        ...data,
+      };
+
+      const response = await fetch('/api/admin/settings/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gateways: {
+            [gateway]: updatedGatewayData,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save gateway settings');
+      }
       
       setGateways(prev => ({
         ...prev,
-        [gateway]: {
-          ...prev[gateway],
-          ...data,
-        },
+        [gateway]: updatedGatewayData,
       }));
 
       toast({
         title: 'Success',
-        description: `${gateway} settings saved successfully`,
+        description: `${gateway.charAt(0).toUpperCase() + gateway.slice(1)} settings saved successfully`,
       });
     } catch (error) {
       console.error(`Error saving ${gateway} settings:`, error);

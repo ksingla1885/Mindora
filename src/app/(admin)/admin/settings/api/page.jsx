@@ -845,16 +845,16 @@ export default function ApiManagementPage() {
               </p>
 
               <h4>Base URL</h4>
-              <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
-                <code>{`${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1`}</code>
+              <pre className="not-prose bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto border border-slate-800 font-mono text-sm">
+                <code className="text-slate-50">{`${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1`}</code>
               </pre>
 
               <h4>Authentication</h4>
               <p>
                 Authenticate your API requests by including your API key in the <code>Authorization</code> header:
               </p>
-              <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
-                <code>{
+              <pre className="not-prose bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto border border-slate-800 font-mono text-sm">
+                <code className="text-slate-50">{
 `Authorization: Bearer your_api_key_here
 Content-Type: application/json`
                 }</code>
@@ -883,8 +883,8 @@ Content-Type: application/json`
               </ul>
 
               <h4>Example Request</h4>
-              <pre className="bg-gray-100 p-4 rounded-md overflow-x-auto">
-                <code>{
+              <pre className="not-prose bg-slate-950 text-slate-50 p-4 rounded-lg overflow-x-auto border border-slate-800 font-mono text-sm">
+                <code className="text-slate-50">{
 `// List all courses
 fetch('${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/courses', {
   headers: {
@@ -897,11 +897,11 @@ fetch('${typeof window !== 'undefined' ? window.location.origin : ''}/api/v1/cou
                 }</code>
               </pre>
 
-              <div className="mt-8 p-4 bg-blue-50 rounded-md">
-                <h4 className="text-blue-800">Need Help?</h4>
-                <p className="text-blue-700">
-                  Check out our <a href="#" className="text-blue-600 hover:underline">full API documentation</a> or 
-                  contact our <a href="#" className="text-blue-600 hover:underline">support team</a> for assistance.
+              <div className="mt-8 p-4 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-md not-prose">
+                <h4 className="text-blue-400 font-semibold mb-1">Need Help?</h4>
+                <p className="text-blue-300/90 text-sm">
+                  Check out our <a href="#" className="text-blue-400 hover:underline font-medium">full API documentation</a> or 
+                  contact our <a href="#" className="text-blue-400 hover:underline font-medium">support team</a> for assistance.
                 </p>
               </div>
             </CardContent>
