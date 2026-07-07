@@ -278,62 +278,11 @@ export default function AdminDashboard() {
           </div>
         ))}
       </div>
-
-      {/* Recent Users Avatar Stack */}
-      {data?.recentUsers?.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex -space-x-3 overflow-hidden">
-              {data.recentUsers.map((user) => {
-                const initials = user.name
-                  ?.split(' ')
-                  ?.filter(Boolean)
-                  ?.map((n) => n[0])
-                  ?.join('')
-                  ?.toUpperCase()
-                  ?.slice(0, 2) || 'U';
-                return (
-                  <div
-                    key={user.id}
-                    className="inline-block h-9 w-9 rounded-full ring-2 ring-card bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0 select-none cursor-help relative"
-                    title={`${user.name || user.email} (Joined ${new Date(user.createdAt).toLocaleDateString()})`}
-                  >
-                    {user.image ? (
-                      <img
-                        src={user.image}
-                        alt={user.name || 'User'}
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      initials
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">
-                Recent Signups
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {data.recentUsers.length} new student{data.recentUsers.length > 1 ? 's' : ''} joined the platform recently.
-              </p>
-            </div>
-          </div>
-          <Link
-            href="/admin/users"
-            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1.5 transition-colors self-start sm:self-center bg-primary/5 hover:bg-primary/10 px-3.5 py-1.5 rounded-lg"
-          >
-            Manage Users &rarr;
-          </Link>
-        </div>
-      )}
-
-      {/* Charts Section — 3 equal-width columns */}
+      {/* Row 1: Platform Engagement & Revenue Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Platform Engagement — Area Chart */}
-        <div className="lg:col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+        <div className="lg:col-span-2 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-semibold text-foreground">Platform Engagement</h3>
@@ -425,8 +374,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           {(data?.dailyRevenue?.length > 0 && totalWeekRevenue > 0) ? (
-            <div className="flex-1 w-full min-h-[220px] mt-4">
-              <ResponsiveContainer width="100%" height={220}>
+            <div className="flex-1 w-full min-h-[350px] mt-4">
+              <ResponsiveContainer width="100%" height={350}>
                 <BarChart data={data.dailyRevenue} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                   <XAxis
@@ -452,7 +401,7 @@ export default function AdminDashboard() {
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[220px]">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[350px]">
               <div className="p-4 bg-secondary/20 rounded-full mb-4">
                 <DollarSign className="h-12 w-12 text-muted-foreground" />
               </div>
@@ -499,14 +448,14 @@ export default function AdminDashboard() {
                 </div>
               </div>
               {/* Legend */}
-              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-4">
+              <div className="flex flex-wrap justify-center gap-2 mt-6 px-2 w-full">
                 {data.subjectDistribution.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <div key={entry.name} className="flex items-center gap-1.5 text-xs text-muted-foreground bg-secondary/20 dark:bg-secondary/10 border border-border px-2.5 py-1 rounded-full shadow-sm hover:shadow transition-all duration-200">
                     <div
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      className="w-2.5 h-2.5 rounded-full shrink-0 animate-pulse"
                       style={{ backgroundColor: SUBJECT_COLORS[index % SUBJECT_COLORS.length] }}
                     />
-                    <span className="truncate max-w-[80px]">{entry.name}</span>
+                    <span className="font-semibold text-foreground/80 whitespace-nowrap">{entry.name}</span>
                   </div>
                 ))}
               </div>
@@ -523,10 +472,9 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Top Performing Tests */}
-      <div className="p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+      <div className="lg:col-span-2 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col justify-between">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-lg font-semibold text-foreground">Top Performing Tests</h3>
@@ -590,6 +538,57 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+    </div>
+
+      {/* Recent Users Avatar Stack */}
+      {data?.recentUsers?.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-3 overflow-hidden">
+              {data.recentUsers.map((user) => {
+                const initials = user.name
+                  ?.split(' ')
+                  ?.filter(Boolean)
+                  ?.map((n) => n[0])
+                  ?.join('')
+                  ?.toUpperCase()
+                  ?.slice(0, 2) || 'U';
+                return (
+                  <div
+                    key={user.id}
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-card bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0 select-none cursor-help relative"
+                    title={`${user.name || user.email} (Joined ${new Date(user.createdAt).toLocaleDateString()})`}
+                  >
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name || 'User'}
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Recent Signups
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {data.recentUsers.length} new student{data.recentUsers.length > 1 ? 's' : ''} joined the platform recently.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/users"
+            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1.5 transition-colors self-start sm:self-center bg-primary/5 hover:bg-primary/10 px-3.5 py-1.5 rounded-lg"
+          >
+            Manage Users &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Recent Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
