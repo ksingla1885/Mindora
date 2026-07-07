@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 // GET /api/questions/[questionId] - Get a single question
 export async function GET(request, { params }) {
-  const { questionId } = params;
+  const { questionId } = await params;
 
   try {
     const question = await prisma.question.findUnique({
@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
 
 // PATCH /api/questions/[questionId] - Update a question
 export async function PATCH(request, { params }) {
-  const { questionId } = params;
+  const { questionId } = await params;
   const session = await auth();
 
   if (!session || session.user.role !== 'ADMIN') {
@@ -89,6 +89,7 @@ export async function PATCH(request, { params }) {
         difficulty: body.difficulty,
         marks: body.marks,
         topicId: body.topicId,
+        isActive: body.isActive !== undefined ? body.isActive : undefined,
       },
       include: {
         topic: {
@@ -131,7 +132,7 @@ export async function PATCH(request, { params }) {
 
 // DELETE /api/questions/[questionId] - Delete a question
 export async function DELETE(request, { params }) {
-  const { questionId } = params;
+  const { questionId } = await params;
   const session = await auth();
 
   if (!session || session.user.role !== 'ADMIN') {
@@ -160,24 +161,40 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    if (question.testQuestions.length > 0) {
+    const { searchParams } = new URL(request.url);
+    const force = searchParams.get('force') === 'true';
+
+    if (question.testQuestions.length > 0 && !force) {
       return NextResponse.json(
         {
           success: false,
+          code: 'USED_IN_TESTS',
           error: 'Cannot delete question that is used in tests. Remove it from tests first.'
         },
         { status: 400 }
       );
     }
 
-    // Delete the question
-    await prisma.question.delete({
-      where: { id: questionId },
-    });
+    if (force) {
+      // Execute in a transaction to safely clean up references in dependent tables before deleting the question
+      await prisma.$transaction([
+        prisma.testQuestion.deleteMany({ where: { questionId } }),
+        prisma.dPPQuestion.deleteMany({ where: { questionId } }),
+        prisma.dPPAssignment.deleteMany({ where: { questionId } }),
+        prisma.questionAnalytics.deleteMany({ where: { questionId } }),
+        prisma.discussion.deleteMany({ where: { questionId } }),
+        prisma.question.delete({ where: { id: questionId } })
+      ]);
+    } else {
+      // Delete the question directly if no active test references exist
+      await prisma.question.delete({
+        where: { id: questionId },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      message: 'Question deleted successfully',
+      message: force ? 'Question and all its test/DPP relations deleted successfully' : 'Question deleted successfully',
     });
   } catch (error) {
     console.error('Error deleting question:', error);

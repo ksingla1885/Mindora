@@ -17,7 +17,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/use-toast';
 
 export default function QuestionForm({ onSuccess, onCancel, initialData }) {
-    const isEdit = !!initialData;
+    const isEdit = !!(initialData && initialData.id);
     const [loading, setLoading] = useState(false);
     const [fetchingData, setFetchingData] = useState(true);
     const [subjects, setSubjects] = useState([]);

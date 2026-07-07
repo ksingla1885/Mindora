@@ -16,7 +16,10 @@ import {
     Trash2,
     CheckCircle2,
     MoreVertical,
-    Loader2
+    Loader2,
+    Copy,
+    AlertTriangle,
+    Check
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -30,6 +33,12 @@ import {
     DialogTitle,
     DialogDescription
 } from "@/components/ui/dialog";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import QuestionForm from './_components/question-form';
 import { toast } from '@/components/ui/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -43,9 +52,186 @@ export default function QuestionManagementPage() {
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingQuestion, setEditingQuestion] = useState(null);
 
+    // Delete Confirmation States
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [questionToDelete, setQuestionToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isUsedInTests, setIsUsedInTests] = useState(false);
+
+    // Bulk Delete Selection States
+    const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
+    const [isBulkDeleteOpen, setIsBulkDeleteOpen] = useState(false);
+    const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+    const [isBulkUsedInTests, setIsBulkUsedInTests] = useState(false);
+
+    const toggleSelectQuestion = (id) => {
+        setSelectedQuestionIds(prev => 
+            prev.includes(id) ? prev.filter(qId => qId !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedQuestionIds.length === questions.length) {
+            setSelectedQuestionIds([]);
+        } else {
+            setSelectedQuestionIds(questions.map(q => q.id));
+        }
+    };
+
     const handleEdit = (question) => {
         setEditingQuestion(question);
         setIsFormOpen(true);
+    };
+
+    const handleDelete = (question) => {
+        setQuestionToDelete(question);
+        setIsUsedInTests(false);
+        setIsDeleteOpen(true);
+    };
+
+    const confirmDelete = async (force = false) => {
+        if (!questionToDelete) return;
+        setIsDeleting(true);
+        try {
+            const url = `/api/questions/${questionToDelete.id}${force ? '?force=true' : ''}`;
+            const res = await fetch(url, {
+                method: 'DELETE',
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast({
+                    title: "Success",
+                    description: force 
+                        ? "Question was removed from tests and deleted successfully."
+                        : "Question deleted successfully."
+                });
+                setIsDeleteOpen(false);
+                setQuestionToDelete(null);
+                setIsUsedInTests(false);
+                fetchQuestions();
+            } else {
+                if (data.code === 'USED_IN_TESTS') {
+                    setIsUsedInTests(true);
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Deletion Prevented",
+                        description: data.error || "Failed to delete question."
+                    });
+                    setIsDeleteOpen(false);
+                    setQuestionToDelete(null);
+                    setIsUsedInTests(false);
+                }
+            }
+        } catch (error) {
+            console.error("Network error deleting question:", error);
+            toast({
+                variant: "destructive",
+                title: "Network Error",
+                description: "Failed to delete question due to a network connection issue."
+            });
+            setIsDeleteOpen(false);
+            setQuestionToDelete(null);
+            setIsUsedInTests(false);
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const confirmBulkDelete = async (force = false) => {
+        if (selectedQuestionIds.length === 0) return;
+        setIsBulkDeleting(true);
+        try {
+            const url = `/api/questions/bulk${force ? '?force=true' : ''}`;
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questionIds: selectedQuestionIds })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast({
+                    title: "Success",
+                    description: force 
+                        ? `Selected questions were unlinked from tests and deleted successfully.`
+                        : `Successfully deleted ${selectedQuestionIds.length} question(s).`
+                });
+                setIsBulkDeleteOpen(false);
+                setSelectedQuestionIds([]);
+                setIsBulkUsedInTests(false);
+                fetchQuestions();
+            } else {
+                if (data.code === 'USED_IN_TESTS') {
+                    setIsBulkUsedInTests(true);
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Deletion Prevented",
+                        description: data.error || "Failed to delete selected questions."
+                    });
+                    setIsBulkDeleteOpen(false);
+                    setSelectedQuestionIds([]);
+                    setIsBulkUsedInTests(false);
+                }
+            }
+        } catch (error) {
+            console.error("Network error bulk deleting questions:", error);
+            toast({
+                variant: "destructive",
+                title: "Network Error",
+                description: "Failed to delete selected questions due to a network connection issue."
+            });
+            setIsBulkDeleteOpen(false);
+            setSelectedQuestionIds([]);
+            setIsBulkUsedInTests(false);
+        } finally {
+            setIsBulkDeleting(false);
+        }
+    };
+
+    const handleCopyId = (id) => {
+        navigator.clipboard.writeText(id);
+        toast({
+            title: "Copied",
+            description: "Question ID copied to clipboard."
+        });
+    };
+
+    const handleDuplicate = (question) => {
+        const duplicated = {
+            ...question,
+            id: undefined,
+        };
+        setEditingQuestion(duplicated);
+        setIsFormOpen(true);
+    };
+
+    const handleToggleActive = async (question) => {
+        const newStatus = question.isActive === false ? true : false;
+        try {
+            const res = await fetch(`/api/questions/${question.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: newStatus })
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast({
+                    title: "Status Updated",
+                    description: `Question has been ${newStatus ? 'activated' : 'deactivated'} successfully.`
+                });
+                fetchQuestions();
+            } else {
+                throw new Error(data.error || "Failed to update status.");
+            }
+        } catch (error) {
+            console.error("Error toggling question status:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: error.message || "Failed to update status."
+            });
+        }
     };
 
     // AI Generation State
@@ -151,26 +337,161 @@ export default function QuestionManagementPage() {
         const reader = new FileReader();
         reader.onload = async (event) => {
             const text = event.target.result;
-            // Basic CSV parsing logic
             try {
-                const lines = text.split('\n').filter(line => line.trim());
-                if (lines.length < 2) throw new Error("File empty or invalid");
+                // Robust CSV parsing function that handles quotes, escaped quotes (""), commas, and newlines in cells
+                const parseCSV = (csvText) => {
+                    let p = '', c = '', r = [];
+                    let q = false;
+                    let row = [''];
+                    for (let i = 0; i < csvText.length; i++) {
+                        c = csvText[i];
+                        let next = csvText[i + 1];
+                        if (c === '"') {
+                            if (q && next === '"') {
+                                row[row.length - 1] += '"';
+                                i++;
+                            } else {
+                                q = !q;
+                            }
+                        } else if (c === ',' && !q) {
+                            row.push('');
+                        } else if ((c === '\r' || c === '\n') && !q) {
+                            if (c === '\r' && next === '\n') {
+                                i++;
+                            }
+                            r.push(row);
+                            row = [''];
+                        } else {
+                            row[row.length - 1] += c;
+                        }
+                    }
+                    if (row.length > 1 || row[0] !== '') {
+                        r.push(row);
+                    }
+                    return r;
+                };
 
-                // Assuming simple CSV: text, type, difficulty, topicName, subjectId (optional)
-                // This is a naive implementation. For robust import, we'd need more.
-                // Or better: Just mock the delay and show success if the user just wants the BUTTON to work visually?
-                // No, I should try to make it minimal functional.
+                const csvRows = parseCSV(text).filter(row => row.some(cell => cell.trim() !== ''));
+                if (csvRows.length < 2) {
+                    throw new Error("File empty or invalid: Need at least a header row and one data row.");
+                }
 
-                toast({ title: "Importing...", description: `Processing ${lines.length - 1} questions...` });
+                // Match header names case-insensitively
+                const headers = csvRows[0].map(h => h.trim().toLowerCase());
+                
+                const textIndex = headers.findIndex(h => ['text', 'question', 'question text', 'question_text'].includes(h));
+                const typeIndex = headers.findIndex(h => ['type', 'question type', 'question_type'].includes(h));
+                const difficultyIndex = headers.findIndex(h => ['difficulty'].includes(h));
+                const marksIndex = headers.findIndex(h => ['marks', 'mark', 'score'].includes(h));
+                const explanationIndex = headers.findIndex(h => ['explanation', 'explanation text', 'explanation_text', 'solution'].includes(h));
+                const subjectIndex = headers.findIndex(h => ['subject', 'subject name', 'subject_name', 'subject id', 'subject_id'].includes(h));
+                const topicIndex = headers.findIndex(h => ['topic', 'topic name', 'topic_name', 'topic id', 'topic_id'].includes(h));
+                const answerIndex = headers.findIndex(h => ['correctanswer', 'correct answer', 'correct_answer', 'correct', 'answer'].includes(h));
 
-                // Emulate import delay
-                setTimeout(() => {
-                    toast({ title: "Import Completed", description: `Successfully imported ${lines.length - 1} questions.` });
+                if (textIndex === -1) {
+                    throw new Error("CSV must contain a 'Question' or 'Text' column.");
+                }
+
+                // Identify potential option columns (e.g. Option A, Option B, A, B, Option 1, etc.)
+                const optionHeaderMappings = [];
+                const standardHeaders = [
+                    'text', 'question', 'question text', 'question_text',
+                    'type', 'question type', 'question_type',
+                    'difficulty', 'marks', 'mark', 'score',
+                    'explanation', 'explanation text', 'explanation_text', 'solution',
+                    'subject', 'subject name', 'subject_name', 'subject id', 'subject_id',
+                    'topic', 'topic name', 'topic_name', 'topic id', 'topic_id',
+                    'correctanswer', 'correct answer', 'correct_answer', 'correct', 'answer'
+                ];
+
+                headers.forEach((h, idx) => {
+                    if (h.startsWith('option')) {
+                        const label = h.replace(/^option\s*(_)?/i, '').trim();
+                        optionHeaderMappings.push({ index: idx, label });
+                    } else if (['a', 'b', 'c', 'd', 'e', 'f', '1', '2', '3', '4', '5'].includes(h)) {
+                        if (!standardHeaders.includes(h)) {
+                            optionHeaderMappings.push({ index: idx, label: h });
+                        }
+                    }
+                });
+
+                // Sort mappings by header index to keep options ordered (A, B, C, D)
+                optionHeaderMappings.sort((a, b) => a.index - b.index);
+
+                const questionsToImport = [];
+                for (let i = 1; i < csvRows.length; i++) {
+                    const row = csvRows[i];
+                    if (row.length === 0 || !row[textIndex]?.trim()) continue;
+
+                    const textVal = row[textIndex].trim();
+                    const typeVal = typeIndex !== -1 && row[typeIndex] ? row[typeIndex].trim().toLowerCase() : 'mcq';
+                    const difficultyVal = difficultyIndex !== -1 && row[difficultyIndex] ? row[difficultyIndex].trim().toLowerCase() : 'medium';
+                    const marksVal = marksIndex !== -1 && row[marksIndex] ? parseInt(row[marksIndex].trim(), 10) : 4;
+                    const explanationVal = explanationIndex !== -1 && row[explanationIndex] ? row[explanationIndex].trim() : '';
+                    const subjectVal = subjectIndex !== -1 && row[subjectIndex] ? row[subjectIndex].trim() : '';
+                    const topicVal = topicIndex !== -1 && row[topicIndex] ? row[topicIndex].trim() : '';
+                    const answerVal = answerIndex !== -1 && row[answerIndex] ? row[answerIndex].trim() : '';
+
+                    const options = [];
+                    optionHeaderMappings.forEach((mapping) => {
+                        const optVal = row[mapping.index];
+                        if (optVal !== undefined && optVal !== null && optVal.trim() !== '') {
+                            options.push(optVal.trim());
+                        }
+                    });
+
+                    questionsToImport.push({
+                        text: textVal,
+                        type: typeVal,
+                        difficulty: difficultyVal,
+                        marks: isNaN(marksVal) ? 4 : marksVal,
+                        explanation: explanationVal,
+                        subject: subjectVal,
+                        topic: topicVal,
+                        options: typeVal === 'mcq' ? options : undefined,
+                        correctAnswer: answerVal
+                    });
+                }
+
+                if (questionsToImport.length === 0) {
+                    throw new Error("No valid questions found to import.");
+                }
+
+                toast({ title: "Importing...", description: `Sending ${questionsToImport.length} questions to server...` });
+
+                const res = await fetch('/api/questions/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ questions: questionsToImport })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    if (data.failedCount === 0) {
+                        toast({
+                            title: "Import Successful",
+                            description: `Successfully imported all ${data.importedCount} questions.`
+                        });
+                    } else {
+                        toast({
+                            variant: "destructive",
+                            title: "Import Partially Completed",
+                            description: `Successfully imported ${data.importedCount} questions. ${data.failedCount} failed. Please verify console for errors.`
+                        });
+                        console.warn("Bulk import errors:", data.errors);
+                    }
                     fetchQuestions();
-                }, 1500);
+                } else {
+                    throw new Error(data.error || "Server rejected the bulk import.");
+                }
 
             } catch (err) {
-                toast({ variant: "destructive", title: "Import Failed", description: "Invalid CSV format." });
+                console.error("Bulk import failed:", err);
+                toast({
+                    variant: "destructive",
+                    title: "Import Failed",
+                    description: err.message || "Invalid CSV format or network issue."
+                });
             }
         };
         reader.readAsText(file);
@@ -357,6 +678,34 @@ export default function QuestionManagementPage() {
                         </div>
                     ) : (
                         <div className="space-y-4 pt-4">
+                            {/* Selection Toolbar */}
+                            <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/80 shadow-sm">
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAll}
+                                        className={cn(
+                                            "size-5 rounded-md border flex items-center justify-center transition-all",
+                                            selectedQuestionIds.length === questions.length && questions.length > 0
+                                                ? "bg-primary border-primary text-primary-foreground"
+                                                : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
+                                        )}
+                                    >
+                                        {selectedQuestionIds.length === questions.length && questions.length > 0 && (
+                                            <Check className="size-3.5 stroke-[3]" />
+                                        )}
+                                    </button>
+                                    <span className="text-sm font-semibold text-foreground">
+                                        Select All Questions on this Page ({questions.length})
+                                    </span>
+                                </div>
+                                {selectedQuestionIds.length > 0 && (
+                                    <span className="text-xs text-muted-foreground font-bold">
+                                        {selectedQuestionIds.length} of {questions.length} selected
+                                    </span>
+                                )}
+                            </div>
+
                             {questions
                                 .filter(q =>
                                     !searchQuery ||
@@ -369,54 +718,121 @@ export default function QuestionManagementPage() {
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
                                         transition={{ delay: i * 0.1 }}
-                                        className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group"
+                                        onClick={() => handleEdit(q)}
+                                        className="flex flex-row items-start gap-4 p-6 bg-card border border-border rounded-2xl hover:border-primary/40 hover:shadow-lg transition-all cursor-pointer group"
                                     >
-                                        <div className="flex-1 space-y-3">
-                                            <div className="flex items-center gap-2">
-                                                <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-[10px]">
-                                                    {q.topic?.subject?.name || 'Subject'}
-                                                </Badge>
-                                                <Badge variant="outline" className="text-[10px] font-medium border-border">
-                                                    {q.topic?.name || 'Topic'}
-                                                </Badge>
-                                                <span className="text-[11px] text-muted-foreground font-medium">• {q.type}</span>
-                                            </div>
-                                            <p className="text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors pr-8 line-clamp-2">
-                                                {q.text}
-                                            </p>
-                                            <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
-                                                <span className={cn(
-                                                    "flex items-center gap-1",
-                                                    q.difficulty === 'hard' ? "text-red-500" : q.difficulty === 'medium' ? "text-amber-500" : "text-emerald-500"
-                                                )}>
-                                                    {q.difficulty ? q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1) : 'Medium'}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <div className="size-1.5 rounded-full bg-emerald-500" />
-                                                    Published
-                                                </span>
-                                                {q.marks && (
-                                                    <span className="flex items-center gap-1">
-                                                        • {q.marks} Marks
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleSelectQuestion(q.id);
+                                            }}
+                                            className={cn(
+                                                "size-5 rounded-md border flex items-center justify-center transition-all shrink-0 mt-1.5",
+                                                selectedQuestionIds.includes(q.id)
+                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                    : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
+                                            )}
+                                        >
+                                            {selectedQuestionIds.includes(q.id) && (
+                                                <Check className="size-3.5 stroke-[3]" />
+                                            )}
+                                        </button>
+
+                                        <div className="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant="secondary" className="bg-primary/10 text-primary border-none font-bold text-[10px]">
+                                                        {q.topic?.subject?.name || 'Subject'}
+                                                    </Badge>
+                                                    <Badge variant="outline" className="text-[10px] font-medium border-border">
+                                                        {q.topic?.name || 'Topic'}
+                                                    </Badge>
+                                                    <span className="text-[11px] text-muted-foreground font-medium">• {q.type}</span>
+                                                </div>
+                                                <p className="text-lg font-bold text-foreground leading-snug group-hover:text-primary transition-colors pr-8 line-clamp-2">
+                                                    {q.text}
+                                                </p>
+                                                <div className="flex items-center gap-4 text-xs font-bold text-muted-foreground">
+                                                    <span className={cn(
+                                                        "flex items-center gap-1",
+                                                        q.difficulty === 'hard' ? "text-red-500" : q.difficulty === 'medium' ? "text-amber-500" : "text-emerald-500"
+                                                    )}>
+                                                        {q.difficulty ? q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1) : 'Medium'}
                                                     </span>
-                                                )}
+                                                    <span className="flex items-center gap-1">
+                                                        <div className={cn(
+                                                            "size-1.5 rounded-full",
+                                                            q.isActive === false ? "bg-amber-500" : "bg-emerald-500"
+                                                        )} />
+                                                        {q.isActive === false ? "Inactive" : "Published"}
+                                                    </span>
+                                                    {q.marks && (
+                                                        <span className="flex items-center gap-1">
+                                                            • {q.marks} Marks
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-4 md:mt-0">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
-                                                onClick={() => handleEdit(q)}
-                                            >
-                                                <Edit className="size-5" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all">
-                                                <Trash2 className="size-5" />
-                                            </Button>
-                                            <Button variant="outline" size="icon" className="rounded-xl border-border">
-                                                <MoreVertical className="size-5" />
-                                            </Button>
+                                            <div className="flex items-center gap-2 mt-4 md:mt-0" onClick={(e) => e.stopPropagation()}>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="rounded-xl hover:bg-primary/10 hover:text-primary transition-all"
+                                                    onClick={() => handleEdit(q)}
+                                                >
+                                                    <Edit className="size-5" />
+                                                </Button>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="icon" 
+                                                    className="rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-all"
+                                                    onClick={() => handleDelete(q)}
+                                                >
+                                                    <Trash2 className="size-5" />
+                                                </Button>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button variant="outline" size="icon" className="rounded-xl border-border">
+                                                            <MoreVertical className="size-5" />
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end" className="w-48 bg-card border-border shadow-xl rounded-xl p-1">
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleDuplicate(q)} 
+                                                            className="rounded-lg gap-2 cursor-pointer p-2.5 text-sm font-medium hover:bg-primary/10 hover:text-primary transition-all"
+                                                        >
+                                                            <Copy className="size-4" /> Duplicate
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleToggleActive(q)} 
+                                                            className="rounded-lg gap-2 cursor-pointer p-2.5 text-sm font-medium hover:bg-primary/10 hover:text-primary transition-all"
+                                                        >
+                                                            {q.isActive === false ? (
+                                                                <>
+                                                                    <CheckCircle2 className="size-4 text-emerald-500" /> Activate
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Clock className="size-4 text-amber-500" /> Deactivate
+                                                                </>
+                                                            )}
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleCopyId(q.id)} 
+                                                            className="rounded-lg gap-2 cursor-pointer p-2.5 text-sm font-medium hover:bg-primary/10 hover:text-primary transition-all"
+                                                        >
+                                                            <FileQuestion className="size-4" /> Copy ID
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem 
+                                                            onClick={() => handleDelete(q)} 
+                                                            className="rounded-lg gap-2 cursor-pointer p-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive transition-all"
+                                                        >
+                                                            <Trash2 className="size-4" /> Delete
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 ))}
@@ -547,6 +963,164 @@ export default function QuestionManagementPage() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteOpen} onOpenChange={(open) => {
+                setIsDeleteOpen(open);
+                if (!open) {
+                    setQuestionToDelete(null);
+                    setIsUsedInTests(false);
+                }
+            }}>
+                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                    <DialogHeader className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 bg-red-500/10 rounded-full text-red-500">
+                            <AlertTriangle className="size-8" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold tracking-tight">
+                            {isUsedInTests ? "Force Delete Question" : "Delete Question"}
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-sm max-w-xs">
+                            {isUsedInTests 
+                                ? "This question is currently used in active tests. Deleting it will automatically remove it from those tests."
+                                : "Are you sure you want to permanently delete this question? This action cannot be undone."}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {questionToDelete && (
+                        <div className="my-2 p-4 rounded-xl bg-muted/35 border border-border/40">
+                            <p className="text-sm font-semibold text-foreground leading-relaxed line-clamp-4 italic">
+                                "{questionToDelete.text}"
+                            </p>
+                        </div>
+                    )}
+                    {isUsedInTests && (
+                        <div className="text-[11px] text-red-500 font-bold text-center bg-red-500/10 p-3 rounded-lg border border-red-500/20 my-1">
+                            Warning: Removing this question from existing tests will alter those tests.
+                        </div>
+                    )}
+                    <div className="flex gap-3 mt-4">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setIsDeleteOpen(false);
+                                setQuestionToDelete(null);
+                                setIsUsedInTests(false);
+                            }}
+                            className="flex-1 rounded-xl h-11 border-border font-bold text-sm"
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={() => confirmDelete(isUsedInTests)}
+                            className="flex-1 rounded-xl h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm gap-2"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="size-4" />
+                                    {isUsedInTests ? "Force Delete" : "Yes, Delete"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Bulk Delete Confirmation Dialog */}
+            <Dialog open={isBulkDeleteOpen} onOpenChange={(open) => {
+                setIsBulkDeleteOpen(open);
+                if (!open) {
+                    setIsBulkUsedInTests(false);
+                }
+            }}>
+                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                    <DialogHeader className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 bg-red-500/10 rounded-full text-red-500">
+                            <AlertTriangle className="size-8" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold tracking-tight">
+                            {isBulkUsedInTests ? "Force Bulk Delete Questions" : "Delete Selected Questions"}
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-sm max-w-xs">
+                            {isBulkUsedInTests 
+                                ? "Some of the selected questions are currently used in active tests. Force deleting will automatically remove them from those tests."
+                                : `Are you sure you want to permanently delete these ${selectedQuestionIds.length} question(s)? This action cannot be undone.`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {isBulkUsedInTests && (
+                        <div className="text-[11px] text-red-500 font-bold text-center bg-red-500/10 p-3 rounded-lg border border-red-500/20 my-1">
+                            Warning: Removing these questions from existing tests will alter those tests.
+                        </div>
+                    )}
+                    <div className="flex gap-3 mt-4">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setIsBulkDeleteOpen(false);
+                                setIsBulkUsedInTests(false);
+                            }}
+                            className="flex-1 rounded-xl h-11 border-border font-bold text-sm"
+                            disabled={isBulkDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={() => confirmBulkDelete(isBulkUsedInTests)}
+                            className="flex-1 rounded-xl h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm gap-2"
+                            disabled={isBulkDeleting}
+                        >
+                            {isBulkDeleting ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="size-4" />
+                                    {isBulkUsedInTests ? "Force Delete All" : "Yes, Delete"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Selection Floating Actions Bar */}
+            {selectedQuestionIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card/90 backdrop-blur-md border border-border shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-6 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <span className="text-sm font-bold text-foreground shrink-0">
+                        {selectedQuestionIds.length} question{selectedQuestionIds.length > 1 ? 's' : ''} selected
+                    </span>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedQuestionIds([])}
+                            className="rounded-xl border-border font-bold text-xs h-9 px-4"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                                setIsBulkUsedInTests(false);
+                                setIsBulkDeleteOpen(true);
+                            }}
+                            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs gap-1.5 h-9 px-4 shadow-lg shadow-red-600/10"
+                        >
+                            <Trash2 className="size-3.5" /> Delete Selected
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
