@@ -207,8 +207,11 @@ export async function getDashboardOverview() {
     timeAgo: formatDistanceToNow(activity.createdAt, { addSuffix: true }),
   }));
 
-  // Get monthly data for charts
-  const monthlyData = await getMonthlyAnalytics();
+  // Get monthly data for charts and daily revenue for sparkline
+  const [monthlyData, dailyRevenueData] = await Promise.all([
+    getMonthlyAnalytics(),
+    getDailyRevenue(),
+  ]);
 
   return {
     stats: {
@@ -224,9 +227,46 @@ export async function getDashboardOverview() {
     },
     recentActivity: formattedActivity,
     performanceData: monthlyData,
+    dailyRevenue: dailyRevenueData,
     testPerformance: formattedTestPerformance,
     subjectDistribution: formattedSubjectDistribution,
   };
+}
+
+// Get daily revenue for the last 7 days (for Revenue Trend bar chart)
+async function getDailyRevenue() {
+  try {
+    const days = [];
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    for (let i = 6; i >= 0; i--) {
+      const date = subDays(new Date(), i);
+      const dayStart = startOfDay(date);
+      const dayEnd = endOfDay(date);
+
+      const result = await prisma.payment.aggregate({
+        where: {
+          status: 'COMPLETED',
+          createdAt: {
+            gte: dayStart,
+            lte: dayEnd,
+          },
+        },
+        _sum: { amount: true },
+      });
+
+      days.push({
+        name: dayLabels[date.getDay()],
+        date: format(date, 'MMM dd'),
+        revenue: result._sum.amount || 0,
+      });
+    }
+
+    return days;
+  } catch (error) {
+    console.error('Error in getDailyRevenue:', error);
+    return [];
+  }
 }
 
 // Get monthly analytics data for charts

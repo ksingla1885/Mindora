@@ -14,6 +14,83 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
+
+// Curated color palette for charts
+const CHART_COLORS = {
+  blue: '#6366f1',
+  purple: '#a855f7',
+  emerald: '#10b981',
+  orange: '#f59e0b',
+  rose: '#f43f5e',
+  cyan: '#06b6d4',
+  pink: '#ec4899',
+  amber: '#f59e0b',
+};
+
+const SUBJECT_COLORS = [
+  '#6366f1', '#a855f7', '#10b981', '#f59e0b',
+  '#f43f5e', '#06b6d4', '#ec4899', '#8b5cf6',
+];
+
+// Custom tooltip for Area Chart
+const EngagementTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl px-4 py-3 shadow-xl">
+        <p className="text-xs font-bold text-foreground mb-2">{label}</p>
+        {payload.map((entry, i) => (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-muted-foreground capitalize">{entry.dataKey}:</span>
+            <span className="font-bold text-foreground">{entry.value}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom tooltip for Bar Chart
+const RevenueTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl px-4 py-3 shadow-xl">
+        <p className="text-xs font-bold text-foreground mb-1">{payload[0]?.payload?.date || label}</p>
+        <p className="text-sm font-bold text-emerald-400">₹{payload[0].value}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom tooltip for Pie Chart
+const SubjectTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card/95 backdrop-blur-sm border border-border rounded-xl px-4 py-3 shadow-xl">
+        <p className="text-xs font-bold text-foreground">{payload[0].name}</p>
+        <p className="text-sm text-muted-foreground">{payload[0].value} topics</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 export default function AdminDashboard() {
   const { data: session } = useSession();
@@ -84,6 +161,10 @@ export default function AdminDashboard() {
     }
   ];
 
+  // Compute total 7-day revenue for the header stat
+  const totalWeekRevenue = (data?.dailyRevenue || []).reduce((sum, d) => sum + d.revenue, 0);
+  const totalTopics = (data?.subjectDistribution || []).reduce((sum, s) => sum + s.value, 0);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -120,7 +201,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">Welcome back, {adminName}. Here's what's happening with your platform today.</p>
+          <p className="text-muted-foreground mt-1">Welcome back, {adminName}. Here&apos;s what&apos;s happening with your platform today.</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" className="bg-background dark:bg-surface-dark border-border hover:bg-accent text-foreground text-sm font-medium rounded-lg px-5 py-2.5 transition-all hover:-translate-y-0.5 active:scale-95">
@@ -150,22 +231,76 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts Section */}
+      {/* Charts Section — 3 equal-width columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+
+        {/* Platform Engagement — Area Chart */}
+        <div className="lg:col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h3 className="text-lg font-semibold text-foreground">Platform Engagement</h3>
-              <p className="text-sm text-muted-foreground">Daily active users over the last 30 days</p>
+              <p className="text-sm text-muted-foreground">Monthly new students &amp; test attempts</p>
             </div>
           </div>
           {(data?.performanceData?.length > 0) ? (
-             <div className="flex-1 w-full min-h-[250px]">
-                {/* Chart would go here - implementation depends on chosen library */}
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  Charts are being initialized...
+            <div className="flex-1 w-full min-h-[250px]">
+              <ResponsiveContainer width="100%" height={250}>
+                <AreaChart data={data.performanceData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradStudents" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS.blue} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={CHART_COLORS.blue} stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="gradTests" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={CHART_COLORS.purple} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={CHART_COLORS.purple} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip content={<EngagementTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="students"
+                    stroke={CHART_COLORS.blue}
+                    strokeWidth={2.5}
+                    fill="url(#gradStudents)"
+                    dot={false}
+                    activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS.blue }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="tests"
+                    stroke={CHART_COLORS.purple}
+                    strokeWidth={2.5}
+                    fill="url(#gradTests)"
+                    dot={false}
+                    activeDot={{ r: 5, strokeWidth: 2, fill: CHART_COLORS.purple }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+              <div className="flex items-center justify-center gap-6 mt-2">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="w-3 h-1.5 rounded-full" style={{ backgroundColor: CHART_COLORS.blue }} />
+                  Students
                 </div>
-             </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="w-3 h-1.5 rounded-full" style={{ backgroundColor: CHART_COLORS.purple }} />
+                  Tests
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex-1 w-full min-h-[250px] flex flex-col items-center justify-center">
               <div className="p-4 bg-secondary/20 rounded-full mb-4">
@@ -178,24 +313,114 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
-        
-        <div className="col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Revenue Trend</h3>
-            <p className="text-sm text-muted-foreground">Monthly revenue</p>
+
+        {/* Revenue Trend — Bar Chart (last 7 days) */}
+        <div className="lg:col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <h3 className="text-lg font-semibold text-foreground">Revenue Trend</h3>
+              <p className="text-sm text-muted-foreground">Last 7 days</p>
+            </div>
+            <div className="text-right">
+              <p className="text-2xl font-bold text-foreground">₹{totalWeekRevenue}</p>
+              <p className="text-xs text-muted-foreground">7-day total</p>
+            </div>
           </div>
-          {data?.stats?.revenueToday > 0 ? (
-            <div className="flex-1 flex items-center justify-center min-h-[200px]">
-               <h2 className="text-3xl font-bold">₹{data.stats.revenueToday}</h2>
+          {(data?.dailyRevenue?.length > 0 && totalWeekRevenue > 0) ? (
+            <div className="flex-1 w-full min-h-[220px] mt-4">
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.dailyRevenue} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `₹${v}`}
+                  />
+                  <Tooltip content={<RevenueTooltip />} cursor={{ fill: 'hsl(var(--muted) / 0.3)' }} />
+                  <Bar
+                    dataKey="revenue"
+                    fill={CHART_COLORS.emerald}
+                    radius={[6, 6, 0, 0]}
+                    maxBarSize={40}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[200px]">
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[220px]">
               <div className="p-4 bg-secondary/20 rounded-full mb-4">
                 <DollarSign className="h-12 w-12 text-muted-foreground" />
               </div>
               <h4 className="text-base font-semibold text-foreground mb-2">No revenue data</h4>
               <p className="text-sm text-muted-foreground text-center max-w-xs">
                 Revenue trends will be displayed once payments are processed.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Subject Distribution — Donut Pie Chart */}
+        <div className="lg:col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Subject Distribution</h3>
+            <p className="text-sm text-muted-foreground">Topics per subject</p>
+          </div>
+          {(data?.subjectDistribution?.length > 0 && totalTopics > 0) ? (
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="relative">
+                <ResponsiveContainer width={200} height={200}>
+                  <PieChart>
+                    <Pie
+                      data={data.subjectDistribution}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={3}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {data.subjectDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={SUBJECT_COLORS[index % SUBJECT_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<SubjectTooltip />} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Center label */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <span className="text-2xl font-bold text-foreground">{totalTopics}</span>
+                  <span className="text-xs text-muted-foreground">Topics</span>
+                </div>
+              </div>
+              {/* Legend */}
+              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-4">
+                {data.subjectDistribution.map((entry, index) => (
+                  <div key={entry.name} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: SUBJECT_COLORS[index % SUBJECT_COLORS.length] }}
+                    />
+                    <span className="truncate max-w-[80px]">{entry.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[200px]">
+              <div className="p-4 bg-secondary/20 rounded-full mb-4">
+                <BarChart3 className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <h4 className="text-base font-semibold text-foreground mb-2">No subjects yet</h4>
+              <p className="text-sm text-muted-foreground text-center max-w-xs">
+                Subject distribution will appear once subjects and topics are created.
               </p>
             </div>
           )}
