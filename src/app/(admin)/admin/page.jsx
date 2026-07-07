@@ -427,6 +427,72 @@ export default function AdminDashboard() {
         </div>
       </div>
 
+      {/* Top Performing Tests */}
+      <div className="p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="text-lg font-semibold text-foreground">Top Performing Tests</h3>
+            <p className="text-sm text-muted-foreground">Highest scoring and most completed assessments</p>
+          </div>
+        </div>
+        {data?.testPerformance?.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-border text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  <th className="pb-3 pl-2 font-semibold">Test Name</th>
+                  <th className="pb-3 text-center font-semibold">Attempts</th>
+                  <th className="pb-3 text-center font-semibold">Avg. Score</th>
+                  <th className="pb-3 pr-2 font-semibold">Completion Rate</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50 text-sm">
+                {data.testPerformance.map((test) => (
+                  <tr 
+                    key={test.id} 
+                    className="hover:bg-muted/30 transition-colors cursor-pointer group"
+                    onClick={() => window.location.href = `/admin/tests/${test.id}`}
+                  >
+                    <td className="py-3.5 pl-2 font-medium text-foreground group-hover:text-primary transition-colors">
+                      {test.name}
+                    </td>
+                    <td className="py-3.5 text-center text-muted-foreground">
+                      {test.attempts}
+                    </td>
+                    <td className="py-3.5 text-center font-semibold text-foreground">
+                      {test.avgScore}%
+                    </td>
+                    <td className="py-3.5 pr-2">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                          <div 
+                            className="h-full bg-primary rounded-full transition-all duration-500" 
+                            style={{ width: `${test.completionRate}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-foreground w-8 text-right">
+                          {test.completionRate}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="p-4 bg-secondary/20 rounded-full mb-4">
+              <FileCheck className="h-12 w-12 text-muted-foreground" />
+            </div>
+            <h4 className="text-base font-semibold text-foreground mb-2">No test performance data yet</h4>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Performance statistics will appear here as soon as students complete graded tests.
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Recent Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 p-6 rounded-xl bg-card border border-border shadow-sm">
