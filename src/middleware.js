@@ -22,6 +22,39 @@ const publicPaths = [
   "/privacy"
 ];
 
+// Paths always allowed through even during maintenance (auth + maintenance page itself)
+const maintenanceBypassPaths = [
+  "/maintenance",
+  "/auth/login",
+  "/auth/signup",
+  "/auth/signin",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+  "/auth/verify-email",
+  "/api/auth",
+  "/_next/static",
+  "/_next/image",
+  "/favicon.ico",
+];
+
+// Edge-compatible Upstash REST fetch (no ioredis — edge runtime only supports fetch)
+async function isMaintenanceModeActive() {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) return false;
+  try {
+    const res = await fetch(`${url}/get/settings:maintenance_mode`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    return json.result === '1';
+  } catch {
+    return false;
+  }
+}
+
 // Paths that require authentication but no specific role
 const authenticatedPaths = [
   "/dashboard",
@@ -113,6 +146,28 @@ export async function middleware(request) {
   const isPublicPath = publicPaths.some(path =>
     pathname === path || pathname.startsWith(`${path}/`)
   );
+
+  // Check maintenance mode — enforce before everything else
+  const isBypassPath = maintenanceBypassPaths.some(path =>
+    pathname === path || pathname.startsWith(`${path}/`)
+  );
+
+  if (!isBypassPath) {
+    const maintenanceActive = await isMaintenanceModeActive();
+    if (maintenanceActive) {
+      // Resolve the token to check if the user is an admin
+      const tokenForMaintenance = await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET
+      });
+      const role = tokenForMaintenance?.role?.toUpperCase();
+      // Only admins pass through
+      if (role !== 'ADMIN') {
+        const maintenanceUrl = new URL('/maintenance', origin);
+        return NextResponse.redirect(maintenanceUrl);
+      }
+    }
+  }
 
   // If it's a public path, continue with the request
   if (isPublicPath) {
