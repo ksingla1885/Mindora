@@ -215,7 +215,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto flex flex-col gap-6 relative">
+    <div className="max-w-[1600px] mx-auto px-4 md:px-6 lg:px-8 flex flex-col gap-6 relative pb-20">
       {isRefetching && (
         <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-xl">
           <div className="bg-card border border-border px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5">
@@ -341,8 +341,8 @@ export default function AdminDashboard() {
             </div>
           </div>
           {(data?.performanceData?.length > 0) ? (
-            <div className="flex-1 w-full min-h-[250px]">
-              <ResponsiveContainer width="100%" height={250}>
+            <div className="flex-1 w-full min-h-[350px]">
+              <ResponsiveContainer width="100%" height={350}>
                 <AreaChart data={data.performanceData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradStudents" x1="0" y1="0" x2="0" y2="1">
@@ -400,7 +400,7 @@ export default function AdminDashboard() {
               </div>
             </div>
           ) : (
-            <div className="flex-1 w-full min-h-[250px] flex flex-col items-center justify-center">
+            <div className="flex-1 w-full min-h-[350px] flex flex-col items-center justify-center">
               <div className="p-4 bg-secondary/20 rounded-full mb-4">
                 <BarChart3 className="h-12 w-12 text-muted-foreground" />
               </div>
