@@ -32,7 +32,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-
+import AnimatedCounter from '@/components/admin/dashboard/AnimatedCounter';
 // Curated color palette for charts
 const CHART_COLORS = {
   blue: '#6366f1',
@@ -105,6 +105,15 @@ export default function AdminDashboard() {
 
   const adminName = session?.user?.name || 'Admin';
 
+  // Resolve greeting based on time of day
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    const firstName = adminName.split(' ')[0];
+    if (hour < 12) return `Good morning, ${firstName} ☀️`;
+    if (hour < 17) return `Good afternoon, ${firstName} 🌤️`;
+    return `Good evening, ${firstName} 🌙`;
+  };
+
   useEffect(() => {
     async function fetchDashboardData() {
       try {
@@ -143,28 +152,28 @@ export default function AdminDashboard() {
   const stats = [
     {
       label: 'Total Users',
-      value: data?.stats?.totalUsers || 0,
+      value: <AnimatedCounter value={data?.stats?.totalUsers || 0} />,
       icon: <Users className="h-5 w-5" />,
       color: 'bg-primary/10 text-primary',
       trend: data?.stats?.newStudentsThisMonth > 0 ? `+${data.stats.newStudentsThisMonth} this ${range}` : `No new users this ${range}`
     },
     {
       label: 'Active Students',
-      value: data?.stats?.totalStudents || 0,
+      value: <AnimatedCounter value={data?.stats?.totalStudents || 0} />,
       icon: <UserCheck className="h-5 w-5" />,
       color: 'bg-purple-500/10 text-purple-400',
       trend: 'Registered students'
     },
     {
       label: 'Tests Conducted',
-      value: data?.stats?.testsCompleted || 0,
+      value: <AnimatedCounter value={data?.stats?.testsCompleted || 0} />,
       icon: <FileCheck className="h-5 w-5" />,
       color: 'bg-orange-500/10 text-orange-400',
       trend: `${data?.stats?.activeTests || 0} currently active`
     },
     {
       label: 'Revenue (Today)',
-      value: `₹${data?.stats?.revenueToday || 0}`,
+      value: <AnimatedCounter value={data?.stats?.revenueToday || 0} prefix="₹" />,
       icon: <DollarSign className="h-5 w-5" />,
       color: 'bg-emerald-500/10 text-emerald-400',
       trend: 'From completed payments'
@@ -220,7 +229,7 @@ export default function AdminDashboard() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">Welcome back, {adminName}. Here&apos;s what&apos;s happening with your platform today.</p>
+          <p className="text-muted-foreground mt-1">{getGreeting()} Here&apos;s what&apos;s happening with your platform today.</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Segmented Range Selector */}
@@ -248,7 +257,11 @@ export default function AdminDashboard() {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="p-5 rounded-xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-1 group">
+          <div 
+            key={index} 
+            className="p-5 rounded-xl bg-card border border-border shadow-sm hover:shadow-md transition-all cursor-pointer hover:-translate-y-1 group animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+            style={{ animationDelay: `${index * 80}ms` }}
+          >
             <div className="flex justify-between items-start mb-4">
               <div>
                 <p className="text-muted-foreground text-sm font-medium">{stat.label}</p>
