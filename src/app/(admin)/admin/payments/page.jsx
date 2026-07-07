@@ -16,12 +16,24 @@ import {
     X,
     CheckCircle,
     ChevronDown,
-    Menu
+    Menu,
+    Check,
+    Trash2,
+    Loader2,
+    AlertTriangle
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/cn';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 export default function PaymentsPage() {
     const [payments, setPayments] = useState([]);
@@ -36,6 +48,53 @@ export default function PaymentsPage() {
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [selectedPayment, setSelectedPayment] = useState(null);
+
+    // Bulk Delete Selection States
+    const [selectedPaymentIds, setSelectedPaymentIds] = useState([]);
+    const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const toggleSelectPayment = (id) => {
+        setSelectedPaymentIds(prev => 
+            prev.includes(id) ? prev.filter(pId => pId !== id) : [...prev, id]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedPaymentIds.length === payments.length) {
+            setSelectedPaymentIds([]);
+        } else {
+            setSelectedPaymentIds(payments.map(p => p.id));
+        }
+    };
+
+    const handleConfirmDelete = async () => {
+        if (selectedPaymentIds.length === 0) return;
+        setIsDeleting(true);
+
+        try {
+            const res = await fetch('/api/admin/payments', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentIds: selectedPaymentIds })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                toast.success(data.message || `Successfully deleted ${selectedPaymentIds.length} payments.`);
+                setSelectedPaymentIds([]);
+                setIsDeleteOpen(false);
+                fetchPayments();
+            } else {
+                throw new Error(data.error || "Failed to delete payments.");
+            }
+        } catch (error) {
+            console.error("Error deleting payments:", error);
+            toast.error(error.message || "Failed to delete payments.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const fetchPayments = async () => {
         try {
@@ -267,6 +326,22 @@ export default function PaymentsPage() {
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="border-b border-border bg-muted/20">
+                                                <th className="pl-6 pr-2 py-4 w-10">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSelectAll}
+                                                        className={cn(
+                                                            "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                                                            selectedPaymentIds.length === payments.length && payments.length > 0
+                                                                ? "bg-primary border-primary text-primary-foreground"
+                                                                : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
+                                                        )}
+                                                    >
+                                                        {selectedPaymentIds.length === payments.length && payments.length > 0 && (
+                                                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                        )}
+                                                    </button>
+                                                </th>
                                                 <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground">User</th>
                                                 <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground">Test</th>
                                                 <th className="px-6 py-4 text-xs font-semibold uppercase text-muted-foreground">Amount</th>
@@ -280,10 +355,27 @@ export default function PaymentsPage() {
                                                     key={payment.id}
                                                     className={cn(
                                                         "hover:bg-muted/30 cursor-pointer transition-colors",
-                                                        selectedPayment?.id === payment.id && "bg-accent/50"
+                                                        selectedPayment?.id === payment.id && "bg-accent/50",
+                                                        selectedPaymentIds.includes(payment.id) && "bg-primary/5 hover:bg-primary/10"
                                                     )}
                                                     onClick={() => setSelectedPayment(payment)}
                                                 >
+                                                    <td className="pl-6 pr-2 py-4" onClick={(e) => e.stopPropagation()}>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => toggleSelectPayment(payment.id)}
+                                                            className={cn(
+                                                                "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                                                                selectedPaymentIds.includes(payment.id)
+                                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                                    : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
+                                                            )}
+                                                        >
+                                                            {selectedPaymentIds.includes(payment.id) && (
+                                                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                                            )}
+                                                        </button>
+                                                    </td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
@@ -339,29 +431,50 @@ export default function PaymentsPage() {
                             {payments.map((payment) => (
                                 <div
                                     key={payment.id}
-                                    className="bg-card border border-border rounded-xl p-4 shadow-sm"
+                                    className={cn(
+                                        "bg-card border rounded-xl p-4 shadow-sm flex gap-3 items-start transition-all",
+                                        selectedPaymentIds.includes(payment.id) ? "border-primary bg-primary/5 shadow-md" : "border-border"
+                                    )}
                                     onClick={() => setSelectedPayment(payment)}
                                 >
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                                                {payment.user.name?.charAt(0) || 'U'}
-                                            </div>
-                                            <div>
-                                                <h4 className="font-bold text-foreground">{payment.user?.name || 'Unknown User'}</h4>
-                                                <p className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), 'MMM dd, HH:mm')}</p>
-                                            </div>
-                                        </div>
-                                        <span className={cn(
-                                            "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
-                                            payment.status === 'CAPTURED' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                                        )}>
-                                            {payment.status}
-                                        </span>
+                                    <div className="pt-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                        <button
+                                            type="button"
+                                            onClick={() => toggleSelectPayment(payment.id)}
+                                            className={cn(
+                                                "w-5 h-5 rounded-md border flex items-center justify-center transition-all",
+                                                selectedPaymentIds.includes(payment.id)
+                                                    ? "bg-primary border-primary text-primary-foreground"
+                                                    : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
+                                            )}
+                                        >
+                                            {selectedPaymentIds.includes(payment.id) && (
+                                                <Check className="w-3.5 h-3.5 stroke-[3]" />
+                                            )}
+                                        </button>
                                     </div>
-                                    <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
-                                        <span className="text-sm font-medium truncate max-w-[150px]">{payment.test?.title || 'General Payment'}</span>
-                                        <span className="font-bold text-foreground">₹{payment.amount}</span>
+                                    <div className="flex-1">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                                                    {payment.user.name?.charAt(0) || 'U'}
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-bold text-foreground">{payment.user?.name || 'Unknown User'}</h4>
+                                                    <p className="text-xs text-muted-foreground">{format(new Date(payment.createdAt), 'MMM dd, HH:mm')}</p>
+                                                </div>
+                                            </div>
+                                            <span className={cn(
+                                                "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                                                payment.status === 'CAPTURED' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                                            )}>
+                                                {payment.status}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg">
+                                            <span className="text-sm font-medium truncate max-w-[150px]">{payment.test?.title || 'General Payment'}</span>
+                                            <span className="font-bold text-foreground">₹{payment.amount}</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -482,6 +595,84 @@ export default function PaymentsPage() {
                     </div>
                 )}
             </div>
+
+            {/* Delete Confirmation Dialog */}
+            <Dialog open={isDeleteOpen} onOpenChange={(open) => {
+                setIsDeleteOpen(open);
+            }}>
+                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                    <DialogHeader className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 bg-red-500/10 rounded-full text-red-500">
+                            <AlertTriangle className="size-8" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold tracking-tight">
+                            Delete Selected Payments
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-sm max-w-xs">
+                            Are you sure you want to permanently delete these {selectedPaymentIds.length} selected payment(s)? This action cannot be undone and will revoke test access for the associated users.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex gap-3 mt-4">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setIsDeleteOpen(false);
+                            }}
+                            className="flex-1 rounded-xl h-11 border-border font-bold text-sm"
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleConfirmDelete}
+                            className="flex-1 rounded-xl h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-sm gap-2"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <Trash2 className="size-4" />
+                                    Yes, Delete
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Selection Floating Actions Bar */}
+            {selectedPaymentIds.length > 0 && (
+                <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-card/90 backdrop-blur-md border border-border shadow-2xl rounded-2xl px-6 py-4 flex items-center gap-6 animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <span className="text-sm font-bold text-foreground shrink-0">
+                        {selectedPaymentIds.length} payment{selectedPaymentIds.length > 1 ? 's' : ''} selected
+                    </span>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="flex items-center gap-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedPaymentIds([])}
+                            className="rounded-xl border-border font-bold text-xs h-9 px-4"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => {
+                                setIsDeleteOpen(true);
+                            }}
+                            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs gap-1.5 h-9 px-4 shadow-lg shadow-red-600/10"
+                        >
+                            <Trash2 className="size-3.5" /> Delete Selected
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -87,3 +87,63 @@ export async function GET(request) {
         );
     }
 }
+
+export async function DELETE(request) {
+    const session = await auth();
+
+    if (!session || session.user.role !== 'ADMIN') {
+        return NextResponse.json(
+            { success: false, error: 'Unauthorized' },
+            { status: 401 }
+        );
+    }
+
+    try {
+        const { paymentIds } = await request.json();
+
+        if (!Array.isArray(paymentIds) || paymentIds.length === 0) {
+            return NextResponse.json(
+                { success: false, error: 'Invalid or empty paymentIds list.' },
+                { status: 400 }
+            );
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // Unlink paymentId from TestAttempt
+            await tx.testAttempt.updateMany({
+                where: {
+                    paymentId: { in: paymentIds }
+                },
+                data: {
+                    paymentId: null
+                }
+            });
+
+            // Revoke TestAccess by deleting the records associated with these paymentIds
+            await tx.testAccess.deleteMany({
+                where: {
+                    paymentId: { in: paymentIds }
+                }
+            });
+
+            // Delete the payments
+            await tx.payment.deleteMany({
+                where: {
+                    id: { in: paymentIds }
+                }
+            });
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: `Successfully deleted ${paymentIds.length} payment(s).`
+        });
+
+    } catch (error) {
+        console.error('Error deleting payments:', error);
+        return NextResponse.json(
+            { success: false, error: 'Failed to delete payments.' },
+            { status: 500 }
+        );
+    }
+}
