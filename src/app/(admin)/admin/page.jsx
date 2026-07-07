@@ -99,15 +99,21 @@ export default function AdminDashboard() {
   const { data: session } = useSession();
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefetching, setIsRefetching] = useState(false);
   const [error, setError] = useState(null);
+  const [range, setRange] = useState('month');
 
   const adminName = session?.user?.name || 'Admin';
 
   useEffect(() => {
     async function fetchDashboardData() {
       try {
-        setIsLoading(true);
-        const response = await fetch('/api/admin/dashboard');
+        if (data) {
+          setIsRefetching(true);
+        } else {
+          setIsLoading(true);
+        }
+        const response = await fetch(`/api/admin/dashboard?range=${range}`);
         if (!response.ok) {
           console.error('API Fetch failed with status:', response.status);
           const text = await response.text();
@@ -127,11 +133,12 @@ export default function AdminDashboard() {
         setError(err.message);
       } finally {
         setIsLoading(false);
+        setIsRefetching(false);
       }
     }
 
     fetchDashboardData();
-  }, []);
+  }, [range]);
 
   const stats = [
     {
@@ -139,7 +146,7 @@ export default function AdminDashboard() {
       value: data?.stats?.totalUsers || 0,
       icon: <Users className="h-5 w-5" />,
       color: 'bg-primary/10 text-primary',
-      trend: data?.stats?.newStudentsThisMonth > 0 ? `+${data.stats.newStudentsThisMonth} this month` : 'No new users'
+      trend: data?.stats?.newStudentsThisMonth > 0 ? `+${data.stats.newStudentsThisMonth} this ${range}` : `No new users this ${range}`
     },
     {
       label: 'Active Students',
@@ -199,14 +206,39 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="max-w-[1200px] mx-auto flex flex-col gap-6">
+    <div className="max-w-[1200px] mx-auto flex flex-col gap-6 relative">
+      {isRefetching && (
+        <div className="absolute inset-0 bg-background/40 backdrop-blur-[1px] z-50 flex items-center justify-center rounded-xl">
+          <div className="bg-card border border-border px-4 py-3 rounded-xl shadow-xl flex items-center gap-2.5">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
+            <span className="text-xs font-bold text-foreground">Updating stats...</span>
+          </div>
+        </div>
+      )}
+
       {/* Page Heading */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard Overview</h1>
           <p className="text-muted-foreground mt-1">Welcome back, {adminName}. Here&apos;s what&apos;s happening with your platform today.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Segmented Range Selector */}
+          <div className="flex p-1 bg-muted rounded-xl border border-border">
+            {['week', 'month', 'year'].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all capitalize select-none cursor-pointer ${
+                  range === r
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {r === 'week' ? 'This Week' : r === 'month' ? 'This Month' : 'This Year'}
+              </button>
+            ))}
+          </div>
           <Button variant="outline" className="bg-background dark:bg-surface-dark border-border hover:bg-accent text-foreground text-sm font-medium rounded-lg px-5 py-2.5 transition-all hover:-translate-y-0.5 active:scale-95">
             Generate Report
           </Button>

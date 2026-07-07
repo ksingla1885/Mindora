@@ -18,7 +18,7 @@ export async function GET(request) {
     const range = searchParams.get('range') || 'month';
 
     // Get dashboard data using our service
-    const dashboardData = await getDashboardOverview();
+    const dashboardData = await getDashboardOverview(range);
 
     // Fetch recent tests and users specifically for the dashboard widgets
     const [recentTests, recentUsers] = await Promise.all([

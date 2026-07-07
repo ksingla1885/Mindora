@@ -25,8 +25,8 @@ export function getDateRange(period = 'month') {
 }
 
 // Get dashboard overview statistics
-export async function getDashboardOverview() {
-  const { startDate, endDate } = getDateRange('month');
+export async function getDashboardOverview(period = 'month') {
+  const { startDate, endDate } = getDateRange(period);
 
   const [
     totalStudents,
