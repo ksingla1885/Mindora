@@ -19,7 +19,8 @@ import {
     Loader2,
     Copy,
     AlertTriangle,
-    Check
+    Check,
+    Folder
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -64,6 +65,31 @@ export default function QuestionManagementPage() {
     const [isBulkDeleting, setIsBulkDeleting] = useState(false);
     const [isBulkUsedInTests, setIsBulkUsedInTests] = useState(false);
 
+    // CSV Import Grouping Dialog States
+    const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+    const [importFileName, setImportFileName] = useState('');
+    const [importFolderName, setImportFolderName] = useState('');
+    const [importQuestionsData, setImportQuestionsData] = useState([]);
+    const [shouldGroupInFolder, setShouldGroupInFolder] = useState(true);
+    const [isImporting, setIsImporting] = useState(false);
+
+    // Folder Filter State
+    const [selectedSubject, setSelectedSubject] = useState('All');
+
+    const filteredQuestions = questions.filter(q => {
+        const matchesSearch = !searchQuery ||
+            q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (q.topic?.name && q.topic.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (q.topic?.subject?.name && q.topic.subject.name.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        const matchesSubject = selectedSubject === 'All' || 
+            q.topic?.subject?.name === selectedSubject;
+            
+        return matchesSearch && matchesSubject;
+    });
+
+    const subjectsList = ['All', ...new Set(questions.map(q => q.topic?.subject?.name).filter(Boolean))];
+
     const toggleSelectQuestion = (id) => {
         setSelectedQuestionIds(prev => 
             prev.includes(id) ? prev.filter(qId => qId !== id) : [...prev, id]
@@ -71,10 +97,10 @@ export default function QuestionManagementPage() {
     };
 
     const handleSelectAll = () => {
-        if (selectedQuestionIds.length === questions.length) {
+        if (selectedQuestionIds.length === filteredQuestions.length) {
             setSelectedQuestionIds([]);
         } else {
-            setSelectedQuestionIds(questions.map(q => q.id));
+            setSelectedQuestionIds(filteredQuestions.map(q => q.id));
         }
     };
 
@@ -255,7 +281,7 @@ export default function QuestionManagementPage() {
     const fetchQuestions = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch('/api/questions?limit=100'); // Increased limit for now
+            const res = await fetch('/api/questions?limit=1000'); // Increased limit for now
             const data = await res.json();
             if (data.success) {
                 setQuestions(data.data);
@@ -336,9 +362,27 @@ export default function QuestionManagementPage() {
 
         const reader = new FileReader();
         reader.onload = async (event) => {
-            const text = event.target.result;
+            let text = event.target.result;
             try {
-                // Robust CSV parsing function that handles quotes, escaped quotes (""), commas, and newlines in cells
+                // Strip UTF-8 Byte Order Mark (BOM) if present
+                if (text.startsWith('\uFEFF')) {
+                    text = text.substring(1);
+                }
+
+                // Detect delimiter (comma, semicolon, or tab)
+                const firstLine = text.split(/\r?\n/)[0] || '';
+                const commaCount = (firstLine.match(/,/g) || []).length;
+                const semiCount = (firstLine.match(/;/g) || []).length;
+                const tabCount = (firstLine.match(/\t/g) || []).length;
+                
+                let delimiter = ',';
+                if (semiCount > commaCount && semiCount > tabCount) {
+                    delimiter = ';';
+                } else if (tabCount > commaCount && tabCount > semiCount) {
+                    delimiter = '\t';
+                }
+
+                // Robust CSV parsing function that handles quotes, escaped quotes (""), custom delimiters, and newlines in cells
                 const parseCSV = (csvText) => {
                     let p = '', c = '', r = [];
                     let q = false;
@@ -353,7 +397,7 @@ export default function QuestionManagementPage() {
                             } else {
                                 q = !q;
                             }
-                        } else if (c === ',' && !q) {
+                        } else if (c === delimiter && !q) {
                             row.push('');
                         } else if ((c === '\r' || c === '\n') && !q) {
                             if (c === '\r' && next === '\n') {
@@ -361,6 +405,7 @@ export default function QuestionManagementPage() {
                             }
                             r.push(row);
                             row = [''];
+                            q = false;
                         } else {
                             row[row.length - 1] += c;
                         }
@@ -376,8 +421,8 @@ export default function QuestionManagementPage() {
                     throw new Error("File empty or invalid: Need at least a header row and one data row.");
                 }
 
-                // Match header names case-insensitively
-                const headers = csvRows[0].map(h => h.trim().toLowerCase());
+                // Match header names case-insensitively, clearing any zero-width markers
+                const headers = csvRows[0].map(h => h.trim().replace(/^[\uFEFF\u200B]+/g, '').toLowerCase());
                 
                 const textIndex = headers.findIndex(h => ['text', 'question', 'question text', 'question_text'].includes(h));
                 const typeIndex = headers.findIndex(h => ['type', 'question type', 'question_type'].includes(h));
@@ -457,46 +502,83 @@ export default function QuestionManagementPage() {
                     throw new Error("No valid questions found to import.");
                 }
 
-                toast({ title: "Importing...", description: `Sending ${questionsToImport.length} questions to server...` });
-
-                const res = await fetch('/api/questions/bulk', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ questions: questionsToImport })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    if (data.failedCount === 0) {
-                        toast({
-                            title: "Import Successful",
-                            description: `Successfully imported all ${data.importedCount} questions.`
-                        });
-                    } else {
-                        toast({
-                            variant: "destructive",
-                            title: "Import Partially Completed",
-                            description: `Successfully imported ${data.importedCount} questions. ${data.failedCount} failed. Please verify console for errors.`
-                        });
-                        console.warn("Bulk import errors:", data.errors);
-                    }
-                    fetchQuestions();
-                } else {
-                    throw new Error(data.error || "Server rejected the bulk import.");
-                }
+                // Show dynamic intermediate Group Import folder confirmation dialog
+                setImportQuestionsData(questionsToImport);
+                setImportFileName(file.name);
+                setImportFolderName(file.name.replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim()); // Format filename as a nice folder name
+                setShouldGroupInFolder(true);
+                setIsImportDialogOpen(true);
 
             } catch (err) {
-                console.error("Bulk import failed:", err);
+                console.error("Bulk import parsing failed:", err);
                 toast({
                     variant: "destructive",
-                    title: "Import Failed",
-                    description: err.message || "Invalid CSV format or network issue."
+                    title: "Import Parsing Failed",
+                    description: err.message || "Invalid CSV format."
                 });
             }
         };
         reader.readAsText(file);
-        // Reset input
+        // Reset file input element value
         e.target.value = '';
+    };
+
+    const handleConfirmImport = async () => {
+        if (importQuestionsData.length === 0) return;
+        setIsImporting(true);
+
+        try {
+            const finalFolderName = importFolderName.trim() || 'General';
+            const questions = importQuestionsData.map(q => {
+                if (shouldGroupInFolder) {
+                    return {
+                        ...q,
+                        subject: finalFolderName,
+                        topic: q.topic || 'General'
+                    };
+                }
+                return q;
+            });
+
+            toast({ title: "Importing...", description: `Sending ${questions.length} questions to server...` });
+
+            const res = await fetch('/api/questions/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ questions })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                if (data.failedCount === 0) {
+                    toast({
+                        title: "Import Successful",
+                        description: `Successfully imported all ${data.importedCount} questions under Subject "${finalFolderName}".`
+                    });
+                } else {
+                    toast({
+                        variant: "destructive",
+                        title: "Import Partially Completed",
+                        description: `Successfully imported ${data.importedCount} questions under Subject "${finalFolderName}". ${data.failedCount} failed.`
+                    });
+                    console.warn("Bulk import errors:", data.errors);
+                }
+                setIsImportDialogOpen(false);
+                setImportQuestionsData([]);
+                fetchQuestions();
+            } else {
+                throw new Error(data.error || "Server rejected the bulk import.");
+            }
+        } catch (err) {
+            console.error("Bulk import failed:", err);
+            toast({
+                variant: "destructive",
+                title: "Import Failed",
+                description: err.message || "Failed to process import."
+            });
+        } finally {
+            setIsImporting(false);
+        }
     };
 
     // AI Generation
@@ -677,7 +759,46 @@ export default function QuestionManagementPage() {
                             </div>
                         </div>
                     ) : (
-                        <div className="space-y-4 pt-4">
+                        <div className="space-y-6 pt-4">
+                            {/* Folder Navigation Tabs */}
+                            <div className="flex items-center gap-2 overflow-x-auto pb-3 pt-1 scrollbar-none border-b border-border/50">
+                                {subjectsList.map(subj => {
+                                    const count = subj === 'All' 
+                                        ? questions.length 
+                                        : questions.filter(q => q.topic?.subject?.name === subj).length;
+                                    const isSelected = selectedSubject === subj;
+                                    
+                                    return (
+                                        <button
+                                            key={subj}
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedSubject(subj);
+                                                setSelectedQuestionIds([]); // clear selection when switching folders
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2 px-4 py-2.5 rounded-xl border font-bold text-xs shrink-0 transition-all shadow-sm",
+                                                isSelected
+                                                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/15"
+                                                    : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                                            )}
+                                        >
+                                            <Folder className={cn("size-3.5", isSelected ? "text-white" : "text-primary/70")} />
+                                            <span>{subj}</span>
+                                            <Badge 
+                                                variant="secondary" 
+                                                className={cn(
+                                                    "rounded-lg font-black text-[9px] px-1.5 py-0.5 border-none",
+                                                    isSelected ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                                                )}
+                                            >
+                                                {count}
+                                            </Badge>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
                             {/* Selection Toolbar */}
                             <div className="flex items-center justify-between p-4 rounded-xl bg-card border border-border/80 shadow-sm">
                                 <div className="flex items-center gap-3">
@@ -686,32 +807,27 @@ export default function QuestionManagementPage() {
                                         onClick={handleSelectAll}
                                         className={cn(
                                             "size-5 rounded-md border flex items-center justify-center transition-all",
-                                            selectedQuestionIds.length === questions.length && questions.length > 0
+                                            selectedQuestionIds.length === filteredQuestions.length && filteredQuestions.length > 0
                                                 ? "bg-primary border-primary text-primary-foreground"
                                                 : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-background"
                                         )}
                                     >
-                                        {selectedQuestionIds.length === questions.length && questions.length > 0 && (
+                                        {selectedQuestionIds.length === filteredQuestions.length && filteredQuestions.length > 0 && (
                                             <Check className="size-3.5 stroke-[3]" />
                                         )}
                                     </button>
                                     <span className="text-sm font-semibold text-foreground">
-                                        Select All Questions on this Page ({questions.length})
+                                        Select All Questions on this Page ({filteredQuestions.length})
                                     </span>
                                 </div>
                                 {selectedQuestionIds.length > 0 && (
                                     <span className="text-xs text-muted-foreground font-bold">
-                                        {selectedQuestionIds.length} of {questions.length} selected
+                                        {selectedQuestionIds.length} of {filteredQuestions.length} selected
                                     </span>
                                 )}
                             </div>
 
-                            {questions
-                                .filter(q =>
-                                    !searchQuery ||
-                                    q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                                    (q.topic?.name && q.topic.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                )
+                            {filteredQuestions
                                 .map((q, i) => (
                                     <motion.div
                                         key={q.id}
@@ -1121,6 +1237,96 @@ export default function QuestionManagementPage() {
                     </div>
                 </div>
             )}
+
+            {/* CSV Import Grouping Dialog */}
+            <Dialog open={isImportDialogOpen} onOpenChange={(open) => {
+                setIsImportDialogOpen(open);
+                if (!open) {
+                    setImportQuestionsData([]);
+                }
+            }}>
+                <DialogContent className="sm:max-w-md bg-card border-border text-foreground">
+                    <DialogHeader className="flex flex-col items-center text-center space-y-3">
+                        <div className="p-3 bg-primary/10 rounded-full text-primary animate-pulse">
+                            <Upload className="size-8" />
+                        </div>
+                        <DialogTitle className="text-xl font-bold tracking-tight">
+                            Import CSV Questions
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground text-sm max-w-xs">
+                            Detected {importQuestionsData.length} question(s) in <span className="font-bold text-foreground">"{importFileName}"</span>.
+                        </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="space-y-4 my-4 p-4 rounded-xl bg-muted/30 border border-border/60">
+                        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setShouldGroupInFolder(!shouldGroupInFolder)}>
+                            <button
+                                type="button"
+                                className={cn(
+                                    "size-5 rounded-md border flex items-center justify-center transition-all shrink-0",
+                                    shouldGroupInFolder
+                                        ? "bg-primary border-primary text-primary-foreground"
+                                        : "border-muted-foreground/30 bg-background"
+                                )}
+                            >
+                                {shouldGroupInFolder && <Check className="size-3.5 stroke-[3]" />}
+                            </button>
+                            <span className="text-sm font-semibold text-foreground select-none">
+                                Group questions into a folder (Subject)
+                            </span>
+                        </div>
+
+                        {shouldGroupInFolder && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                <Label htmlFor="importFolderName" className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                    Folder (Subject) Name
+                                </Label>
+                                <Input
+                                    id="importFolderName"
+                                    value={importFolderName}
+                                    onChange={(e) => setImportFolderName(e.target.value)}
+                                    placeholder="Enter folder/subject name"
+                                    className="rounded-xl border-border h-11"
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    Grouping questions under this Subject acts like a virtual folder. You will be able to filter by this Subject in the Question Bank.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-3">
+                        <Button 
+                            variant="outline" 
+                            onClick={() => {
+                                setIsImportDialogOpen(false);
+                                setImportQuestionsData([]);
+                            }}
+                            className="flex-1 rounded-xl h-11 border-border font-bold text-sm"
+                            disabled={isImporting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button 
+                            onClick={handleConfirmImport}
+                            className="flex-1 rounded-xl h-11 bg-primary hover:bg-blue-600 text-white font-bold text-sm gap-2"
+                            disabled={isImporting || (shouldGroupInFolder && !importFolderName.trim())}
+                        >
+                            {isImporting ? (
+                                <>
+                                    <Loader2 className="size-4 animate-spin" />
+                                    Importing...
+                                </>
+                            ) : (
+                                <>
+                                    <Upload className="size-4" />
+                                    Confirm Import
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
