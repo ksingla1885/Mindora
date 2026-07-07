@@ -9,7 +9,10 @@ import {
   DollarSign,
   BarChart3,
   Calendar,
-  Loader2
+  Loader2,
+  PlusCircle,
+  UploadCloud,
+  Banknote
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -580,22 +583,27 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        <div className="col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-foreground">Upcoming Olympiads</h3>
+        <div className="col-span-1 p-6 rounded-xl bg-card border border-border shadow-sm flex flex-col h-full">
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+            <p className="text-sm text-muted-foreground">Common administrative operations</p>
           </div>
-          <div className="flex flex-col items-center justify-center py-8">
-            <div className="p-4 bg-secondary/20 rounded-full mb-4">
-              <Calendar className="h-12 w-12 text-muted-foreground" />
-            </div>
-            <h4 className="text-base font-semibold text-foreground mb-2">No upcoming tests</h4>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              Schedule your first test to get started.
-            </p>
-            <Link href="/admin/tests/new" className="w-full">
-              <Button variant="outline" className="w-full py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground border-dashed border-border rounded-lg transition-all hover:border-primary/50 cursor-pointer active:scale-95">
-                + Schedule New Test
-              </Button>
+          <div className="grid grid-cols-2 gap-3 flex-1">
+            <Link href="/admin/tests/new" className="flex flex-col items-center justify-center p-4 rounded-xl border border-blue-500/10 bg-blue-500/5 hover:bg-blue-500/10 hover:border-blue-500/30 text-blue-500 hover:text-blue-600 transition-all text-center group active:scale-95">
+              <PlusCircle className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-foreground">Create Test</span>
+            </Link>
+            <Link href="/admin/questions" className="flex flex-col items-center justify-center p-4 rounded-xl border border-purple-500/10 bg-purple-500/5 hover:bg-purple-500/10 hover:border-purple-500/30 text-purple-500 hover:text-purple-600 transition-all text-center group active:scale-95">
+              <UploadCloud className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-foreground">Upload CSV</span>
+            </Link>
+            <Link href="/admin/payments" className="flex flex-col items-center justify-center p-4 rounded-xl border border-emerald-500/10 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/30 text-emerald-500 hover:text-emerald-600 transition-all text-center group active:scale-95">
+              <Banknote className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-foreground">Payments</span>
+            </Link>
+            <Link href="/admin/analytics" className="flex flex-col items-center justify-center p-4 rounded-xl border border-amber-500/10 bg-amber-500/5 hover:bg-amber-500/10 hover:border-amber-500/30 text-amber-500 hover:text-amber-600 transition-all text-center group active:scale-95">
+              <BarChart3 className="w-6 h-6 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-xs font-bold text-foreground">Analytics</span>
             </Link>
           </div>
         </div>
