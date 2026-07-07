@@ -231,6 +231,56 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {/* Recent Users Avatar Stack */}
+      {data?.recentUsers?.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-card border border-border shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex -space-x-3 overflow-hidden">
+              {data.recentUsers.map((user) => {
+                const initials = user.name
+                  ?.split(' ')
+                  ?.filter(Boolean)
+                  ?.map((n) => n[0])
+                  ?.join('')
+                  ?.toUpperCase()
+                  ?.slice(0, 2) || 'U';
+                return (
+                  <div
+                    key={user.id}
+                    className="inline-block h-9 w-9 rounded-full ring-2 ring-card bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0 select-none cursor-help relative"
+                    title={`${user.name || user.email} (Joined ${new Date(user.createdAt).toLocaleDateString()})`}
+                  >
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt={user.name || 'User'}
+                        className="h-full w-full rounded-full object-cover"
+                      />
+                    ) : (
+                      initials
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                Recent Signups
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {data.recentUsers.length} new student{data.recentUsers.length > 1 ? 's' : ''} joined the platform recently.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/users"
+            className="text-xs font-bold text-primary hover:text-primary-hover flex items-center gap-1.5 transition-colors self-start sm:self-center bg-primary/5 hover:bg-primary/10 px-3.5 py-1.5 rounded-lg"
+          >
+            Manage Users &rarr;
+          </Link>
+        </div>
+      )}
+
       {/* Charts Section — 3 equal-width columns */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
