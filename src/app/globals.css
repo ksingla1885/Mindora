@@ -207,4 +207,14 @@
   .glass {
     @apply bg-white/10 backdrop-blur-lg border border-white/20 dark:bg-black/20 dark:border-white/10;
   }
+
+  /* Hide scrollbar on landing page while keeping scroll functional */
+  html.no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  html.no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 }

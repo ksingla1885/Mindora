@@ -919,7 +919,22 @@ const Footer = () => {
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    const html = document.documentElement;
+    const prev = html.style.cssText;
+    html.style.setProperty("scrollbar-width", "none");
+    html.style.setProperty("-ms-overflow-style", "none");
+    // Inject a style tag for webkit
+    const style = document.createElement("style");
+    style.id = "landing-no-scrollbar";
+    style.textContent = "html::-webkit-scrollbar { display: none !important; }";
+    document.head.appendChild(style);
+    return () => {
+      html.style.cssText = prev;
+      document.getElementById("landing-no-scrollbar")?.remove();
+    };
+  }, []);
 
   if (!mounted) return null;
 
