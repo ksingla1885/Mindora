@@ -51,6 +51,7 @@ model User {
   xpHistory             XPHistory[]
   testAccess            TestAccess[]
   doubtSessions         AIDoubtSession[]
+  notifications         Notification[]
 
   @@index([createdAt])
   @@index([role, createdAt])
@@ -980,4 +981,23 @@ model AIDoubtMessage {
   @@index([sessionId])
   @@map("ai_doubt_messages")
 }
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  data      Json?
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
 

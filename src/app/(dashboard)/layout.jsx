@@ -6,7 +6,9 @@ import { MainNav } from "@/components/main-nav";
 
 import { redirect, useSearchParams, usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, Bell, Menu, BookOpen, X } from "lucide-react";
+import { Search, Menu, BookOpen, X } from "lucide-react";
+import NotificationDropdown from "@/components/notifications/NotificationDropdown";
+import ProfileDropdown from "@/components/profile/ProfileDropdown";
 import { Button } from "@/components/ui/button";
 
 export default function DashboardLayout({ children }) {
@@ -156,31 +158,10 @@ export default function DashboardLayout({ children }) {
 
                     {/* Right Actions */}
                     <div className="flex items-center gap-4 ml-auto">
-                        <button className="relative rounded-full bg-[#f0f2f4] p-2 text-[#616f89] hover:text-primary transition-colors dark:bg-[#1f2937] dark:text-white" suppressHydrationWarning>
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-                        </button>
+                        <NotificationDropdown />
 
-                        <div className="flex items-center gap-3 pl-4 border-l border-[#e5e7eb] dark:border-[#333]">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-sm font-semibold text-foreground">
-                                    {session?.user?.name || "Student"}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    {session?.user?.class
-                                        ? `Class ${session.user.class}`
-                                        : (session?.user?.role
-                                            ? session.user.role.charAt(0).toUpperCase() + session.user.role.slice(1).toLowerCase()
-                                            : 'Student')}
-                                </p>
-                            </div>
-                            <div className="h-10 w-10 overflow-hidden rounded-full border border-[#e5e7eb] shrink-0">
-                                <img
-                                    alt="Profile"
-                                    className="h-full w-full object-cover"
-                                    src={session?.user?.image || "https://lh3.googleusercontent.com/aida-public/AB6AXuC0YT5nhftwsOfovnhrb11Wqm_bKO9g85B0QGT2j4TFdfYADrM5HAInhgDCbcx6mvHc0qqwQuo9gzMK_4kC12EDCK_V6MN0TlvmuVp7Pr0CwVs0PX2Bm6RAgx6kjVfJueqQa9JM1sCeWPYXr-y3ssDYe1LP1LUorNYmUtGRm1zpz4yHw6tmrACnFx2_GKCdBpHB9specw94pk8yxs_LY1bg2686Ndyi1M_nJELAkdFwzt2Gp9LhOVUxRZqO1RPtcLVV4pCB4i5HbEuo"}
-                                />
-                            </div>
+                        <div className="pl-4 border-l border-[#e5e7eb] dark:border-[#333]">
+                            <ProfileDropdown session={session} />
                         </div>
                     </div>
                 </header>
