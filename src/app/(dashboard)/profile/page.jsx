@@ -132,9 +132,9 @@ export default function ProfilePage() {
                                         <label className="text-sm font-medium text-muted-foreground">Class / Grade</label>
                                         <div className="relative">
                                             <select
-                                                className="w-full rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary px-4 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-foreground appearance-none transition-all"
+                                                className="w-full rounded-lg border border-input bg-muted/20 text-sm px-4 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-foreground appearance-none transition-all"
                                                 value={formData.class}
-                                                disabled={!isEditing}
+                                                disabled={true}
                                                 onChange={(e) => setFormData({ ...formData, class: e.target.value })}
                                             >
                                                 <option value="9">Class 9</option>
@@ -142,7 +142,7 @@ export default function ProfilePage() {
                                                 <option value="11">Class 11</option>
                                                 <option value="12">Class 12</option>
                                             </select>
-                                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rotate-90 pointer-events-none" />
+                                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
                                         </div>
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
