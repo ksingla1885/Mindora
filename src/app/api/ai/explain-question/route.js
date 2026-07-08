@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { cache } from '@/lib/redis-utils';
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
+import { fetchGroq } from '@/lib/ai';
 
 export async function POST(request) {
   try {
@@ -46,9 +44,8 @@ export async function POST(request) {
     }
 
     // Construct the prompt with real data
-    const prompt = `System Instruction: You are a helpful tutor. Explain the question and answer in a clear, educational way.
-
-Topic: ${question.topic?.name || 'General'}
+    const systemPrompt = `You are a helpful tutor. Explain the question and answer in a clear, educational way.`;
+    const userPrompt = `Topic: ${question.topic?.name || 'General'}
 Question: ${question.text}
 Options: ${question.options ? JSON.stringify(question.options) : 'N/A'}
 Correct Answer: ${question.correctAnswer || 'Hidden'}
@@ -56,42 +53,31 @@ User's Answer: ${userAnswer || 'Not answered'}
 
 Provide a detailed, educational explanation suitable for a student.`;
 
-    // Check if API key is configured
-    const apiKey = process.env.GEMINI_API_KEY;
-    const isMock = !apiKey;
-
     let explanation;
 
-    if (isMock) {
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    const groqRes = await fetchGroq(messages, { temperature: 0.5, maxOutputTokens: 500 });
+
+    if (!groqRes) {
       explanation = `[Simulated Explanation]
        
-This is a mock explanation because the Gemini API key is not configured.
+This is a mock explanation because the Groq API key is not configured.
        
 The correct answer is correct because it matches the definition provided in the study materials.
        
 Concept: ${question.topic?.name || 'General Knowledge'}
 Key Point: Understanding this concept is crucial for solving similar problems.`;
     } else {
-      const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: prompt }] }
-          ],
-          generationConfig: {
-            temperature: 0.5,
-            maxOutputTokens: 500,
-          },
-        }),
-      });
-
-      if (!geminiRes.ok) {
-        throw new Error('Gemini API request failed');
+      if (!groqRes.ok) {
+        throw new Error('Groq API request failed');
       }
 
-      const data = await geminiRes.json();
-      explanation = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const data = await groqRes.json();
+      explanation = data?.choices?.[0]?.message?.content ?? '';
     }
 
     // Store in cache for 24 hours (86400 seconds)

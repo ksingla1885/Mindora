@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
+import { fetchGroq } from '@/lib/ai';
 
 export async function GET(request) {
   try {
@@ -14,13 +12,22 @@ export async function GET(request) {
     const userId = searchParams.get('userId');
     const testId = searchParams.get('testId');
 
-    // Check if API key is configured
-    const apiKey = process.env.GEMINI_API_KEY;
-    const isMock = !apiKey;
-
     let tips;
 
-    if (isMock) {
+    // In a real scenario, we would fetch user history and test performance
+    const systemPrompt = `You are a helpful study coach.`;
+    const userPrompt = `Generate 3-5 personalized study tips for a student who just completed a test. 
+Focus on general study habits and test-taking strategies.`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 300 });
+
+    if (!groqRes) {
+      // Mock tips if API key is missing
       tips = [
         "Review your incorrect answers to understand your mistakes.",
         "Focus on the concepts where you scored below 50%.",
@@ -28,32 +35,12 @@ export async function GET(request) {
         "Practice with similar questions to reinforce your learning."
       ];
     } else {
-      // In a real scenario, we would fetch user history and test performance
-      const prompt = `System Instruction: You are a helpful study coach.
-      
-Generate 3-5 personalized study tips for a student who just completed a test. 
-Focus on general study habits and test-taking strategies.`;
-
-      const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: prompt }] }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 300,
-          },
-        }),
-      });
-
-      if (!geminiRes.ok) {
-        throw new Error('Gemini API request failed');
+      if (!groqRes.ok) {
+        throw new Error('Groq API request failed');
       }
 
-      const data = await geminiRes.json();
-      const content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const data = await groqRes.json();
+      const content = data?.choices?.[0]?.message?.content ?? '';
       tips = content.split('\n').filter(line => line.trim().length > 0).map(line => line.replace(/^\d+[.)]\s*/, '').trim());
     }
 

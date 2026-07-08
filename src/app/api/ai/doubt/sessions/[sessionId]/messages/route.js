@@ -1,37 +1,32 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import prisma from '@/lib/prisma';
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
+import { fetchGroq } from '@/lib/ai';
 
 const SYSTEM_INSTRUCTION =
   "You are Mindora AI, a helpful and encouraging tutor for students preparing for Olympiads (NSO, IMO, Mathematics, Science, etc.). " +
+  "CRITICAL RULE: You must ONLY answer questions related to mathematics, science, education, Olympiads, or the Mindora platform. " +
+  "If the user asks about ANY unrelated topics (like weather, general knowledge outside syllabus, current events, coding, pop culture, etc.), you MUST politely decline and remind them that you are only here to help with their studies. " +
   "Answer questions concisely and provide step-by-step explanations for problems. " +
   "Use Markdown and clean LaTeX math notation (e.g., $$x^2 + y^2 = z^2$$ or $$E = mc^2$$) when explaining mathematical or scientific formulas so they render beautifully. " +
   "If an image is provided, examine it carefully to solve the question inside the image. Be friendly, encouraging, and motivating.";
 
-// Helper: Download a public image URL and convert to Gemini base64 inlineData
-async function downloadImageAsBase64(url) {
+// Helper: Download a public image URL and convert to data URL for Groq Vision
+async function downloadImageAsDataUrl(url) {
   try {
     const response = await fetch(url);
     if (!response.ok) return null;
     const arrayBuffer = await response.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const contentType = response.headers.get('content-type') || 'image/jpeg';
-    return {
-      inlineData: {
-        mimeType: contentType,
-        data: buffer.toString('base64'),
-      },
-    };
+    return `data:${contentType};base64,${buffer.toString('base64')}`;
   } catch (error) {
-    console.error('Failed to convert image to base64:', error);
+    console.error('Failed to convert image to data URL:', error);
     return null;
   }
 }
 
-// Helper: Generate structured mock replies when GEMINI_API_KEY is missing or rate-limited
+// Helper: Generate structured mock replies when GROQ API key is missing or rate-limited
 function generateMockResponse(userQuery) {
   const query = userQuery.trim();
   const lowerQuery = query.toLowerCase();
@@ -68,7 +63,7 @@ An equilateral triangle is a triangle in which all three sides are equal.
 If the side length of the triangle is $$s = 4\\text{ cm}$$, the area is:
 $$\\text{Area} = \\frac{\\sqrt{3}}{4} \\cdot 4^2 = 4\\sqrt{3} \\approx 6.93\\text{ cm}^2$$
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('circle')) {
@@ -89,7 +84,7 @@ For a circle of radius $$r$$:
 If the radius of the circle is $$r = 7\\text{ cm}$$ and we use $$\\pi \\approx \\frac{22}{7}$$:
 $$\\text{Circumference} = 2 \\cdot \\frac{22}{7} \\cdot 7 = 44\\text{ cm}$$
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('quadratic') || lowerQuery.includes('roots')) {
@@ -107,7 +102,7 @@ $$ax^2 + bx + c = 0$$
   * If $$D = 0$$: One real root (repeated).
   * If $$D < 0$$: Two complex conjugate roots.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   // 2. SCIENCE SPECIFIC TRIGGERS
@@ -127,7 +122,7 @@ $$ax^2 + bx + c = 0$$
 - **Acceleration due to gravity ($$g$$):**
   On Earth's surface, $$g \\approx 9.8\\text{ m/s}^2$$.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('photosynthesis')) {
@@ -144,7 +139,7 @@ $$ax^2 + bx + c = 0$$
   3. **Light:** Captured by chlorophyll pigments in chloroplasts.
   4. **Glucose ($$\\text{C}_6\\text{H}_{12}\\text{O}_6$$):** Used by the plant as food/energy.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   // 3. GENERIC MATH/FORMULA GENERATOR
@@ -171,7 +166,7 @@ Let's explore the mathematical formula or solution for **${cleanTopic}**:
 
 Would you like to try a specific practice question on **${cleanTopic}**? Let me know the exact parameters!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   // 4. GENERIC SCIENCE/CONCEPT GENERATOR
@@ -187,7 +182,7 @@ Let's understand **${cleanTopic}** clearly:
 
 If you have a specific numerical question or sub-topic related to **${cleanTopic}**, paste it here and we can solve it step-by-step!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
   }
 
   // 5. DEFAULT MOTIVATING FALLBACK
@@ -203,7 +198,7 @@ To help me give you a detailed walkthrough:
 
 Let me know what you'd like to work on next!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Gemini API key has no remaining quota or is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
 }
 
 // POST /api/ai/doubt/sessions/[sessionId]/messages - Send a doubt message
@@ -254,96 +249,69 @@ export async function POST(request, { params }) {
       },
     });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-
-    // Use mock mode if API key is not set
-    if (!apiKey) {
-      const mockText = generateMockResponse(content || '');
-      const assistantMessage = await prisma.aIDoubtMessage.create({
-        data: {
-          sessionId,
-          role: 'assistant',
-          content: mockText,
-        },
-      });
-
-      // Update session's updatedAt time
-      await prisma.aIDoubtSession.update({
-        where: { id: sessionId },
-        data: { updatedAt: new Date() },
-      });
-
-      return NextResponse.json({
-        success: true,
-        userMessage,
-        assistantMessage,
-      });
-    }
-
-    // 3. Prepare Gemini API parts (multimodal user prompts + text context)
-    const contents = [
-      { role: 'user', parts: [{ text: SYSTEM_INSTRUCTION }] },
-      { role: 'model', parts: [{ text: 'Understood! I am Mindora AI, ready to tutor the student.' }] },
+    // 3. Prepare Groq API Messages
+    const messages = [
+      { role: 'system', content: SYSTEM_INSTRUCTION },
+      { role: 'assistant', content: 'Understood! I am Mindora AI, ready to tutor the student.' },
     ];
+    
+    let hasVision = false;
 
     for (const msg of history) {
-      const parts = [];
-
-      if (msg.imageUrl) {
-        const imagePart = await downloadImageAsBase64(msg.imageUrl);
-        if (imagePart) parts.push(imagePart);
-      }
+      const contentArray = [];
 
       if (msg.content) {
-        parts.push({ text: msg.content });
+        contentArray.push({ type: 'text', text: msg.content });
       }
 
-      // If we failed to get image and text is empty, send a default text placeholder
-      if (parts.length === 0) {
-        parts.push({ text: '[Attached Media]' });
+      if (msg.imageUrl) {
+        const dataUrl = await downloadImageAsDataUrl(msg.imageUrl);
+        if (dataUrl) {
+            contentArray.push({ type: 'image_url', image_url: { url: dataUrl } });
+            hasVision = true;
+        } else if (!msg.content) {
+            contentArray.push({ type: 'text', text: '[Attached Media Failed to Load]' });
+        }
       }
 
-      contents.push({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts,
+      messages.push({
+        role: msg.role,
+        content: contentArray.length === 1 && contentArray[0].type === 'text' ? contentArray[0].text : contentArray,
       });
     }
 
-    // 4. Query Gemini API
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    // Determine model (Groq requires specific vision models if using image_url)
+    const model = hasVision ? 'llama-3.2-90b-vision-preview' : 'llama-3.3-70b-versatile';
+
+    // 4. Query Groq API
+    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048, model });
 
     let assistantText = '';
 
-    if (!geminiRes.ok) {
-      const errBody = await geminiRes.json();
-      console.error('Gemini API error in Doubt Solver:', errBody);
-
-      if (geminiRes.status === 429) {
-        // Falling back to smart mock if rate limit / quota exceeded
-        assistantText = generateMockResponse(content || '') + 
-          `\n\n*(Note: Displayed above is a fallback solution because the Gemini API free tier rate limit was temporarily exceeded.)*`;
-      } else {
-        return NextResponse.json(
-          { error: errBody?.error?.message || 'AI request failed' },
-          { status: geminiRes.status }
-        );
-      }
+    if (!groqRes) {
+      // Mock Mode
+      assistantText = generateMockResponse(content || '');
     } else {
-      const data = await geminiRes.json();
-      assistantText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-      if (!assistantText) {
-        assistantText = 'I am sorry, I was not able to generate a response. Please try again.';
-      }
+        if (!groqRes.ok) {
+          const errBody = await groqRes.json();
+          console.error('Groq API error in Doubt Solver:', errBody);
+    
+          if (groqRes.status === 429) {
+            assistantText = generateMockResponse(content || '') + 
+              `\n\n*(Note: Displayed above is a fallback solution because the Groq API rate limit was temporarily exceeded.)*`;
+          } else {
+            return NextResponse.json(
+              { error: errBody?.error?.message || 'AI request failed' },
+              { status: groqRes.status }
+            );
+          }
+        } else {
+          const data = await groqRes.json();
+          assistantText = data?.choices?.[0]?.message?.content ?? '';
+          if (!assistantText) {
+            assistantText = 'I am sorry, I was not able to generate a response. Please try again.';
+          }
+        }
     }
 
     // 5. Save assistant reply to database
@@ -356,7 +324,7 @@ export async function POST(request, { params }) {
     });
 
     // Update the session's title to be the first user prompt if it was the first message
-    const isFirstPair = history.length <= 2; // only includes current user prompt + model prepends
+    const isFirstPair = history.length <= 1; 
     const updateData = { updatedAt: new Date() };
     if (isFirstPair && content) {
       const cleanTitle = content.substring(0, 35) + (content.length > 35 ? '...' : '');

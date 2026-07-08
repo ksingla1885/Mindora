@@ -79,7 +79,7 @@ export default function ChatWidget() {
         <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
             {/* Chat Bubble (simulated open/minimized state based on isOpen) */}
             {isOpen && (
-                <div className={`mb-2 flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5 dark:bg-[#1f2937] dark:ring-white/10 transition-all duration-300 ${isMinimized ? 'w-80 h-14' : 'w-80 h-[32rem]'}`}>
+                <div className={`mb-2 flex flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-black/5 dark:bg-[#1f2937] dark:ring-white/10 transition-all duration-300 ${isMinimized ? 'w-[400px] h-14' : 'w-[400px] h-[40rem]'}`}>
                     <div className="flex items-center justify-between bg-[#135bec] px-4 py-3 text-white cursor-pointer" onClick={() => setIsMinimized(!isMinimized)}>
                         <div className="flex items-center gap-2">
                             <Brain className="h-5 w-5" />

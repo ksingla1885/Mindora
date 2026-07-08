@@ -1,19 +1,25 @@
 import { NextResponse } from 'next/server';
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
+import { fetchGroq } from '@/lib/ai';
 
 export async function POST(request) {
   try {
     const { testId, weakAreas } = await request.json();
 
-    // Check if API key is configured
-    const apiKey = process.env.GEMINI_API_KEY;
-    const isMock = !apiKey;
-
     let studyPlan;
 
-    if (isMock) {
+    const systemPrompt = `You are a helpful study planner.`;
+    const userPrompt = `Generate a 3-day study plan for a student who is weak in the following areas: ${weakAreas.join(', ')}.
+    
+Structure the plan day by day with specific activities (e.g., "Read summary", "Solve 20 questions").`;
+
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
+
+    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 400 });
+
+    if (!groqRes) {
       studyPlan = `[Simulated Study Plan]
       
 Based on your weak areas (${weakAreas.join(', ')}), here is a suggested study plan:
@@ -32,32 +38,12 @@ Day 3: Mixed Practice
 - Take a mini-quiz covering both topics.
 - Analyze your errors immediately.`;
     } else {
-      const prompt = `System Instruction: You are a helpful study planner.
-      
-Generate a 3-day study plan for a student who is weak in the following areas: ${weakAreas.join(', ')}.
-      
-Structure the plan day by day with specific activities (e.g., "Read summary", "Solve 20 questions").`;
-
-      const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: prompt }] }
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 400,
-          },
-        }),
-      });
-
-      if (!geminiRes.ok) {
-        throw new Error('Gemini API request failed');
+      if (!groqRes.ok) {
+        throw new Error('Groq API request failed');
       }
 
-      const data = await geminiRes.json();
-      studyPlan = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+      const data = await groqRes.json();
+      studyPlan = data?.choices?.[0]?.message?.content ?? '';
     }
 
     return NextResponse.json({

@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth'; // Use the same auth method as questions route
 import { PrismaClient } from '@prisma/client';
+import { fetchGroq } from '@/lib/ai';
 
 const prisma = new PrismaClient();
-
-const GEMINI_API_URL =
-  'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
 
 export async function POST(req) {
   try {
@@ -22,22 +20,8 @@ export async function POST(req) {
 
     console.log("Generating questions for:", { topic, subject, count, difficulty });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    const isMock = !apiKey;
-
-    if (isMock) {
-      // Mock response if no key
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      return NextResponse.json({
-        success: true,
-        message: "Generated mock questions (No API Key)",
-        count: 0
-      });
-    }
-
-    const prompt = `System Instruction: You are an expert exam question generator. You output strict JSON only. Do not enclose the output in markdown code blocks.
-    
-Generate ${count} ${difficulty} level multiple choice questions (MCQ) on the topic "${topic}" (Subject: ${subject}).
+    const systemPrompt = `You are an expert exam question generator. You output strict JSON only. Do not enclose the output in markdown code blocks.`;
+    const userPrompt = `Generate ${count} ${difficulty} level multiple choice questions (MCQ) on the topic "${topic}" (Subject: ${subject}).
     
 Return ONLY a raw JSON array of objects with no markdown formatting. Each object must have:
 - text: The question text
@@ -49,26 +33,29 @@ Return ONLY a raw JSON array of objects with no markdown formatting. Each object
 
 Ensure the JSON is valid.`;
 
-    const geminiRes = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [
-          { role: 'user', parts: [{ text: prompt }] }
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        },
-      }),
-    });
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ];
 
-    if (!geminiRes.ok) {
-      throw new Error('Gemini API request failed');
+    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048 });
+
+    if (!groqRes) {
+      // Mock response if no key
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return NextResponse.json({
+        success: true,
+        message: "Generated mock questions (No API Key)",
+        count: 0
+      });
     }
 
-    const data = await geminiRes.json();
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    if (!groqRes.ok) {
+      throw new Error('Groq API request failed');
+    }
+
+    const data = await groqRes.json();
+    const content = data?.choices?.[0]?.message?.content ?? '';
     let questionsData;
 
     try {
