@@ -400,6 +400,9 @@ export default function TestForm({ test, onCancel }) {
                       Question
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Subject
+                    </th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
                     </th>
                     <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -423,6 +426,11 @@ export default function TestForm({ test, onCancel }) {
                         <div className="text-sm font-medium text-gray-900 line-clamp-2">
                           {question.text}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
+                          <span className="font-bold">{question.subject?.name || question.topic?.subject?.name || 'General'}</span>
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -461,7 +469,7 @@ export default function TestForm({ test, onCancel }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td colSpan="4" className="px-6 py-3 text-right text-sm font-medium text-gray-500">
+                    <td colSpan="5" className="px-6 py-3 text-right text-sm font-medium text-gray-500">
                       Total Marks:
                     </td>
                     <td className="px-6 py-3 text-sm font-medium text-gray-900">
@@ -553,29 +561,37 @@ export default function TestForm({ test, onCancel }) {
                         className="mt-1 h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
                       <div className="ml-3 flex-1">
-                        <div className="flex justify-between">
+                        <div className="flex flex-col gap-2">
+                        <div className="flex justify-between items-start gap-4">
                           <label 
                             htmlFor={`question-${question.id}`} 
                             className="block text-sm font-medium text-gray-700 cursor-pointer"
                           >
                             {question.text}
                           </label>
-                          <div className="flex space-x-2">
-                            <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              question.difficulty === 'EASY' ? 'bg-green-100 text-green-800' :
-                              question.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {question.difficulty}
-                            </span>
-                            <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {question.type.replace('_', ' ')}
-                            </span>
-                          </div>
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                            {question.type.replace('_', ' ')}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center text-xs font-semibold">
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                            <span className="font-semibold">{question.subject?.name || question.topic?.subject?.name || 'General'}</span>
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700">
+                            {question.topic?.name || 'Topic'}
+                          </span>
+                          <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
+                            question.difficulty === 'EASY' ? 'bg-green-100 text-green-800' :
+                            question.difficulty === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {question.difficulty}
+                          </span>
                         </div>
                         {question.explanation && (
-                          <p className="mt-1 text-sm text-gray-500">{question.explanation}</p>
+                          <p className="text-sm text-gray-500">{question.explanation}</p>
                         )}
+                      </div>
                       </div>
                     </div>
                   </li>

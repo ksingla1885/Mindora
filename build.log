@@ -1,0 +1,285 @@
+
+> mindora@0.1.0 build
+> next build
+
+▲ Next.js 16.1.6 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+✓ Compiled successfully in 69s
+  Running TypeScript ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/180) ...
+  Generating static pages using 19 workers (45/180) 
+  Generating static pages using 19 workers (90/180) 
+[Redis] Using Upstash REST client
+  Generating static pages using 19 workers (135/180) 
+Failed to load maintenance settings from Redis: Error: Dynamic server usage: Route /maintenance couldn't be rendered statically because it used no-store fetch https://vast-louse-139864.upstash.io/pipeline /maintenance. See more info here: https://nextjs.org/docs/messages/dynamic-server-error
+    at m (d:\Mindora\Mindora\.next\server\chunks\[root-of-the-server]__0dba68e4._.js:5:12254)
+    at <unknown> (d:\Mindora\Mindora\.next\server\chunks\[root-of-the-server]__0dba68e4._.js:5:23777)
+    at <unknown> (d:\Mindora\Mindora\.next\server\chunks\[root-of-the-server]__0dba68e4._.js:1:30613)
+    at <unknown> (d:\Mindora\Mindora\.next\server\chunks\[root-of-the-server]__0dba68e4._.js:1:30141) {
+  description: "Route /maintenance couldn't be rendered statically because it used no-store fetch https://vast-louse-139864.upstash.io/pipeline /maintenance. See more info here: https://nextjs.org/docs/messages/dynamic-server-error",
+  digest: 'DYNAMIC_SERVER_USAGE'
+}
+✓ Generating static pages using 19 workers (180/180) in 6.4s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /account/orders
+├ ƒ /admin
+├ ƒ /admin/ai-logs
+├ ƒ /admin/analytics
+├ ƒ /admin/analytics/courses/[courseId]
+├ ƒ /admin/content
+├ ƒ /admin/content/resources
+├ ƒ /admin/content/videos
+├ ƒ /admin/content/videos/upload
+├ ƒ /admin/dpp
+├ ƒ /admin/dpp/create
+├ ƒ /admin/leaderboard
+├ ƒ /admin/olympiads
+├ ƒ /admin/paid-tests
+├ ƒ /admin/payments
+├ ƒ /admin/profile
+├ ƒ /admin/questions
+├ ƒ /admin/settings
+├ ƒ /admin/settings/accounts
+├ ƒ /admin/settings/api
+├ ƒ /admin/settings/general
+├ ƒ /admin/settings/logs
+├ ƒ /admin/settings/notifications
+├ ƒ /admin/settings/payment
+├ ƒ /admin/settings/security
+├ ƒ /admin/tests
+├ ƒ /admin/tests/[testId]
+├ ƒ /admin/users
+├ ƒ /admin/users/[userId]
+├ ƒ /admin/users/[userId]/edit
+├ ƒ /admin/users/new
+├ ƒ /ai-solver
+├ ƒ /analytics
+├ ƒ /api/admin/analytics
+├ ƒ /api/admin/analytics/courses
+├ ƒ /api/admin/analytics/overview
+├ ƒ /api/admin/analytics/tests/[testId]
+├ ƒ /api/admin/content
+├ ƒ /api/admin/content/[contentId]
+├ ƒ /api/admin/content/[contentId]/versions
+├ ƒ /api/admin/dashboard
+├ ƒ /api/admin/debug-db
+├ ƒ /api/admin/dpp
+├ ƒ /api/admin/dpp/[id]
+├ ƒ /api/admin/gamification/award-badge
+├ ƒ /api/admin/gamification/badges
+├ ƒ /api/admin/gamification/bulk
+├ ƒ /api/admin/gamification/challenges
+├ ƒ /api/admin/leaderboard
+├ ƒ /api/admin/olympiads/updates
+├ ƒ /api/admin/olympiads/updates/[id]
+├ ƒ /api/admin/payments
+├ ƒ /api/admin/questions
+├ ƒ /api/admin/settings/api/keys
+├ ƒ /api/admin/settings/api/keys/[id]
+├ ƒ /api/admin/settings/api/rate-limits
+├ ƒ /api/admin/settings/api/rate-limits/[id]
+├ ƒ /api/admin/settings/api/usage
+├ ƒ /api/admin/settings/general
+├ ƒ /api/admin/settings/payment
+├ ƒ /api/admin/settings/payment/coupons
+├ ƒ /api/admin/settings/payment/plans
+├ ƒ /api/admin/settings/payment/tax-rates
+├ ƒ /api/admin/subjects
+├ ƒ /api/admin/system/metrics
+├ ƒ /api/admin/tests
+├ ƒ /api/admin/tests/attempts
+├ ƒ /api/admin/users
+├ ƒ /api/admin/users/[userId]
+├ ƒ /api/admin/users/bulk-action
+├ ƒ /api/admin/users/invite
+├ ƒ /api/ai/analyze-performance
+├ ƒ /api/ai/chat
+├ ƒ /api/ai/doubt/sessions
+├ ƒ /api/ai/doubt/sessions/[sessionId]
+├ ƒ /api/ai/doubt/sessions/[sessionId]/messages
+├ ƒ /api/ai/explain-question
+├ ƒ /api/ai/generate-questions
+├ ƒ /api/ai/generate-study-plan
+├ ƒ /api/ai/personalized-tips
+├ ƒ /api/analytics
+├ ƒ /api/analytics/activity
+├ ƒ /api/analytics/dashboard
+├ ƒ /api/analytics/financial
+├ ƒ /api/analytics/progress
+├ ƒ /api/analytics/stats
+├ ƒ /api/analytics/student
+├ ƒ /api/analytics/subscription
+├ ƒ /api/analytics/test
+├ ƒ /api/analytics/test/[testId]
+├ ƒ /api/analytics/track
+├ ƒ /api/auth/[...nextauth]
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/register
+├ ƒ /api/auth/reset-password
+├ ƒ /api/auth/verify-email
+├ ƒ /api/auth/verify-otp
+├ ƒ /api/cart
+├ ƒ /api/cart/[itemId]
+├ ƒ /api/cart/sync
+├ ƒ /api/certificates
+├ ƒ /api/certificates/download/[certificateId]
+├ ƒ /api/certificates/generate
+├ ƒ /api/checkout/sessions
+├ ƒ /api/classes
+├ ƒ /api/content
+├ ƒ /api/content/[id]
+├ ƒ /api/content/[id]/versions
+├ ƒ /api/content/chunked-upload
+├ ƒ /api/content/export
+├ ƒ /api/content/organization
+├ ƒ /api/content/relationships
+├ ƒ /api/content/schedule
+├ ƒ /api/content/slug/[slug]
+├ ƒ /api/content/temp_id
+├ ƒ /api/content/upload
+├ ƒ /api/cron/cleanup-sessions
+├ ƒ /api/dpp
+├ ƒ /api/dpp/[assignmentId]
+├ ƒ /api/dpp/[assignmentId]/submit
+├ ƒ /api/dpp/analytics
+├ ƒ /api/dpp/answer
+├ ƒ /api/dpp/attempts/[id]
+├ ƒ /api/dpp/attempts/[id]/answers
+├ ƒ /api/dpp/attempts/[id]/cleanup
+├ ƒ /api/dpp/attempts/[id]/flags
+├ ƒ /api/dpp/attempts/[id]/submit
+├ ƒ /api/dpp/config
+├ ƒ /api/dpp/gamification
+├ ƒ /api/dpp/history
+├ ƒ /api/dpp/practice-test
+├ ƒ /api/dpp/questions/[id]
+├ ƒ /api/dpp/skip
+├ ƒ /api/dpp/stats
+├ ƒ /api/dpp/today
+├ ƒ /api/folders
+├ ƒ /api/folders/[id]
+├ ƒ /api/gamification/badges
+├ ƒ /api/gamification/challenges
+├ ƒ /api/gamification/events
+├ ƒ /api/gamification/events/participate
+├ ƒ /api/gamification/leaderboard
+├ ƒ /api/gamification/leaderboard/history
+├ ƒ /api/gamification/progress
+├ ƒ /api/gamification/rewards
+├ ƒ /api/gamification/rewards/award
+├ ƒ /api/leaderboard/[testId]
+├ ƒ /api/leaderboard/all
+├ ƒ /api/leaderboards
+├ ƒ /api/notifications
+├ ƒ /api/notifications/[id]
+├ ƒ /api/notifications/mark-all-read
+├ ƒ /api/olympiads
+├ ƒ /api/olympiads/register
+├ ƒ /api/orders
+├ ƒ /api/orders/[orderId]
+├ ƒ /api/orders/[orderId]/cancel
+├ ƒ /api/orders/[orderId]/invoice
+├ ƒ /api/payments
+├ ƒ /api/payments/create
+├ ƒ /api/payments/status/[orderId]
+├ ƒ /api/payments/verify
+├ ƒ /api/payments/webhook
+├ ƒ /api/questions
+├ ƒ /api/questions/[questionId]
+├ ƒ /api/questions/bulk
+├ ƒ /api/student/dpp
+├ ƒ /api/subjects
+├ ƒ /api/subjects/[subjectId]
+├ ƒ /api/subscriptions
+├ ƒ /api/test-attempts
+├ ƒ /api/test-attempts/[attemptId]
+├ ƒ /api/test-attempts/[attemptId]/submit
+├ ƒ /api/tests
+├ ƒ /api/tests/[testId]
+├ ƒ /api/tests/[testId]/access
+├ ƒ /api/tests/[testId]/attempt
+├ ƒ /api/tests/[testId]/attempts
+├ ƒ /api/tests/[testId]/attempts/[attemptId]
+├ ƒ /api/tests/[testId]/attempts/[attemptId]/flags
+├ ƒ /api/tests/[testId]/attempts/[attemptId]/submit
+├ ƒ /api/tests/[testId]/progress
+├ ƒ /api/tests/[testId]/questions
+├ ƒ /api/tests/[testId]/questions/[questionId]
+├ ƒ /api/tests/[testId]/results/[attemptId]
+├ ƒ /api/tests/[testId]/start
+├ ƒ /api/tests/[testId]/submit
+├ ƒ /api/tests/attempts
+├ ƒ /api/tests/attempts/[attemptId]/answers
+├ ƒ /api/tests/attempts/[attemptId]/submit
+├ ƒ /api/tests/questions
+├ ƒ /api/tests/upcoming
+├ ƒ /api/topics
+├ ƒ /api/topics/[topicId]
+├ ƒ /api/upload
+├ ƒ /api/user/profile
+├ ƒ /api/videos
+├ ƒ /api/videos/presigned-url
+├ ƒ /api/webhooks/razorpay
+├ ƒ /api/ws
+├ ƒ /api/ws/system-health
+├ ƒ /auth/forgot-password
+├ ƒ /auth/login
+├ ƒ /auth/register
+├ ƒ /auth/reset-password
+├ ƒ /auth/signin
+├ ƒ /auth/signup
+├ ƒ /auth/verify-email
+├ ƒ /cart
+├ ƒ /certificates
+├ ƒ /checkout
+├ ƒ /checkout/failure
+├ ƒ /checkout/success
+├ ƒ /content
+├ ƒ /content/[slug]
+├ ƒ /dashboard
+├ ƒ /dpp
+├ ƒ /dpp/attempt/[dppId]
+├ ƒ /dpp/history
+├ ƒ /leaderboard
+├ ƒ /maintenance
+├ ƒ /olympiads
+├ ƒ /orders/[orderId]
+├ ƒ /pricing
+├ ƒ /profile
+├ ƒ /register
+├ ƒ /settings
+├ ƒ /settings/profile
+├ ƒ /signin
+├ ƒ /subjects
+├ ƒ /subjects/[subjectId]
+├ ƒ /subjects/[subjectId]/[topicId]
+├ ƒ /test-payment
+├ ƒ /test-submitted
+├ ƒ /test-upload
+├ ƒ /tests
+├ ƒ /tests/[testId]
+├ ƒ /tests/[testId]/results/[attemptId]
+├ ƒ /tests/premium
+└ ƒ /topics/[topicId]
+
+Route (pages)
+┌ ƒ /api/admin/tests/schedule
+├ ƒ /api/attempts/[id]/cleanup
+├ ƒ /api/attempts/[id]/submit
+├ ƒ /api/payments/create-order
+└ ƒ /api/socket/[[...path]]
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+

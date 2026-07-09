@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Search, GripVertical, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Search, GripVertical, CheckCircle2, Folder } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
@@ -38,12 +37,27 @@ export function TestQuestionsManager({ testId }) {
     const [availableQuestions, setAvailableQuestions] = useState([]);
     const [selectedQuestions, setSelectedQuestions] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedFolder, setSelectedFolder] = useState('All');
+    const [subjectFolders, setSubjectFolders] = useState([]);
     const [isFetchingAvailable, setIsFetchingAvailable] = useState(false);
 
     // Initial fetch
     useEffect(() => {
         fetchTestQuestions();
+        fetchSubjectFolders();
     }, [testId]);
+
+    const fetchSubjectFolders = async () => {
+        try {
+            const res = await fetch('/api/subjects');
+            const data = await res.json();
+            if (data.success) {
+                setSubjectFolders(data.data.map(subject => subject.name));
+            }
+        } catch (error) {
+            console.error('Failed to fetch subjects for folder selector', error);
+        }
+    };
 
     // Fetch questions already in the test
     const fetchTestQuestions = async () => {
@@ -70,8 +84,8 @@ export function TestQuestionsManager({ testId }) {
     const fetchAvailableQuestions = async () => {
         try {
             setIsFetchingAvailable(true);
-            // Fetch more questions for better searchability standard call
-            const res = await fetch('/api/questions?limit=50&page=1');
+            // Fetch all questions for folder-based browsing
+            const res = await fetch('/api/questions?limit=1000&page=1');
             const data = await res.json();
 
             if (data.success) {
@@ -91,6 +105,7 @@ export function TestQuestionsManager({ testId }) {
         if (isAddModalOpen) {
             fetchAvailableQuestions();
             setSelectedQuestions([]);
+            setSelectedFolder('All'); // reset folder selection on each open
         }
     }, [isAddModalOpen]); // Removed 'questions' dependency to prevent refresh loops
 
@@ -232,10 +247,35 @@ export function TestQuestionsManager({ testId }) {
         }
     };
 
-    const filteredAvailableQuestions = availableQuestions.filter(q =>
-        q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (q.topic?.name || '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    // Only show folders that actually have available questions (don't show empty subjects)
+    const activeFolderNames = [...new Set(
+        availableQuestions.map(q => q.topic?.subject?.name || 'General')
+    )].filter(Boolean).sort();
+    // 'All Folders' is always first, followed only by folders with questions
+    const folderOptions = ['All', ...activeFolderNames];
+
+    // Count questions per folder for display
+    const folderCounts = folderOptions.reduce((acc, folder) => {
+        if (folder === 'All') {
+            acc[folder] = availableQuestions.length;
+        } else {
+            acc[folder] = availableQuestions.filter(q =>
+                (q.topic?.subject?.name || 'General') === folder
+            ).length;
+        }
+        return acc;
+    }, {});
+
+    const filteredAvailableQuestions = availableQuestions.filter(q => {
+        const folderName = q.topic?.subject?.name || q.subject?.name || 'General';
+        const matchesFolder = selectedFolder === 'All' || folderName === selectedFolder;
+        const matchesSearch =
+            q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (q.topic?.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            folderName.toLowerCase().includes(searchQuery.toLowerCase());
+
+        return matchesFolder && matchesSearch;
+    });
 
     return (
         <div className="space-y-6">
@@ -252,87 +292,188 @@ export function TestQuestionsManager({ testId }) {
                             <Plus className="mr-2 h-4 w-4" /> Add Questions
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <DialogHeader>
-                            <DialogTitle>Add Questions to Test</DialogTitle>
-                        </DialogHeader>
-                        <Tabs defaultValue="bank" className="w-full">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="bank">From Question Bank</TabsTrigger>
-                                <TabsTrigger value="create">Create New</TabsTrigger>
-                            </TabsList>
+                    <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col overflow-hidden p-0">
+                        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
+                            <DialogTitle className="text-lg font-semibold">Add Questions to Test</DialogTitle>
+                        </div>
+                        <Tabs defaultValue="bank" className="w-full flex flex-col flex-1 min-h-0">
+                            <div className="px-6 pt-3 shrink-0">
+                                <TabsList className="grid w-full grid-cols-2 max-w-xs">
+                                    <TabsTrigger value="bank">From Question Bank</TabsTrigger>
+                                    <TabsTrigger value="create">Create New</TabsTrigger>
+                                </TabsList>
+                            </div>
 
-                            <TabsContent value="create" className="py-4">
+                            <TabsContent value="create" className="px-6 py-4 overflow-y-auto flex-1">
                                 <QuestionForm onSubmit={handleCreateQuestion} onSuccess={() => setIsAddModalOpen(false)} />
                             </TabsContent>
 
-                            <TabsContent value="bank" className="py-4 space-y-4">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                                    <Input
-                                        placeholder="Search by question text or topic..."
-                                        className="pl-9 h-10"
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                    />
-                                </div>
-
-                                <div className="border rounded-md max-h-[400px] min-h-[300px] overflow-y-auto">
-                                    {isFetchingAvailable ? (
-                                        <div className="flex justify-center items-center h-[300px]">
-                                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <TabsContent value="bank" className="mt-0 min-h-[500px] border-t bg-background flex flex-col overflow-hidden">
+                                <div className="flex flex-1 min-h-0 overflow-hidden">
+                                    {/* Left Folder Panel */}
+                                    <div className="w-56 shrink-0 border-r border-border bg-muted/20 flex flex-col min-h-0">
+                                        <div className="px-3 pt-4 pb-2 shrink-0">
+                                            <p className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest px-2 mb-2">Folders</p>
                                         </div>
-                                    ) : (
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className="w-[50px]"></TableHead>
-                                                    <TableHead>Question</TableHead>
-                                                    <TableHead>Topic</TableHead>
-                                                    <TableHead>Type</TableHead>
-                                                    <TableHead>Def. Marks</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {filteredAvailableQuestions.length === 0 ? (
-                                                    <TableRow>
-                                                        <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                                                            No matching questions found in the bank.
-                                                        </TableCell>
-                                                    </TableRow>
+                                        <div className="flex-1 min-h-0 overflow-auto">
+                                            <div className="flex flex-col gap-0.5 px-2 pb-4 pr-3">
+                                                {isFetchingAvailable ? (
+                                                    <div className="flex items-center justify-center py-8">
+                                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                                    </div>
                                                 ) : (
-                                                    filteredAvailableQuestions.map((q) => (
-                                                        <TableRow key={q.id}>
-                                                            <TableCell>
-                                                                <Checkbox
-                                                                    checked={selectedQuestions.includes(q.id)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        if (checked) setSelectedQuestions(prev => [...prev, q.id]);
-                                                                        else setSelectedQuestions(prev => prev.filter(id => id !== q.id));
-                                                                    }}
-                                                                />
-                                                            </TableCell>
-                                                            <TableCell className="max-w-[300px]">
-                                                                <div className="line-clamp-2 text-sm" dangerouslySetInnerHTML={{ __html: q.text }} />
-                                                            </TableCell>
-                                                            <TableCell><Badge variant="outline" className="text-[10px]">{q.topic?.name || 'N/A'}</Badge></TableCell>
-                                                            <TableCell><Badge variant="secondary" className="text-[10px]">{q.type}</Badge></TableCell>
-                                                            <TableCell>{q.marks}</TableCell>
-                                                        </TableRow>
-                                                    ))
+                                                    folderOptions.map((folder) => {
+                                                        const count = folderCounts[folder] ?? 0;
+                                                        const isActive = selectedFolder === folder;
+                                                        return (
+                                                            <button
+                                                                key={folder}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setSelectedFolder(folder);
+                                                                    setSearchQuery('');
+                                                                }}
+                                                                className={cn(
+                                                                    'flex items-center gap-2 w-full px-3 py-2 rounded-lg text-left text-xs font-semibold transition-all',
+                                                                    isActive
+                                                                        ? 'bg-primary text-white shadow-sm shadow-primary/20'
+                                                                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                                                )}
+                                                            >
+                                                                <Folder className={cn('size-3.5 shrink-0', isActive ? 'text-white' : 'text-primary/70')} />
+                                                                <span className="flex-1 truncate">{folder === 'All' ? 'All Folders' : folder}</span>
+                                                                <span className={cn(
+                                                                    'text-[10px] font-black rounded-md px-1.5 py-0.5 shrink-0',
+                                                                    isActive ? 'bg-white/20 text-white' : 'bg-muted text-muted-foreground'
+                                                                )}>
+                                                                    {count}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })
                                                 )}
-                                            </TableBody>
-                                        </Table>
-                                    )}
-                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
 
-                                <div className="flex justify-end gap-3 pt-4 border-t">
-                                    <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
-                                    <Button onClick={handleAddSelectedQuestions} disabled={selectedQuestions.length === 0}>
-                                        Add Selected ({selectedQuestions.length})
-                                    </Button>
+                                    {/* Right Questions Panel */}
+                                    <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+                                        {/* Search bar */}
+                                        <div className="px-4 pt-3 pb-2 shrink-0">
+                                            <div className="relative">
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                                <Input
+                                                    placeholder="Search by question text or topic..."
+                                                    className="pl-9 h-9 bg-muted/50"
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+
+                                    {/* Folder header */}
+                                    <div className="px-4 py-1.5 shrink-0 flex items-center gap-2">
+                                        <Folder className="size-3.5 text-primary/70" />
+                                        <span className="text-xs font-bold text-muted-foreground">
+                                            {selectedFolder === 'All' ? 'All Folders' : selectedFolder}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">· {filteredAvailableQuestions.length} question{filteredAvailableQuestions.length !== 1 ? 's' : ''}</span>
+                                        {selectedQuestions.length > 0 && (
+                                            <span className="ml-auto text-xs font-semibold text-primary">{selectedQuestions.length} selected</span>
+                                        )}
+                                    </div>
+
+                                    {/* Questions table */}
+                                    <div className="flex-1 min-h-0 border-t border-border bg-background overflow-auto overscroll-contain">
+                                        {isFetchingAvailable ? (
+                                            <div className="flex justify-center items-center h-full min-h-[300px]">
+                                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                                            </div>
+                                        ) : (
+                                            <table className="w-full text-sm">
+                                                <TableHeader className="sticky top-0 bg-background shadow-[0_1px_0_0_hsl(var(--border))] z-20">
+                                                    <TableRow className="border-none hover:bg-transparent">
+                                                        <TableHead className="w-[44px]"></TableHead>
+                                                        <TableHead>Question</TableHead>
+                                                        <TableHead className="w-[120px]">Topic</TableHead>
+                                                        <TableHead className="w-[72px]">Type</TableHead>
+                                                        <TableHead className="w-[72px]">Marks</TableHead>
+                                                    </TableRow>
+                                                </TableHeader>
+                                                <TableBody>
+                                                    {filteredAvailableQuestions.length === 0 ? (
+                                                        <TableRow>
+                                                            <TableCell colSpan={5} className="text-center py-20 text-muted-foreground">
+                                                                <div className="flex flex-col items-center gap-3">
+                                                                    <Folder className="size-10 text-muted-foreground/30" />
+                                                                    <p className="text-sm">No questions found in this folder.</p>
+                                                                </div>
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ) : (
+                                                        filteredAvailableQuestions.map((q) => (
+                                                            <TableRow
+                                                                key={q.id}
+                                                                className={cn(
+                                                                    'cursor-pointer transition-colors hover:bg-muted/50',
+                                                                    selectedQuestions.includes(q.id) && 'bg-primary/5 hover:bg-primary/10'
+                                                                )}
+                                                                onClick={() => {
+                                                                    if (selectedQuestions.includes(q.id)) {
+                                                                        setSelectedQuestions(prev => prev.filter(id => id !== q.id));
+                                                                    } else {
+                                                                        setSelectedQuestions(prev => [...prev, q.id]);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <TableCell onClick={e => e.stopPropagation()}>
+                                                                    <Checkbox
+                                                                        checked={selectedQuestions.includes(q.id)}
+                                                                        onCheckedChange={(checked) => {
+                                                                            if (checked) setSelectedQuestions(prev => [...prev, q.id]);
+                                                                            else setSelectedQuestions(prev => prev.filter(id => id !== q.id));
+                                                                        }}
+                                                                    />
+                                                                </TableCell>
+                                                                <TableCell className="max-w-[350px] py-3 pr-4">
+                                                                    <div className="line-clamp-2 text-sm text-foreground/90 leading-relaxed" dangerouslySetInnerHTML={{ __html: q.text }} />
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="outline" className="text-[10px] bg-background/50">
+                                                                        {q.topic?.name || 'N/A'}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell>
+                                                                    <Badge variant="secondary" className="text-[10px] capitalize">
+                                                                        {q.type}
+                                                                    </Badge>
+                                                                </TableCell>
+                                                                <TableCell className="font-semibold text-center">{q.marks}</TableCell>
+                                                            </TableRow>
+                                                        ))
+                                                    )}
+                                                </TableBody>
+                                            </table>
+                                        )}
+                                    </div>
+
+                                    {/* Footer actions */}
+                                    <div className="shrink-0 flex justify-between items-center gap-3 px-6 py-4 border-t border-border bg-muted/10">
+                                        <p className="text-sm text-muted-foreground font-medium">
+                                            {selectedQuestions.length > 0
+                                                ? `${selectedQuestions.length} question${selectedQuestions.length !== 1 ? 's' : ''} selected`
+                                                : 'Select questions to add to the test'}
+                                        </p>
+                                        <div className="flex gap-3">
+                                            <Button variant="outline" onClick={() => setIsAddModalOpen(false)}>Cancel</Button>
+                                            <Button onClick={handleAddSelectedQuestions} disabled={selectedQuestions.length === 0} className="font-bold shadow-md">
+                                                Add Selected ({selectedQuestions.length})
+                                            </Button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </TabsContent>
+                            </div>
+                        </TabsContent>
                         </Tabs>
                     </DialogContent>
                 </Dialog>

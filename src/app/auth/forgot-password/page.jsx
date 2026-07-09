@@ -45,42 +45,55 @@ export default function ForgotPasswordPage() {
 
   if (status === 'success') {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center">Check Your Email</CardTitle>
-            <CardDescription className="text-center">
-              We've sent a password reset link to {email}
+      <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-indigo-50 p-4 flex items-center justify-center overflow-hidden">
+        <div className="pointer-events-none absolute -top-16 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-10 right-10 h-80 w-80 rounded-full bg-indigo-200/60 blur-3xl" />
+
+        <Card className="w-full max-w-md shadow-2xl border border-slate-200/80">
+          <CardHeader className="space-y-6 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 border border-primary/20 text-primary">
+              <span className="text-3xl font-black">M</span>
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">Mindora</h1>
+              <p className="text-xs uppercase tracking-[0.3em] text-primary font-semibold mt-1">
+                Master Your Olympiads
+              </p>
+            </div>
+            <CardTitle className="text-2xl">Check your inbox</CardTitle>
+            <CardDescription className="text-slate-500">
+              We've sent a password reset link to <span className="font-semibold text-slate-900">{email}</span>.
             </CardDescription>
           </CardHeader>
+
           <CardContent className="flex flex-col items-center justify-center space-y-4">
-            <div className="rounded-full bg-green-100 p-3">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="rounded-full bg-primary/10 p-4 border border-primary/20">
+              <CheckCircle className="h-14 w-14 text-primary" />
             </div>
-            <p className="text-center text-gray-600">
-              If an account exists with this email, you'll receive a link to reset your password.
-              The link will expire in 1 hour.
+            <p className="text-center text-slate-600">
+              If an account exists with this email, you should receive a link shortly. The link is valid for 1 hour.
             </p>
-            <p className="text-sm text-gray-500 text-center">
-              Didn't receive an email? Check your spam folder or try again.
+            <p className="text-sm text-slate-500 text-center">
+              Didn’t receive the email? Check your spam folder or try again.
             </p>
           </CardContent>
-          <CardFooter className="flex flex-col space-y-3">
-            <Button 
+
+          <CardFooter className="grid gap-3">
+            <Button
               onClick={() => {
                 setStatus('idle');
                 setEmail('');
               }}
               className="w-full"
             >
-              Resend Email
+              Send again
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.push('/auth/login')}
               className="w-full"
             >
-              Back to Login
+              Back to sign in
             </Button>
           </CardFooter>
         </Card>
@@ -89,61 +102,66 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-max p-0 mb-2" 
-            onClick={() => router.back()}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-          <CardTitle>Forgot your password?</CardTitle>
-          <CardDescription>
-            Enter your email address and we'll send you a link to reset your password.
+    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-indigo-50 p-4 flex items-center justify-center overflow-hidden">
+      <div className="pointer-events-none absolute top-8 left-8 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
+      <div className="pointer-events-none absolute bottom-10 right-10 h-80 w-80 rounded-full bg-indigo-200/60 blur-3xl" />
+
+      <Card className="w-full max-w-md shadow-2xl border border-slate-200/80">
+        <CardHeader className="space-y-6 text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 border border-primary/20 text-primary">
+            <span className="text-3xl font-black">M</span>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Mindora</h1>
+            <p className="text-xs uppercase tracking-[0.3em] text-primary font-semibold mt-1">
+              Master Your Olympiads
+            </p>
+          </div>
+          <CardTitle className="text-2xl">Forgot your password?</CardTitle>
+          <CardDescription className="text-slate-500">
+            Enter your email and we’ll send you a secure reset link.
           </CardDescription>
         </CardHeader>
+
         <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {status === 'error' && (
-              <div className="rounded-md bg-red-50 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertCircle className="h-5 w-5 text-red-400" aria-hidden="true" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-red-800">
-                      {error || 'An error occurred. Please try again.'}
-                    </h3>
+              <div className="rounded-2xl border border-red-200/80 bg-red-50 p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="h-5 w-5 text-red-500 mt-0.5" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">{error || 'Unable to send reset email. Please try again.'}</p>
                   </div>
                 </div>
               </div>
             )}
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email address</Label>
+
+            <div className="space-y-3">
+              <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                Email address
+              </Label>
               <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
+                placeholder="you@example.com"
+                className="py-3"
                 required
               />
             </div>
-            
-            <div className="text-sm text-gray-500">
+
+            <p className="text-sm text-slate-500">
               Remember your password?{' '}
-              <Link href="/auth/login" className="text-blue-600 hover:underline">
+              <Link href="/auth/login" className="font-semibold text-primary hover:text-primary/80 transition-colors">
                 Sign in
               </Link>
-            </div>
+            </p>
           </CardContent>
-          <CardFooter>
-            <Button 
-              type="submit" 
+
+          <CardFooter className="pt-0">
+            <Button
+              type="submit"
               className="w-full"
               disabled={status === 'loading' || !email}
             >
