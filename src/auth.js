@@ -150,6 +150,7 @@ export const authOptions = {
         updateAge: 24 * 60 * 60, // 24 hours
     },
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    trustHost: true,
     debug: process.env.NODE_ENV === 'development',
     pages: {
         signIn: '/auth/login',

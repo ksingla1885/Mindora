@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -25,7 +25,13 @@ export default function SignIn() {
       if (result?.error) {
         setError('Invalid credentials');
       } else {
-        router.push('/dashboard');
+        const session = await getSession();
+        const userRole = session?.user?.role?.toUpperCase();
+        if (userRole === 'ADMIN') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } catch (error) {
       setError('Something went wrong. Please try again.');

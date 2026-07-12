@@ -178,7 +178,8 @@ export function ProfileForm({ user }) {
       }
 
       // Sign out and redirect to home
-      await signOut({ callbackUrl: '/' });
+      await signOut({ redirect: false });
+      window.location.href = window.location.origin;
 
     } catch (error) {
       console.error('Error deleting account:', error);
@@ -472,7 +473,8 @@ export function ProfileForm({ user }) {
                         type="button"
                         variant="outline"
                         onClick={async () => {
-                          await signOut({ callbackUrl: '/' });
+                          await signOut({ redirect: false });
+                          window.location.href = window.location.origin;
                         }}
                         disabled={isLoading}
                       >

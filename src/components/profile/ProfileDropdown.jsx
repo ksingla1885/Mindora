@@ -45,7 +45,8 @@ export default function ProfileDropdown({ session }) {
 
   async function handleLogout() {
     setSigningOut(true);
-    await signOut({ callbackUrl: '/' });
+    await signOut({ redirect: false });
+    window.location.href = window.location.origin;
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────

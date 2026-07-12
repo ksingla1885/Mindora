@@ -163,7 +163,7 @@ export async function middleware(request) {
     if (maintenanceActive) {
       const tokenForMaintenance = await getToken({
         req: request,
-        secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+        secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
       });
       const role = tokenForMaintenance?.role?.toUpperCase();
       if (role !== "ADMIN") {
@@ -184,7 +184,7 @@ export async function middleware(request) {
   // ── 7. Auth token resolution ──────────────────────────────────────────────
   const token = await getToken({
     req: request,
-    secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+    secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   });
 
   // ── 8. Protected path checks ──────────────────────────────────────────────

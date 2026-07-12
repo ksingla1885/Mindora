@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff } from 'lucide-react';
@@ -33,8 +33,16 @@ export default function SignIn() {
         throw new Error(result.error);
       }
 
-      // Redirect on successful login
-      router.push(callbackUrl);
+      // Fetch the updated session to get the user's role
+      const session = await getSession();
+      const userRole = session?.user?.role?.toUpperCase();
+
+      // Redirect on successful login based on role
+      if (userRole === 'ADMIN') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
       router.refresh();
     } catch (err) {
       setError(err.message || 'Failed to sign in');

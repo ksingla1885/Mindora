@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, AlertCircle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,8 +46,16 @@ export default function LoginPage() {
         throw new Error(result.error);
       }
 
-      // Handle successful login
-      router.push(callbackUrl);
+      // Fetch the updated session to get the user's role
+      const session = await getSession();
+      const userRole = session?.user?.role?.toUpperCase();
+
+      // Handle successful login and redirect based on role
+      if (userRole === 'ADMIN') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
       router.refresh();
 
     } catch (error) {

@@ -68,9 +68,10 @@ export function UserNav({ profileHref = "/profile", settingsHref = "/settings" }
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                     className="cursor-pointer"
-                    onSelect={(event) => {
+                    onSelect={async (event) => {
                         event.preventDefault()
-                        signOut({ callbackUrl: '/' })
+                        await signOut({ redirect: false })
+                        window.location.href = window.location.origin
                     }}
                 >
                     Log out
