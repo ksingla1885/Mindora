@@ -131,6 +131,19 @@ export async function POST(request, { params }) {
       });
     }
 
+    // Fetch the marks of the new questions to match the question bank marks
+    const questionsDbData = await prisma.question.findMany({
+      where: {
+        id: { in: newQuestionIds }
+      },
+      select: {
+        id: true,
+        marks: true
+      }
+    });
+
+    const questionMarksMap = new Map(questionsDbData.map(q => [q.id, q.marks]));
+
     // Add new questions to the test
     const testQuestions = await prisma.$transaction(
       newQuestionIds.map((questionId, index) =>
@@ -139,6 +152,7 @@ export async function POST(request, { params }) {
             testId,
             questionId,
             sequence: nextSequence + index,
+            marks: questionMarksMap.get(questionId) || 1,
           },
           include: {
             question: {
@@ -199,6 +213,39 @@ export async function POST(request, { params }) {
 
     return NextResponse.json(
       { success: false, error: 'Failed to add questions to test' },
+      { status: 500 }
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// DELETE /api/tests/[testId]/questions - Remove all questions from a test
+export async function DELETE(request, { params }) {
+  const { testId } = await params;
+  const session = await auth();
+
+  if (!session || session.user.role !== 'ADMIN') {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const deleteResult = await prisma.testQuestion.deleteMany({
+      where: { testId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'All questions removed successfully',
+      count: deleteResult.count
+    });
+  } catch (error) {
+    console.error('Error removing all questions:', error);
+    return NextResponse.json(
+      { success: false, error: 'Failed to remove questions' },
       { status: 500 }
     );
   } finally {

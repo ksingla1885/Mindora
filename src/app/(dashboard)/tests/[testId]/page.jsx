@@ -138,10 +138,12 @@ export default function TestPage() {
   // Check for scheduling
   const now = new Date();
   const testStartTime = test.startTime ? new Date(test.startTime) : null;
+  const testEndTime = test.endTime ? new Date(test.endTime) : null;
   const isTooEarly = testStartTime && now < testStartTime;
+  const isExpired = testEndTime && now > testEndTime;
   
   // Overall button disabled status
-  const isLocked = isTooEarly || isCompleted;
+  const isLocked = isTooEarly || isCompleted || isExpired;
 
   // Determine the current attempt if any (use the first in_progress one)
   const currentAttempt = userAttempts.find(a => a.status?.toLowerCase() === 'in_progress');
@@ -184,10 +186,16 @@ export default function TestPage() {
                 "px-3 py-1 rounded-full text-sm font-medium flex items-center",
                 isCompleted
                   ? "bg-blue-100 text-blue-800"
-                  : "bg-green-100 text-green-800"
+                  : isExpired
+                    ? "bg-red-100 text-red-800 border border-red-200"
+                    : "bg-green-100 text-green-800"
               )}>
-                <CheckCircle className="w-4 h-4 mr-1" />
-                {isCompleted ? 'Completed' : (test.price > 0 ? 'Purchased' : 'Free')}
+                {isExpired ? (
+                  <AlertCircle className="w-4 h-4 mr-1 text-red-500" />
+                ) : (
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                )}
+                {isCompleted ? 'Completed' : isExpired ? 'Expired' : (test.price > 0 ? 'Purchased' : 'Free')}
               </div>
             )}
           </div>
@@ -255,6 +263,7 @@ export default function TestPage() {
                   "w-full md:w-auto px-8 text-lg",
                   isCompleted && "bg-green-600 hover:bg-green-700 cursor-default",
                   isTooEarly && "bg-slate-400 dark:bg-slate-700 cursor-not-allowed",
+                  isExpired && "bg-slate-400 dark:bg-slate-700 cursor-not-allowed",
                   hasInProgress && "bg-amber-600 hover:bg-amber-700"
                 )}
               disabled={isLocked}
@@ -263,7 +272,9 @@ export default function TestPage() {
                 ? 'Test Completed' 
                 : isTooEarly 
                   ? `Starts at ${new Date(test.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` 
-                  : (hasInProgress ? 'Resume Test' : 'Start Test')}
+                  : isExpired
+                    ? 'Test Expired'
+                    : (hasInProgress ? 'Resume Test' : 'Start Test')}
             </Button>
           )}
         </CardFooter>

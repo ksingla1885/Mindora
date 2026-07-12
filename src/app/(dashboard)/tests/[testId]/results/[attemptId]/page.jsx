@@ -160,7 +160,7 @@ export default async function TestResultPage({ params }) {
                         <Award className="h-4 w-4 text-primary" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{attempt.score}/{totalQuestions}</div>
+                        <div className="text-2xl font-bold">{correctCount}/{totalQuestions}</div>
                         <p className="text-xs text-muted-foreground">
                             {scorePercentage}% accuracy
                         </p>

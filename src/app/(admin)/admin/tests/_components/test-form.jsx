@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
-import { CalendarIcon, Clock, Plus, X, Trash2, ChevronDown, Check } from 'lucide-react';
+import { CalendarIcon, Clock, Plus, X, Trash2, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -61,8 +61,8 @@ const testFormSchema = z.object({
 
   // Scheduling
   isScheduled: z.boolean().default(false),
-  startTime: z.date().optional(),
-  endTime: z.date().optional(),
+  startTime: z.union([z.date(), z.string()]).optional().nullable(),
+  endTime: z.union([z.date(), z.string()]).optional().nullable(),
 
   // Settings
   isPublished: z.boolean().default(false),
@@ -106,8 +106,8 @@ export function TestForm({ test, onSuccess }) {
       maxAttempts: test?.maxAttempts ?? 1,
       instructions: test?.instructions || '',
       tags: test?.tags || [],
-      startTime: test?.startTime,
-      endTime: test?.endTime,
+      startTime: test?.startTime ? new Date(test.startTime) : undefined,
+      endTime: test?.endTime ? new Date(test.endTime) : undefined,
       enforceFullscreen: test?.enforceFullscreen ?? false,
       tabMonitoringEnabled: test?.tabMonitoringEnabled ?? false,
       faceDetectionEnabled: test?.faceDetectionEnabled ?? false,
@@ -162,13 +162,15 @@ export function TestForm({ test, onSuccess }) {
 
       const { isScheduled, duration, maxAttempts, topic, ...rest } = data;
 
+      const startDateObj = data.startTime ? new Date(data.startTime) : null;
+
       const requestData = {
         ...rest,
         durationMinutes: duration,
         maxAttempts: maxAttempts || 1,
-        startTime: isScheduled && data.startTime ? data.startTime.toISOString() : null,
-        endTime: isScheduled && data.startTime && duration
-          ? new Date(data.startTime.getTime() + duration * 60000).toISOString()
+        startTime: isScheduled && startDateObj ? startDateObj.toISOString() : null,
+        endTime: isScheduled && startDateObj && duration
+          ? new Date(startDateObj.getTime() + duration * 60000).toISOString()
           : null,
         // Ensure price is 0 if not paid, but allow form value if paid
         price: data.isPaid ? data.price : 0,
@@ -220,9 +222,31 @@ export function TestForm({ test, onSuccess }) {
     }
   };
 
+  const onInvalid = (errors) => {
+    console.error('[TestForm] Validation errors:', errors);
+    if (!errors || Object.keys(errors).length === 0) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields correctly.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    const errorDetails = Object.entries(errors)
+      .map(([field, err]) => `${field}: ${err?.message || 'Invalid value'}`)
+      .join(', ');
+
+    toast({
+      title: 'Validation Error',
+      description: errorDetails || 'Please fill in all required fields correctly.',
+      variant: 'destructive',
+    });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-10">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8 pb-10">
 
         {/* SECTION 1: DETAILS */}
         <div className="space-y-4">
@@ -593,35 +617,39 @@ export function TestForm({ test, onSuccess }) {
               />
             </div>
 
-            {(form.watch('tabMonitoringEnabled') || form.watch('proctoringEnabled')) && (
+            {(form.watch('tabMonitoringEnabled') || form.watch('proctoringEnabled') || form.watch('faceDetectionEnabled')) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-border animate-in fade-in slide-in-from-top-2">
-                <FormField
-                  control={form.control}
-                  name="maxTabSwitches"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Tab Switches Allowed</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch('tabMonitoringEnabled') || form.watch('proctoringEnabled') ? (
+                  <FormField
+                    control={form.control}
+                    name="maxTabSwitches"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Tab Switches Allowed</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : <div />}
 
-                <FormField
-                  control={form.control}
-                  name="maxViolationsAllowed"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Max Proctoring Violations Allowed</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {form.watch('faceDetectionEnabled') ? (
+                  <FormField
+                    control={form.control}
+                    name="maxViolationsAllowed"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Max Proctoring Violations Allowed</FormLabel>
+                        <FormControl>
+                          <Input type="number" min="1" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : <div />}
               </div>
             )}
           </div>
@@ -660,16 +688,18 @@ export function TestForm({ test, onSuccess }) {
             type="submit" 
             disabled={isLoading || isSaved} 
             className={cn(
-              "min-w-[150px] font-bold transition-all",
+              "min-w-[150px] font-bold transition-all gap-2",
               isSaved && "bg-emerald-500 hover:bg-emerald-500 text-white"
             )}
           >
             {isSaved ? (
-              <span className="flex items-center gap-2">
+              <>
                 <Check className="size-4" /> Saved!
-              </span>
+              </>
             ) : isLoading ? (
-              "Saving..."
+              <>
+                <Loader2 className="size-4 animate-spin" /> Saving...
+              </>
             ) : (
               test ? 'Update Test' : 'Create Test'
             )}

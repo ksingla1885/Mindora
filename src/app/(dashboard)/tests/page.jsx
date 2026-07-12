@@ -193,30 +193,34 @@ const WeeklyTestsPage = () => {
                                 const hasInProgress = test.attempts?.some(a => a.status?.toLowerCase() === 'in_progress');
                                 const maxAttemptsLimit = test.maxAttempts ?? (test.allowMultipleAttempts ? 0 : 1);
                                 const isCompleted = maxAttemptsLimit !== 0 && (test.attempts?.length || 0) >= maxAttemptsLimit && !hasInProgress;
+                                const now = new Date();
+                                const isExpired = test.endTime && now > new Date(test.endTime);
 
                                 return (
                                     <Link
                                         key={test.id}
-                                        href={isCompleted ? '#' : `/tests/${test.id}`}
-                                        className={cn("block", isCompleted && "pointer-events-none opacity-80")}
+                                        href={`/tests/${test.id}`}
+                                        className="block"
                                     >
                                         <div className="group flex flex-col bg-white dark:bg-[#1a2332] rounded-xl overflow-hidden border border-slate-200 dark:border-[#232f48] hover:border-primary/50 dark:hover:border-primary hover:shadow-lg dark:hover:shadow-[0_0_20px_rgba(19,91,236,0.15)] transition-all duration-300 h-full">
                                             {/* Image Header */}
                                             <div
                                                 className={cn(
                                                     "h-40 bg-cover bg-center relative transition-all duration-500",
-                                                    // Using a placeholder or test.image if available
                                                     "bg-slate-200 dark:bg-slate-800"
                                                 )}
                                                 style={test.image ? { backgroundImage: `url('${test.image}')` } : {}}
                                             >
                                                 <div className="absolute top-3 right-3">
-                                                    {/* Status Badge Logic - Simplified for now */}
                                                     <span className={cn(
-                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm",
-                                                        "bg-blue-500/90 text-white"
+                                                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold backdrop-blur-sm shadow-sm text-white",
+                                                        isCompleted
+                                                            ? "bg-green-500/90"
+                                                            : isExpired
+                                                              ? "bg-red-500/90"
+                                                              : "bg-blue-500/90"
                                                     )}>
-                                                        {test.isPublished ? 'PUBLISHED' : 'DRAFT'}
+                                                        {isCompleted ? 'COMPLETED' : isExpired ? 'EXPIRED' : 'ACTIVE'}
                                                     </span>
                                                 </div>
 
@@ -282,11 +286,13 @@ const WeeklyTestsPage = () => {
                                                             "text-white text-sm font-medium py-2 px-5 rounded-lg transition-colors shadow-lg",
                                                             isCompleted
                                                                 ? "bg-green-600 hover:bg-green-700 shadow-green-600/20 cursor-default"
-                                                                : "bg-primary hover:bg-blue-600 shadow-primary/20"
+                                                                : isExpired
+                                                                  ? "bg-slate-400 dark:bg-slate-700 shadow-none cursor-default"
+                                                                  : "bg-primary hover:bg-blue-600 shadow-primary/20"
                                                         )}
-                                                        disabled={isCompleted}
+                                                        disabled={isCompleted || isExpired}
                                                     >
-                                                        {isCompleted ? 'Completed' : 'View Details'}
+                                                        {isCompleted ? 'Completed' : isExpired ? 'Expired' : 'View Details'}
                                                     </button>
                                                 </div>
                                             </div>

@@ -157,15 +157,21 @@ export async function PATCH(request, { params }) {
     const maxViolationsAllowed = test.maxViolationsAllowed !== null && test.maxViolationsAllowed !== undefined ? test.maxViolationsAllowed : 5;
 
     const tabSwitchesCount = newViolations.filter((v) => v.type === 'TAB_SWITCH_DETECTED').length;
-    const totalViolationsCount = newViolations.length;
+    const activeViolationsCount = newViolations.filter(
+      (v) => v.type !== 'MEDIA_ACCESS_DENIED' && v.type !== 'FULLSCREEN_ERROR' && v.type !== 'TAB_SWITCH_DETECTED'
+    ).length;
 
     let shouldDisqualify = false;
     let disqualificationReason = '';
 
-    if (tabSwitchesCount >= maxTabSwitches) {
+    const hasCameraDenial = newViolations.some((v) => v.type === 'MEDIA_ACCESS_DENIED');
+    if (test.faceDetectionEnabled && hasCameraDenial) {
+      shouldDisqualify = true;
+      disqualificationReason = 'Camera access is required for this test. Proctoring session could not be started.';
+    } else if (tabSwitchesCount >= maxTabSwitches) {
       shouldDisqualify = true;
       disqualificationReason = `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
-    } else if (totalViolationsCount >= maxViolationsAllowed) {
+    } else if (activeViolationsCount >= maxViolationsAllowed) {
       shouldDisqualify = true;
       disqualificationReason = `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
     }

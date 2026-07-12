@@ -87,6 +87,24 @@ export async function POST(request, { params }) {
         const qType = (question.type || '').toUpperCase();
         if (qType === 'MCQ' || qType === 'MULTIPLE_CHOICE' || qType === 'TRUE_FALSE') {
           isCorrect = String(userAnswer) === String(question.correctAnswer);
+          if (!isCorrect) {
+            let parsedOptions = [];
+            try {
+              parsedOptions = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+            } catch (e) {
+              parsedOptions = [];
+            }
+            if (Array.isArray(parsedOptions)) {
+              const correctOpt = parsedOptions.find(opt => {
+                const optId = typeof opt === 'object' ? opt.id : opt;
+                const optText = typeof opt === 'object' ? (opt.text || opt.value) : opt;
+                return String(optText) === String(question.correctAnswer) || String(optId) === String(question.correctAnswer);
+              });
+              if (correctOpt && typeof correctOpt === 'object') {
+                isCorrect = String(userAnswer) === String(correctOpt.id);
+              }
+            }
+          }
         } else if (qType === 'SHORT_ANSWER') {
           // Short answers require manual grading — default to false
           isCorrect = false;

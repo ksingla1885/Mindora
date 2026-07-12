@@ -40,6 +40,7 @@ function AddQuestionsModal({
     setSelectedQuestions,
     handleAddSelectedQuestions,
     handleCreateQuestion,
+    isSaving,
 }) {
     const [mounted, setMounted] = useState(false);
 
@@ -155,7 +156,7 @@ function AddQuestionsModal({
                         value="create"
                         style={{ flexGrow: 1, overflowY: 'auto', padding: '24px' }}
                     >
-                        <QuestionForm onSubmit={handleCreateQuestion} onSuccess={onClose} />
+                        <QuestionForm onSubmit={handleCreateQuestion} onSuccess={onClose} isSubmitting={isSaving} />
                     </TabsContent>
 
                     {/* Bank tab */}
@@ -384,10 +385,16 @@ function AddQuestionsModal({
                                         <Button variant="outline" onClick={onClose}>Cancel</Button>
                                         <Button
                                             onClick={handleAddSelectedQuestions}
-                                            disabled={selectedQuestions.length === 0}
-                                            className="font-bold shadow-md"
+                                            disabled={selectedQuestions.length === 0 || isSaving}
+                                            className="font-bold shadow-md gap-2"
                                         >
-                                            Add Selected ({selectedQuestions.length})
+                                            {isSaving ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 animate-spin" /> Adding...
+                                                </>
+                                            ) : (
+                                                `Add Selected (${selectedQuestions.length})`
+                                            )}
                                         </Button>
                                     </div>
                                 </div>
@@ -395,6 +402,97 @@ function AddQuestionsModal({
                         </div>
                     </TabsContent>
                 </Tabs>
+            </div>
+        </div>,
+        document.body
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ConfirmationModal — portal-based premium modal
+// ─────────────────────────────────────────────────────────────────────────────
+function ConfirmationModal({
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    isDestructive = true,
+}) {
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    useEffect(() => {
+        if (isOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => { document.body.style.overflow = ''; };
+    }, [isOpen]);
+
+    if (!mounted || !isOpen) return null;
+
+    const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) onClose();
+    };
+
+    return createPortal(
+        <div
+            onClick={handleBackdropClick}
+            style={{
+                position: 'fixed',
+                inset: 0,
+                zIndex: 10000,
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '24px',
+            }}
+        >
+            <div
+                style={{
+                    position: 'relative',
+                    width: '100%',
+                    maxWidth: '400px',
+                    backgroundColor: 'hsl(var(--background))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.3)',
+                    padding: '24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '16px',
+                }}
+            >
+                <div>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 600, color: 'hsl(var(--foreground))' }}>
+                        {title}
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '14px', color: 'hsl(var(--muted-foreground))', lineHeight: '1.5' }}>
+                        {message}
+                    </p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+                    <Button variant="outline" onClick={onClose}>{cancelText}</Button>
+                    <Button
+                        variant={isDestructive ? 'destructive' : 'default'}
+                        onClick={() => {
+                            onConfirm();
+                            onClose();
+                        }}
+                        className="font-bold shadow-sm"
+                    >
+                        {confirmText}
+                    </Button>
+                </div>
             </div>
         </div>,
         document.body
@@ -416,6 +514,16 @@ export function TestQuestionsManager({ testId }) {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedFolder, setSelectedFolder] = useState('All');
     const [isFetchingAvailable, setIsFetchingAvailable] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Confirmation Modal State
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+        isDestructive: true,
+    });
 
     // Initial fetch
     useEffect(() => {
@@ -467,6 +575,7 @@ export function TestQuestionsManager({ testId }) {
 
     const handleCreateQuestion = async (formData) => {
         try {
+            setIsSaving(true);
             const createRes = await fetch('/api/questions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -488,12 +597,15 @@ export function TestQuestionsManager({ testId }) {
             fetchTestQuestions();
         } catch (error) {
             toast({ title: 'Error', description: error.message, variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const handleAddSelectedQuestions = async () => {
         if (selectedQuestions.length === 0) return;
         try {
+            setIsSaving(true);
             const res = await fetch(`/api/tests/${testId}/questions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -508,20 +620,49 @@ export function TestQuestionsManager({ testId }) {
             fetchTestQuestions();
         } catch (error) {
             toast({ title: 'Error', description: error.message || 'Failed to add questions.', variant: 'destructive' });
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleRemoveQuestion = async (questionId) => {
-        if (!confirm('Are you sure you want to remove this question?')) return;
-        try {
-            const res = await fetch(`/api/tests/${testId}/questions/${questionId}`, { method: 'DELETE' });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to remove');
-            setQuestions(prev => prev.filter(q => q.question.id !== questionId));
-            toast({ title: 'Success', description: 'Question removed.' });
-        } catch (error) {
-            toast({ title: 'Error', description: error.message || 'Failed to remove question.', variant: 'destructive' });
-        }
+    const handleRemoveQuestion = (questionId) => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Remove Question',
+            message: 'Are you sure you want to remove this question from this test?',
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`/api/tests/${testId}/questions/${questionId}`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Failed to remove');
+                    setQuestions(prev => prev.filter(q => q.question.id !== questionId));
+                    toast({ title: 'Success', description: 'Question removed.' });
+                } catch (error) {
+                    toast({ title: 'Error', description: error.message || 'Failed to remove question.', variant: 'destructive' });
+                }
+            }
+        });
+    };
+
+    const handleClearAllQuestions = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Clear All Questions',
+            message: 'Are you sure you want to remove ALL questions from this test? This action cannot be undone.',
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const res = await fetch(`/api/tests/${testId}/questions`, { method: 'DELETE' });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Failed to clear questions');
+                    setQuestions([]);
+                    toast({ title: 'Success', description: 'All questions removed from test.' });
+                } catch (error) {
+                    toast({ title: 'Error', description: error.message || 'Failed to clear questions.', variant: 'destructive' });
+                }
+            }
+        });
     };
 
     const handleUpdateMarks = async (questionId, newMarks) => {
@@ -602,12 +743,23 @@ export function TestQuestionsManager({ testId }) {
                         Total Marks: {questions.reduce((sum, q) => sum + (q.marks || 0), 0)}
                     </Badge>
                 </div>
-                <Button
-                    className="font-bold bg-primary hover:bg-blue-600 text-white shadow-lg shadow-primary/20"
-                    onClick={() => setIsAddModalOpen(true)}
-                >
-                    <Plus className="mr-2 h-4 w-4" /> Add Questions
-                </Button>
+                <div className="flex items-center gap-2">
+                    {questions.length > 0 && (
+                        <Button
+                            variant="destructive"
+                            className="font-bold shadow-md"
+                            onClick={handleClearAllQuestions}
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" /> Clear All
+                        </Button>
+                    )}
+                    <Button
+                        className="font-bold bg-primary hover:bg-blue-600 text-white shadow-lg shadow-primary/20"
+                        onClick={() => setIsAddModalOpen(true)}
+                    >
+                        <Plus className="mr-2 h-4 w-4" /> Add Questions
+                    </Button>
+                </div>
             </div>
 
             {/* Portal-based Add Questions modal */}
@@ -626,6 +778,17 @@ export function TestQuestionsManager({ testId }) {
                 setSelectedQuestions={setSelectedQuestions}
                 handleAddSelectedQuestions={handleAddSelectedQuestions}
                 handleCreateQuestion={handleCreateQuestion}
+                isSaving={isSaving}
+            />
+
+            {/* Confirmation Modal */}
+            <ConfirmationModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                isDestructive={confirmModal.isDestructive}
             />
 
             {/* Questions list */}

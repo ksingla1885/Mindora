@@ -95,9 +95,28 @@ export async function POST(request, { params }) {
     testQuestions.forEach((tq) => {
       const question = tq.question;
       const userAnswer = answers ? answers[question.id] : (attempt.answers?.[question.id] || null);
-      const isCorrect = userAnswer && question.correctAnswer
-        ? userAnswer === question.correctAnswer
-        : null;
+      let isCorrect = false;
+      if (userAnswer && question.correctAnswer) {
+        isCorrect = String(userAnswer) === String(question.correctAnswer);
+        if (!isCorrect) {
+          let parsedOptions = [];
+          try {
+            parsedOptions = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+          } catch (e) {
+            parsedOptions = [];
+          }
+          if (Array.isArray(parsedOptions)) {
+            const correctOpt = parsedOptions.find(opt => {
+              const optId = typeof opt === 'object' ? opt.id : opt;
+              const optText = typeof opt === 'object' ? (opt.text || opt.value) : opt;
+              return String(optText) === String(question.correctAnswer) || String(optId) === String(question.correctAnswer);
+            });
+            if (correctOpt && typeof correctOpt === 'object') {
+              isCorrect = String(userAnswer) === String(correctOpt.id);
+            }
+          }
+        }
+      }
 
       maxScore += tq.marks;
 

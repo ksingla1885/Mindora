@@ -125,9 +125,13 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
     const currentAttemptId = attemptIdRef.current;
     if (!currentAttemptId) return;
 
-    // Show warning modal and increment warning count locally
-    setWarningCount(prev => prev + 1);
-    setShowWarningModal(true);
+    const isSetupViolation = violation.type === 'MEDIA_ACCESS_DENIED' || violation.type === 'FULLSCREEN_ERROR';
+
+    if (!isSetupViolation) {
+      // Show warning modal and increment warning count locally
+      setWarningCount(prev => prev + 1);
+      setShowWarningModal(true);
+    }
 
     try {
       const response = await fetch(`${apiBaseUrl}/${currentAttemptId}`, {
@@ -143,11 +147,14 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       if (response.ok) {
         const result = await response.json();
         
-        // Sync the actual violation count from server response
-        if (result.attempt?.metadata?.violationCount !== undefined) {
+        // Sync the actual active violation count from server response
+        if (Array.isArray(result.attempt?.metadata?.violations)) {
+          const activeCount = result.attempt.metadata.violations.filter(
+            v => v.type !== 'MEDIA_ACCESS_DENIED' && v.type !== 'FULLSCREEN_ERROR'
+          ).length;
+          setWarningCount(activeCount);
+        } else if (result.attempt?.metadata?.violationCount !== undefined) {
           setWarningCount(result.attempt.metadata.violationCount);
-        } else if (result.attempt?.metadata?.violations?.length !== undefined) {
-          setWarningCount(result.attempt.metadata.violations.length);
         }
 
         if (result.disqualified) {
@@ -353,7 +360,14 @@ export function TestTaker({ test, questions: initialQuestions = [], onComplete, 
       setCurrentQuestionIndex(attemptData.details?.currentQuestionIndex || 0);
 
       // Load initial violation count and check if disqualified
-      const initialViolationsCount = attemptData.metadata?.violationCount || attemptData.metadata?.violations?.length || 0;
+      let initialViolationsCount = 0;
+      if (Array.isArray(attemptData.metadata?.violations)) {
+        initialViolationsCount = attemptData.metadata.violations.filter(
+          v => v.type !== 'MEDIA_ACCESS_DENIED' && v.type !== 'FULLSCREEN_ERROR'
+        ).length;
+      } else {
+        initialViolationsCount = attemptData.metadata?.violationCount || 0;
+      }
       setWarningCount(initialViolationsCount);
 
       if (attemptData.status === 'disqualified') {

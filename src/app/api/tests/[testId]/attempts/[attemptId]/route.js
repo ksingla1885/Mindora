@@ -95,6 +95,7 @@ export async function PATCH(request, { params }) {
             durationMinutes: true,
             tabMonitoringEnabled: true,
             proctoringEnabled: true,
+            faceDetectionEnabled: true,
             maxTabSwitches: true,
             maxViolationsAllowed: true,
           },
@@ -175,15 +176,21 @@ export async function PATCH(request, { params }) {
       const tabSwitchCount = newViolations.filter(
         (v) => v.type === 'TAB_SWITCH_DETECTED'
       ).length;
-      const totalViolationCount = newViolations.length;
+      const activeViolationCount = newViolations.filter(
+        (v) => v.type !== 'MEDIA_ACCESS_DENIED' && v.type !== 'FULLSCREEN_ERROR' && v.type !== 'TAB_SWITCH_DETECTED'
+      ).length;
 
-      if (tabSwitchCount >= maxTabSwitches) {
-        shouldDisqualify = true;
-        disqualificationReason = `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
-      } else if (totalViolationCount >= maxViolationsAllowed) {
-        shouldDisqualify = true;
-        disqualificationReason = `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
-      }
+       const hasCameraDenial = newViolations.some((v) => v.type === 'MEDIA_ACCESS_DENIED');
+       if (attempt.test.faceDetectionEnabled && hasCameraDenial) {
+         shouldDisqualify = true;
+         disqualificationReason = 'Camera access is required for this test. Proctoring session could not be started.';
+       } else if (tabSwitchCount >= maxTabSwitches) {
+         shouldDisqualify = true;
+         disqualificationReason = `Exceeded maximum tab switches limit (${maxTabSwitches}).`;
+       } else if (activeViolationCount >= maxViolationsAllowed) {
+         shouldDisqualify = true;
+         disqualificationReason = `Exceeded maximum proctoring violations limit (${maxViolationsAllowed}).`;
+       }
 
       // Persist updated violation list into metadata
       updatedData.metadata = {
@@ -320,6 +327,24 @@ export async function POST(request, { params }) {
         const qType = (question.type || '').toUpperCase();
         if (qType === 'MCQ' || qType === 'MULTIPLE_CHOICE' || qType === 'TRUE_FALSE') {
           isCorrect = String(userAnswer) === String(question.correctAnswer);
+          if (!isCorrect) {
+            let parsedOptions = [];
+            try {
+              parsedOptions = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+            } catch (e) {
+              parsedOptions = [];
+            }
+            if (Array.isArray(parsedOptions)) {
+              const correctOpt = parsedOptions.find(opt => {
+                const optId = typeof opt === 'object' ? opt.id : opt;
+                const optText = typeof opt === 'object' ? (opt.text || opt.value) : opt;
+                return String(optText) === String(question.correctAnswer) || String(optId) === String(question.correctAnswer);
+              });
+              if (correctOpt && typeof correctOpt === 'object') {
+                isCorrect = String(userAnswer) === String(correctOpt.id);
+              }
+            }
+          }
         } else if (qType === 'SHORT_ANSWER') {
           // Short answers require manual grading — default to false
           isCorrect = false;
@@ -459,6 +484,7 @@ async function handleTestSubmission(attemptId, attemptDetails, isAutoSubmit = fa
           correctAnswer: true,
           type: true,
           marks: true,
+          options: true,
         },
       });
 
@@ -467,9 +493,27 @@ async function handleTestSubmission(attemptId, attemptDetails, isAutoSubmit = fa
 
       // Only grade if there's an answer
       if (question.answer !== null && question.answer !== '') {
-        // Simple grading - can be enhanced for different question types
-        if (question.type === 'mcq') {
-          isCorrect = question.answer === questionData.correctAnswer;
+        const qType = (question.type || '').toLowerCase();
+        if (qType === 'mcq' || qType === 'multiple_choice') {
+          isCorrect = String(question.answer) === String(questionData.correctAnswer);
+          if (!isCorrect) {
+            let parsedOptions = [];
+            try {
+              parsedOptions = typeof questionData.options === 'string' ? JSON.parse(questionData.options) : questionData.options;
+            } catch (e) {
+              parsedOptions = [];
+            }
+            if (Array.isArray(parsedOptions)) {
+              const correctOpt = parsedOptions.find(opt => {
+                const optId = typeof opt === 'object' ? opt.id : opt;
+                const optText = typeof opt === 'object' ? (opt.text || opt.value) : opt;
+                return String(optText) === String(questionData.correctAnswer) || String(optId) === String(questionData.correctAnswer);
+              });
+              if (correctOpt && typeof correctOpt === 'object') {
+                isCorrect = String(question.answer) === String(correctOpt.id);
+              }
+            }
+          }
         } else if (question.type === 'short_answer' || question.type === 'long_answer') {
           // For subjective answers, mark as not graded (requires manual review)
           isCorrect = false;

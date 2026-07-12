@@ -223,6 +223,7 @@ export const useTestProctoring = ({
   // Violation is only logged if the user hasn't re-entered fullscreen after the grace period.
   const handleFullscreenChange = useCallback(() => {
     if (!enforceFullscreen) return;
+    if (isStartupGraceRef.current) return;
 
     const currentlyFullscreen = !!(document.fullscreenElement ||
       document.webkitFullscreenElement ||
@@ -382,13 +383,17 @@ export const useTestProctoring = ({
     // Enter startup grace period: ignore focus/blur events during initialization
     // (e.g., fullscreen request, permission dialogs temporarily steal focus)
     isStartupGraceRef.current = true;
+    
+    // Start media capture and face detection (awaits user camera permission action)
+    const stream = await startMediaCapture();
+    if (stream) {
+      startFaceDetection();
+    }
+
+    // Start the settling grace period AFTER camera prompt is resolved and proctoring is fully initialized
     setTimeout(() => {
       isStartupGraceRef.current = false;
-    }, 2000);
-    
-    // Start media capture and face detection
-    await startMediaCapture();
-    startFaceDetection();
+    }, 5000); // 5 seconds settling period
     
     return true;
   }, [
