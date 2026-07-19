@@ -12,24 +12,33 @@ export async function GET() {
 
         const userId = session.user.id;
 
-        const { dpp, assignments, dpps } = await getTodaysDPP(userId, true);
+        // Fetch DPPs and user's real streak in parallel
+        const [{ dpps }, user] = await Promise.all([
+            getTodaysDPP(userId, true),
+            prisma.user.findUnique({
+                where: { id: userId },
+                select: { currentStreak: true },
+            }),
+        ]);
+
+        const currentStreak = user?.currentStreak ?? 0;
 
         if (!dpps || dpps.length === 0) {
             return NextResponse.json({
                 date: new Date().toISOString(),
-                subject: { name: "No Practice" },
-                class: session.user.class || "General",
+                subject: { name: 'No Practice' },
+                class: session.user.class || 'General',
                 questions: [],
-                message: "No practice problems available for today.",
-                dpps: []
+                message: 'No practice problems available for today.',
+                dpps: [],
+                currentStreak,
             });
         }
 
-        // Return the list of DPPs
         return NextResponse.json({
-            dpps: dpps,
-            // For backward compatibility (optional but good)
-            ...dpps[0]
+            dpps,
+            currentStreak,
+            ...dpps[0],
         });
     } catch (error) {
         console.error('Error in student DPP API:', error);

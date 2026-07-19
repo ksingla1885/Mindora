@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -19,7 +17,9 @@ import {
   ArrowRight,
   Sparkles,
   ChevronLeft,
-  Loader2
+  Loader2,
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,6 +43,8 @@ export default function DailyPracticePage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState({}); // { questionId: { selectedOption: 'A', subjective: '...' } }
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [currentStreak, setCurrentStreak] = useState(0);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
 
   // Timer
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -62,6 +64,7 @@ export default function DailyPracticePage() {
       const res = await fetch('/api/student/dpp');
       if (res.ok) {
         const data = await res.json();
+        setCurrentStreak(data.currentStreak ?? 0);
         if (data.dpps && data.dpps.length > 0) {
           setAllDpps(data.dpps);
           // If only one, or for compatibility, set it as default active
@@ -121,7 +124,7 @@ export default function DailyPracticePage() {
     if (currentQuestionIndex < dppData.questions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      submitQuiz();
+      setShowSubmitConfirm(true);
     }
   };
 
@@ -132,6 +135,7 @@ export default function DailyPracticePage() {
   };
 
   const submitQuiz = async () => {
+    setShowSubmitConfirm(false);
     setTimerActive(false);
     setIsLoading(true);
 
@@ -346,21 +350,25 @@ export default function DailyPracticePage() {
               ))}
             </div>
 
-            {/* Streak/Stats Widget (Optional Footer) */}
-            <div className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-4">
-                <div className="size-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
-                  <Flame className="size-6" />
+            {/* Streak Widget — only shown when streak > 0 */}
+            {currentStreak > 0 && (
+              <div className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/10 flex flex-col sm:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="size-12 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500">
+                    <Flame className="size-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-foreground">
+                      You're on a {currentStreak}-day streak!
+                    </h4>
+                    <p className="text-sm text-muted-foreground">Complete today's problems to keep it going.</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-foreground">You're on a 5-day streak!</h4>
-                  <p className="text-sm text-muted-foreground">Complete today's problems to keep it going.</p>
-                </div>
+                <Button variant="ghost" className="text-primary font-bold hover:bg-primary/10" asChild>
+                  <Link href="/dashboard">View Leaderboard <ArrowRight className="size-4 ml-2" /></Link>
+                </Button>
               </div>
-              <Button variant="ghost" className="text-primary font-bold hover:bg-primary/10" asChild>
-                <Link href="/dashboard">View Leaderboard <ArrowRight className="size-4 ml-2" /></Link>
-              </Button>
-            </div>
+            )}
           </motion.div>
         )}
 
@@ -477,8 +485,8 @@ export default function DailyPracticePage() {
               {currentQuestionIndex === dppData.questions.length - 1 ? (
                 <Button
                   size="lg"
-                  className="px-8 h-12 text-lg w-32 bg-emerald-600 hover:bg-emerald-700 text-white"
-                  onClick={submitQuiz}
+                  className="px-8 h-12 text-lg w-32 bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20 transition-all hover:scale-102"
+                  onClick={() => setShowSubmitConfirm(true)}
                 >
                   Submit
                 </Button>
@@ -657,7 +665,65 @@ export default function DailyPracticePage() {
           {renderContent()}
         </main>
       </div>
+
+      {/* Confirmation Modal */}
+      {showSubmitConfirm && dppData && (() => {
+        const totalQ = dppData.questions.length;
+        const answeredQ = Object.keys(answers).filter(qId => {
+          const ans = answers[qId];
+          return ans?.selectedOption || ans?.subjective?.trim();
+        }).length;
+        const unansweredQ = totalQ - answeredQ;
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-6 flex flex-col gap-4 text-center">
+              <div className="mx-auto p-3 bg-primary/10 text-primary rounded-full w-14 h-14 flex items-center justify-center animate-pulse">
+                <HelpCircle className="h-8 w-8" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-foreground">Submit Practice Set?</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Are you sure you want to submit your answers? You won't be able to change them after submitting.
+                </p>
+              </div>
+
+              <div className="bg-muted/30 border border-border/50 rounded-xl p-4 space-y-2 text-sm text-left">
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">Total Questions:</span>
+                  <span className="text-foreground font-semibold">{totalQ}</span>
+                </div>
+                <div className="flex justify-between font-medium">
+                  <span className="text-muted-foreground">Answered:</span>
+                  <span className="text-emerald-600 font-semibold">{answeredQ}</span>
+                </div>
+                {unansweredQ > 0 && (
+                  <div className="flex items-start gap-2 text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 mt-2 animate-bounce">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>You have {unansweredQ} unanswered question(s).</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowSubmitConfirm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  onClick={submitQuiz}
+                >
+                  Yes, Submit
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
-
