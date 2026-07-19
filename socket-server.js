@@ -10,6 +10,8 @@
  *   6. Automatic disconnection   — abusive sockets are terminated immediately
  */
 
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const { Server }       = require("socket.io");
 const { createServer } = require("http");
 
@@ -76,8 +78,28 @@ const io = new Server(httpServer, {
   connectTimeout:    10_000,            // Must complete handshake within 10 s
 });
 
+// Helper to parse cookies from headers
+function parseCookies(cookieHeader) {
+  const list = {};
+  if (!cookieHeader) return list;
+  cookieHeader.split(";").forEach((cookie) => {
+    const parts = cookie.split("=");
+    list[parts.shift().trim()] = decodeURIComponent(parts.join("="));
+  });
+  return list;
+}
+
+let decodeJWT;
+async function decodeToken(token, secret) {
+  if (!decodeJWT) {
+    const { decode } = await import("next-auth/jwt");
+    decodeJWT = decode;
+  }
+  return await decodeJWT({ token, secret });
+}
+
 // ─── Global connection middleware (runs before any event handler) ─────────
-io.use((socket, next) => {
+io.use(async (socket, next) => {
   // 1. Enforce total connection cap
   if (io.engine.clientsCount >= MAX_TOTAL_CONNECTIONS) {
     console.warn(`[Socket] Connection cap reached (${MAX_TOTAL_CONNECTIONS}). Rejecting ${socket.id}`);
@@ -96,7 +118,31 @@ io.use((socket, next) => {
 
   // Attach resolved IP to socket for later logging
   socket.clientIp = ip;
-  next();
+
+  // 3. Authenticate User using NextAuth cookie / JWT
+  try {
+    const cookies = parseCookies(socket.handshake.headers.cookie || "");
+    const token = cookies["next-auth.session-token"] || cookies["__Secure-next-auth.session-token"];
+
+    if (!token) {
+      console.warn(`[Socket] Connection rejected: No session token cookie found for socket ${socket.id}`);
+      return next(new Error("Authentication required"));
+    }
+
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    const decoded = await decodeToken(token, secret);
+
+    if (!decoded) {
+      console.warn(`[Socket] Connection rejected: Invalid JWT token for socket ${socket.id}`);
+      return next(new Error("Invalid session"));
+    }
+
+    socket.user = decoded; // Attach user payload to socket
+    next();
+  } catch (err) {
+    console.error(`[Socket] Authentication error for socket ${socket.id}:`, err.message);
+    return next(new Error("Authentication failed"));
+  }
 });
 
 // ─── Per-socket event rate limiter ────────────────────────────────────────
@@ -144,6 +190,18 @@ io.on("connection", (socket) => {
     // Sanitize inputs before using as room names
     const safeTestId = String(testId).replace(/[^a-zA-Z0-9_-]/g, "");
     const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "");
+
+    // Access control check: Only ADMIN, TEACHER or the owner of the user account is allowed to join this test room
+    const userRole = socket.user?.role?.toUpperCase();
+    if (
+      userRole !== "ADMIN" &&
+      userRole !== "TEACHER" &&
+      safeUserId !== socket.user?.id &&
+      safeUserId !== socket.user?.sub
+    ) {
+      console.warn(`[Socket] Blocked room join: User ${socket.user?.id || socket.user?.sub} tried to join as ${safeUserId}`);
+      return;
+    }
 
     socket.join(`test-${safeTestId}`);
     console.log(`[Socket] User ${safeUserId} joined test ${safeTestId}`);

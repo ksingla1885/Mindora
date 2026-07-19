@@ -23,6 +23,14 @@ export async function POST(request) {
     hmac.update(rawBody);
     const generatedSignature = hmac.digest('hex');
     
+    if (!razorpaySignature || generatedSignature.length !== razorpaySignature.length) {
+      console.error('Invalid webhook signature format or missing header');
+      return NextResponse.json(
+        { error: 'Invalid signature' },
+        { status: 400 }
+      );
+    }
+
     const isSignatureValid = crypto.timingSafeEqual(
       Buffer.from(generatedSignature, 'hex'),
       Buffer.from(razorpaySignature, 'hex')

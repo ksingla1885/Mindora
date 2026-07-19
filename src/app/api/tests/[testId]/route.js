@@ -165,11 +165,38 @@ export async function GET(request, { params }) {
       text: 'text-emerald-500'
     }));
 
+    const userRole = session?.user?.role?.toUpperCase();
+    const hasElevatedRole = userRole === 'ADMIN' || userRole === 'TEACHER';
+
+    const sanitizedTest = { ...test };
+    if (!isPurchased) {
+      delete sanitizedTest.testQuestions;
+    } else if (!hasElevatedRole) {
+      if (sanitizedTest.testQuestions) {
+        sanitizedTest.testQuestions = sanitizedTest.testQuestions.map(tq => {
+          if (tq.question) {
+            const { correctAnswer, explanation, ...sanitizedQuestion } = tq.question;
+            return {
+              ...tq,
+              question: sanitizedQuestion
+            };
+          }
+          return tq;
+        });
+      }
+    }
+
+    const now = new Date();
+    const isExpired = test.endTime ? now > new Date(test.endTime) : false;
+    const isTooEarly = test.startTime ? now < new Date(test.startTime) : false;
+
     return NextResponse.json({
       success: true,
       data: {
-        ...test,
+        ...sanitizedTest,
         isPurchased,
+        isExpired,
+        isTooEarly,
         userStatus,
         salesVelocity,
         recentBuyers

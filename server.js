@@ -1,3 +1,5 @@
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 const { createServer } = require('http');
 const { parse } = require('url');
 const next = require('next');
@@ -23,6 +25,26 @@ app.prepare().then(() => {
         }
     });
 
+    // Helper to parse cookies from headers
+    function parseCookies(cookieHeader) {
+        const list = {};
+        if (!cookieHeader) return list;
+        cookieHeader.split(";").forEach((cookie) => {
+            const parts = cookie.split("=");
+            list[parts.shift().trim()] = decodeURIComponent(parts.join("="));
+        });
+        return list;
+    }
+
+    let decodeJWT;
+    async function decodeToken(token, secret) {
+        if (!decodeJWT) {
+            const { decode } = await import("next-auth/jwt");
+            decodeJWT = decode;
+        }
+        return await decodeJWT({ token, secret });
+    }
+
     // Initialize Socket.IO
     const io = new Server(server, {
         cors: {
@@ -31,23 +53,69 @@ app.prepare().then(() => {
         }
     });
 
+    // Authenticate User using NextAuth cookie / JWT
+    io.use(async (socket, next) => {
+        try {
+            const cookies = parseCookies(socket.handshake.headers.cookie || "");
+            const token = cookies["next-auth.session-token"] || cookies["__Secure-next-auth.session-token"];
+
+            if (!token) {
+                console.warn(`[Socket Dev] Connection rejected: No session token cookie found for socket ${socket.id}`);
+                return next(new Error("Authentication required"));
+            }
+
+            const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+            const decoded = await decodeToken(token, secret);
+
+            if (!decoded) {
+                console.warn(`[Socket Dev] Connection rejected: Invalid JWT token for socket ${socket.id}`);
+                return next(new Error("Invalid session"));
+            }
+
+            socket.user = decoded; // Attach user payload to socket
+            next();
+        } catch (err) {
+            console.error(`[Socket Dev] Authentication error for socket ${socket.id}:`, err.message);
+            return next(new Error("Authentication failed"));
+        }
+    });
+
     io.on('connection', (socket) => {
         console.log('Client connected:', socket.id);
 
         // Join test room
         socket.on('join-test', ({ testId, userId }) => {
-            socket.join(`test-${testId}`);
-            console.log(`User ${userId} joined test ${testId}`);
+            if (!testId || !userId) return;
+
+            // Sanitize inputs before using as room names
+            const safeTestId = String(testId).replace(/[^a-zA-Z0-9_-]/g, "");
+            const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "");
+
+            // Access control check: Only ADMIN, TEACHER or the owner of the user account is allowed to join this test room
+            const userRole = socket.user?.role?.toUpperCase();
+            if (
+                userRole !== "ADMIN" &&
+                userRole !== "TEACHER" &&
+                safeUserId !== socket.user?.id &&
+                safeUserId !== socket.user?.sub
+            ) {
+                console.warn(`[Socket Dev] Blocked room join: User ${socket.user?.id || socket.user?.sub} tried to join as ${safeUserId}`);
+                return;
+            }
+
+            socket.join(`test-${safeTestId}`);
+            console.log(`User ${safeUserId} joined test ${safeTestId}`);
 
             // Notify others in room
-            socket.to(`test-${testId}`).emit('user-joined', { userId });
+            socket.to(`test-${safeTestId}`).emit('user-joined', { userId: safeUserId });
         });
 
         // Handle answer updates
         socket.on('update-answer', (data) => {
+            if (!data?.testId) return;
+            const safeTestId = String(data.testId).replace(/[^a-zA-Z0-9_-]/g, "");
             // Broadcast to proctors or admins monitoring the test
-            // For now, we just broadcast to the room (which might include proctors)
-            socket.to(`test-${data.testId}`).emit('test-update', data);
+            socket.to(`test-${safeTestId}`).emit('test-update', data);
         });
 
         socket.on('disconnect', () => {

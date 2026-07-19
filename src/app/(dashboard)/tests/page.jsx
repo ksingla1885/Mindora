@@ -67,8 +67,10 @@ const WeeklyTestsPage = () => {
     const [tests, setTests] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         const fetchTests = async () => {
             try {
                 setLoading(true);
@@ -193,8 +195,7 @@ const WeeklyTestsPage = () => {
                                 const hasInProgress = test.attempts?.some(a => a.status?.toLowerCase() === 'in_progress');
                                 const maxAttemptsLimit = test.maxAttempts ?? (test.allowMultipleAttempts ? 0 : 1);
                                 const isCompleted = maxAttemptsLimit !== 0 && (test.attempts?.length || 0) >= maxAttemptsLimit && !hasInProgress;
-                                const now = new Date();
-                                const isExpired = test.endTime && now > new Date(test.endTime);
+                                const isExpired = test.isExpired;
 
                                 return (
                                     <Link
@@ -276,7 +277,7 @@ const WeeklyTestsPage = () => {
                                                         <span className="text-xs text-slate-500 dark:text-slate-400">
                                                             {test.startTime ? 'Starts' : 'Availability'}
                                                         </span>
-                                                        <span className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                        <span className="text-sm font-semibold text-slate-900 dark:text-white" suppressHydrationWarning={true}>
                                                             {test.startTime ? new Date(test.startTime).toLocaleDateString() : 'Available Now'}
                                                         </span>
                                                     </div>

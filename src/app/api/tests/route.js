@@ -114,11 +114,18 @@ export async function GET(request) {
       participantCounts[group.testId] = (participantCounts[group.testId] || 0) + 1;
     });
 
-    // Merge counts into tests
-    const testsWithCounts = tests.map(test => ({
-      ...test,
-      participantCount: participantCounts[test.id] || 0
-    }));
+    // Merge counts into tests and calculate expiration status
+    const now = new Date();
+    const testsWithCounts = tests.map(test => {
+      const isExpired = test.endTime ? now > new Date(test.endTime) : false;
+      const isTooEarly = test.startTime ? now < new Date(test.startTime) : false;
+      return {
+        ...test,
+        participantCount: participantCounts[test.id] || 0,
+        isExpired,
+        isTooEarly,
+      };
+    });
 
     return NextResponse.json({
       success: true,

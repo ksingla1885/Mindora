@@ -58,6 +58,7 @@ export default function ProfileDropdown({ session }) {
         aria-label="Open profile menu"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
+        suppressHydrationWarning={true}
         className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
       >
         {/* Name + role (hidden on small screens) */}

@@ -7,8 +7,50 @@ const prisma = new PrismaClient();
 // GET /api/tests/[testId]/questions - Get all questions for a test
 export async function GET(request, { params }) {
   const { testId } = await params;
+  const session = await auth();
 
   try {
+    // 1. Fetch test to see if it is paid
+    const test = await prisma.test.findUnique({
+      where: { id: testId },
+      select: { isPaid: true, price: true }
+    });
+
+    if (!test) {
+      return NextResponse.json(
+        { success: false, error: 'Test not found' },
+        { status: 404 }
+      );
+    }
+
+    let isPurchased = false;
+    if (session && session.user) {
+      if (!test.isPaid || test.price === 0) {
+        isPurchased = true;
+      } else {
+        const payment = await prisma.payment.findFirst({
+          where: {
+            userId: session.user.id,
+            testId: testId,
+            status: { in: ['COMPLETED', 'CAPTURED'] },
+          },
+        });
+        if (payment) {
+          isPurchased = true;
+        }
+      }
+    }
+
+    const userRole = session?.user?.role?.toUpperCase();
+    const hasElevatedRole = userRole === 'ADMIN' || userRole === 'TEACHER';
+
+    if (!isPurchased && !hasElevatedRole) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied. You must purchase this test first.' },
+        { status: 403 }
+      );
+    }
+
     const testQuestions = await prisma.testQuestion.findMany({
       where: { testId },
       include: {
@@ -34,9 +76,23 @@ export async function GET(request, { params }) {
       },
     });
 
+    // Sanitize questions for standard users (hide correct answers and explanations)
+    const sanitizedQuestions = hasElevatedRole
+      ? testQuestions
+      : testQuestions.map(tq => {
+          if (tq.question) {
+            const { correctAnswer, explanation, ...sanitizedQuestion } = tq.question;
+            return {
+              ...tq,
+              question: sanitizedQuestion
+            };
+          }
+          return tq;
+        });
+
     return NextResponse.json({
       success: true,
-      data: testQuestions,
+      data: sanitizedQuestions,
     });
   } catch (error) {
     console.error('Error fetching test questions:', error);

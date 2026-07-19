@@ -136,11 +136,8 @@ export default function TestPage() {
   const isCompleted = maxAttempts !== 0 && userAttempts.length >= maxAttempts && !hasInProgress;
 
   // Check for scheduling
-  const now = new Date();
-  const testStartTime = test.startTime ? new Date(test.startTime) : null;
-  const testEndTime = test.endTime ? new Date(test.endTime) : null;
-  const isTooEarly = testStartTime && now < testStartTime;
-  const isExpired = testEndTime && now > testEndTime;
+  const isTooEarly = test.isTooEarly;
+  const isExpired = test.isExpired;
   
   // Overall button disabled status
   const isLocked = isTooEarly || isCompleted || isExpired;

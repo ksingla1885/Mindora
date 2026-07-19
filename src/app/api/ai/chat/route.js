@@ -22,9 +22,13 @@ export async function POST(req) {
             return NextResponse.json({ error: 'Invalid messages format' }, { status: 400 });
         }
 
+        const safeMessages = messages.filter(
+            m => m && (m.role === 'user' || m.role === 'assistant')
+        );
+
         const formattedMessages = [
             { role: 'system', content: SYSTEM_INSTRUCTION },
-            ...messages
+            ...safeMessages
         ];
 
         const res = await fetchGroq(formattedMessages, { temperature: 0.7, maxOutputTokens: 1024 });
