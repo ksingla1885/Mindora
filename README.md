@@ -285,6 +285,7 @@ Mindora is optimized for deployment on the **Vercel** platform:
 - **Prisma Client Generation Issue**: If you see missing module errors in code imports, run `npx prisma generate` to rebuild Prisma client types locally.
 - **Redis Connection Failures**: If Upstash Redis times out, verify that `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are valid. If working offline, configure `REDIS_HOST` to `localhost` and run a local Redis service.
 - **NextAuth Mismatches**: If login redirects fail, verify that `NEXTAUTH_URL` matches the port (e.g., `http://localhost:3000`) you are hosting the app on.
+- **NextAuth Production (Vercel) Redirect Loops**: If users are redirected back to `/auth/login?callbackUrl=/dashboard` immediately after successful authentication on production (HTTPS), it is likely because NextAuth sets a secure cookie (`__Secure-authjs.session-token`) on HTTPS, but NextAuth's `getToken` defaults to looking for the non-secure name (`authjs.session-token`) if the `secureCookie` option is not explicitly passed. `src/middleware.js` resolves this by dynamically setting the `secureCookie` flag based on the request protocol.
 
 ---
 
@@ -299,9 +300,9 @@ We welcome contributions to Mindora! Please ensure you adhere to the project sta
 
 ## 🗺️ Roadmap
 
-- [ ] **Database Constraint Fix**: Remove the `TestAttempt` composite unique constraint to allow multiple student test attempts safely.
-- [ ] **Leaderboard Ranks Repair**: Fix the field names (`testsTaken` -> `testCount`) inside the admin leaderboard API route.
-- [ ] **Upstash Rate Limiting**: Move middleware rate-limiting states into Redis to support distributed serverless instances.
+- [x] **Database Constraint Fix**: Remove the `TestAttempt` composite unique constraint to allow multiple student test attempts safely.
+- [x] **Leaderboard Ranks Repair**: Fix the field names (`testsTaken` -> `testCount`) inside the admin leaderboard API route.
+- [x] **Upstash Rate Limiting**: Move middleware rate-limiting states into Redis to support distributed serverless instances.
 - [ ] **AI Recommendation Enhancements**: Feed real historical user performance data into the AI study plan prompt.
 - [ ] **Interactive Proctoring Monitor**: Admin interface for viewing live proctoring violations and tabs switches in real-time.
 
