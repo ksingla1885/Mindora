@@ -154,6 +154,8 @@ export async function middleware(request) {
   const requestHeaders = applyHeaders(request.headers, secHeaders);
 
   // ── 5. Maintenance mode check ─────────────────────────────────────────────
+  const secureCookie = request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
+
   const isBypassPath = maintenanceBypassPaths.some(
     (p) => pathname === p || pathname.startsWith(`${p}/`)
   );
@@ -164,6 +166,7 @@ export async function middleware(request) {
       const tokenForMaintenance = await getToken({
         req: request,
         secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+        secureCookie,
       });
       const role = tokenForMaintenance?.role?.toUpperCase();
       if (role !== "ADMIN") {
@@ -185,6 +188,7 @@ export async function middleware(request) {
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+    secureCookie,
   });
 
   // ── 8. Protected path checks ──────────────────────────────────────────────
