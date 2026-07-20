@@ -110,3 +110,57 @@ export async function PATCH(request) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+export async function DELETE(request) {
+    try {
+        const session = await auth();
+
+        if (!session || !session.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const userId = session.user.id;
+
+        // Perform sequential deletion inside a Prisma transaction to ensure integrity
+        await prisma.$transaction([
+            // 1. Delete certificates first (references attemptId/userId)
+            prisma.certificate.deleteMany({ where: { userId } }),
+            // 2. Delete attempts
+            prisma.testAttempt.deleteMany({ where: { userId } }),
+            // 3. Delete user test analytics
+            prisma.userTestAnalytics.deleteMany({ where: { userId } }),
+            // 4. Delete learning progress
+            prisma.learningProgress.deleteMany({ where: { userId } }),
+            // 5. Delete study sessions
+            prisma.studySession.deleteMany({ where: { userId } }),
+            // 6. Delete analytics events
+            prisma.analyticsEvent.deleteMany({ where: { userId } }),
+            // 7. Delete payments
+            prisma.payment.deleteMany({ where: { userId } }),
+            // 8. Delete discussions
+            prisma.discussion.deleteMany({ where: { userId } }),
+            // 9. Delete olympiad registrations
+            prisma.olympiadRegistration.deleteMany({ where: { userId } }),
+            // 10. Delete user badges
+            prisma.userBadge.deleteMany({ where: { userId } }),
+            // 11. Delete DPP configs, assignments, progress
+            prisma.dPPConfig.deleteMany({ where: { userId } }),
+            prisma.dPPAssignment.deleteMany({ where: { userId } }),
+            prisma.dPPProgress.deleteMany({ where: { userId } }),
+            // 12. Delete content comments
+            prisma.contentComment.deleteMany({ where: { userId } }),
+            // 13. Delete content items created by user (safeguard)
+            prisma.contentItem.deleteMany({ where: { createdBy: userId } }),
+            // 14. Finally delete the User itself (which cascades to Account, Session, VerificationToken, AIDoubtSession, Notification, XPHistory, LeaderboardEntry, UserChallenge, TestAccess)
+            prisma.user.delete({ where: { id: userId } }),
+        ]);
+
+        return NextResponse.json({
+            success: true,
+            message: 'Account deleted successfully'
+        });
+    } catch (error) {
+        console.error('Error deleting user account:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}

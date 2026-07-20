@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Edit,
@@ -79,12 +80,80 @@ export default function ProfilePage() {
         }
     }, [session]);
 
+    const [confirmModal, setConfirmModal] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        confirmText: 'Confirm',
+        cancelText: 'Cancel',
+        isDanger: false,
+    });
+
     const handleSave = async () => {
         setLoading(true);
         // Simulate API call
         await new Promise((resolve) => setTimeout(resolve, 1000));
         setLoading(false);
         setIsEditing(false);
+    };
+
+    const handleSignOutAll = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Sign Out Everywhere',
+            message: 'Are you sure you want to sign out of all other sessions? You will need to log back in on other devices.',
+            confirmText: 'Sign Out All',
+            cancelText: 'Cancel',
+            isDanger: false,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch('/api/user/logout-all', {
+                        method: 'POST',
+                    });
+                    if (!res.ok) throw new Error('Failed to log out of other sessions');
+                    
+                    toast.success('Successfully requested sign out everywhere.');
+                    await signOut({ callbackUrl: '/auth/login' });
+                } catch (error) {
+                    console.error(error);
+                    toast.error(error.message || 'Failed to sign out of all sessions');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
+    };
+
+    const handleDeleteAccount = () => {
+        setConfirmModal({
+            isOpen: true,
+            title: 'Delete Account Permanently',
+            message: 'WARNING: This action is IRREVERSIBLE. Are you sure you want to permanently delete your account, including all test attempts, analytics, and active plans?',
+            confirmText: 'Delete My Account',
+            cancelText: 'Keep Account',
+            isDanger: true,
+            onConfirm: async () => {
+                setLoading(true);
+                try {
+                    const res = await fetch('/api/user/profile', {
+                        method: 'DELETE',
+                    });
+                    
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+                    
+                    toast.success('Your account has been deleted successfully.');
+                    await signOut({ callbackUrl: '/' });
+                } catch (error) {
+                    console.error(error);
+                    toast.error(error.message || 'Failed to delete account');
+                } finally {
+                    setLoading(false);
+                }
+            }
+        });
     };
 
     const renderContent = () => {
@@ -103,6 +172,7 @@ export default function ProfilePage() {
                                 </div>
                                 <button
                                     onClick={() => setIsEditing(!isEditing)}
+                                    suppressHydrationWarning
                                     className={cn(
                                         "inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-xs transition-colors border",
                                         isEditing
@@ -126,6 +196,7 @@ export default function ProfilePage() {
                                             value={formData.name}
                                             disabled={!isEditing}
                                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            suppressHydrationWarning
                                         />
                                     </div>
                                     <div className="space-y-2">
@@ -136,6 +207,7 @@ export default function ProfilePage() {
                                                 value={formData.class}
                                                 disabled={true}
                                                 onChange={(e) => setFormData({ ...formData, class: e.target.value })}
+                                                suppressHydrationWarning
                                             >
                                                 <option value="9">Class 9</option>
                                                 <option value="10">Class 10</option>
@@ -154,6 +226,7 @@ export default function ProfilePage() {
                                             value={formData.school}
                                             disabled={!isEditing}
                                             onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                                            suppressHydrationWarning
                                         />
                                     </div>
                                     <div className="space-y-2 md:col-span-2">
@@ -171,6 +244,7 @@ export default function ProfilePage() {
                                                 value={formData.language}
                                                 disabled={!isEditing}
                                                 onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                                                suppressHydrationWarning
                                             >
                                                 <option value="English">English</option>
                                                 <option value="Hindi">Hindi</option>
@@ -323,7 +397,11 @@ export default function ProfilePage() {
                                         <h4 className="text-sm font-bold text-foreground">Sign Out Everywhere</h4>
                                         <p className="text-xs text-muted-foreground mt-1">Log out of all other active sessions.</p>
                                     </div>
-                                    <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-background border border-border hover:bg-accent text-foreground rounded-lg text-sm font-medium transition-colors cursor-pointer">
+                                    <button
+                                        onClick={handleSignOutAll}
+                                        disabled={loading}
+                                        className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-background border border-border hover:bg-accent text-foreground rounded-lg text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
+                                    >
                                         <LogOut className="w-4 h-4" /> Sign Out All
                                     </button>
                                 </div>
@@ -333,7 +411,11 @@ export default function ProfilePage() {
                                         <h4 className="text-sm font-bold text-red-600 dark:text-red-400">Delete Account</h4>
                                         <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">Permanently remove your account and data.</p>
                                     </div>
-                                    <button className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer">
+                                    <button
+                                        onClick={handleDeleteAccount}
+                                        disabled={loading}
+                                        className="whitespace-nowrap flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                                    >
                                         <Trash2 className="w-4 h-4" /> Delete Account
                                     </button>
                                 </div>
@@ -405,6 +487,7 @@ export default function ProfilePage() {
                         <button
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
+                            suppressHydrationWarning
                             className={cn(
                                 "relative flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 outline-none select-none whitespace-nowrap",
                                 activeTab === tab.id
@@ -431,6 +514,69 @@ export default function ProfilePage() {
             <main>
                 {renderContent()}
             </main>
+
+            <AnimatePresence>
+                {confirmModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        {/* Backdrop */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        />
+                        
+                        {/* Modal Box */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="relative bg-card border border-border/80 rounded-2xl p-6 shadow-2xl max-w-md w-full z-10 space-y-4"
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className={cn(
+                                    "p-3 rounded-full shrink-0",
+                                    confirmModal.isDanger ? "bg-red-500/10 text-red-500" : "bg-primary/10 text-primary"
+                                )}>
+                                    {confirmModal.isDanger ? (
+                                        <Trash2 className="w-6 h-6" />
+                                    ) : (
+                                        <Shield className="w-6 h-6" />
+                                    )}
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-lg font-bold text-foreground">{confirmModal.title}</h3>
+                                    <p className="text-sm text-muted-foreground leading-relaxed">{confirmModal.message}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-end gap-3 pt-2">
+                                <button
+                                    onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                                    className="px-4 py-2 bg-background border border-border hover:bg-accent text-foreground rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                                >
+                                    {confirmModal.cancelText}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        confirmModal.onConfirm?.();
+                                        setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                                    }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-xl text-sm font-bold text-white transition-colors cursor-pointer shadow-md",
+                                        confirmModal.isDanger
+                                            ? "bg-red-600 hover:bg-red-700 shadow-red-600/10"
+                                            : "bg-primary hover:bg-primary/90 shadow-primary/10"
+                                    )}
+                                >
+                                    {confirmModal.confirmText}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
