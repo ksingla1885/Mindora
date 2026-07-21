@@ -53,26 +53,23 @@ export async function DELETE(request, { params }) {
 
     const { sessionId } = await params;
 
-    // Verify ownership before deleting
-    const existingSession = await prisma.aIDoubtSession.findFirst({
+    // Perform atomic deletion scoped to the logged-in user
+    const result = await prisma.aIDoubtSession.deleteMany({
       where: {
         id: sessionId,
         userId: session.user.id,
       },
     });
 
-    if (!existingSession) {
-      return NextResponse.json({ error: 'Session not found or unauthorized' }, { status: 404 });
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Session not found or already deleted' }, { status: 404 });
     }
-
-    await prisma.aIDoubtSession.delete({
-      where: {
-        id: sessionId,
-      },
-    });
 
     return NextResponse.json({ success: true, message: 'Session deleted successfully' });
   } catch (error) {
+    if (error?.code === 'P2025') {
+      return NextResponse.json({ error: 'Session not found or already deleted' }, { status: 404 });
+    }
     console.error('Error deleting doubt session:', error);
     return NextResponse.json({ error: 'Failed to delete doubt session' }, { status: 500 });
   }

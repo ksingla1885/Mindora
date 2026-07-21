@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { Loader2, AlertCircle, Lock, Clock, FileText, CheckCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Lock, Clock, FileText, CheckCircle, ArrowLeft } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -163,6 +163,21 @@ export default function TestPage() {
   // Render Test Details / Landing Page
   return (
     <div className="container mx-auto p-6 max-w-3xl py-12">
+      <Button
+        variant="ghost"
+        onClick={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back();
+          } else {
+            router.push('/tests');
+          }
+        }}
+        className="mb-4 gap-2 text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Tests
+      </Button>
+
       <Card className="shadow-lg border-t-4 border-t-primary">
         <CardHeader className="space-y-4">
           <div className="flex justify-between items-start">
@@ -242,7 +257,23 @@ export default function TestPage() {
           )}
         </CardContent>
 
-        <CardFooter className="flex justify-end pt-6 border-t">
+        <CardFooter className="flex flex-col sm:flex-row sm:justify-between items-center gap-4 pt-6 border-t">
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push('/tests');
+              }
+            }}
+            className="w-full sm:w-auto px-6 text-base gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Tests
+          </Button>
+
           {needsPayment ? (
             <PaymentButton
               testId={test.id}
@@ -251,13 +282,12 @@ export default function TestPage() {
               onSuccess={() => setIsPurchased(true)}
             />
           ) : (
-
             <Button
               size="lg"
               onClick={handleStartTest}
               className={
                 cn(
-                  "w-full md:w-auto px-8 text-lg",
+                  "w-full sm:w-auto px-8 text-lg",
                   isCompleted && "bg-green-600 hover:bg-green-700 cursor-default",
                   isTooEarly && "bg-slate-400 dark:bg-slate-700 cursor-not-allowed",
                   isExpired && "bg-slate-400 dark:bg-slate-700 cursor-not-allowed",
@@ -276,6 +306,6 @@ export default function TestPage() {
           )}
         </CardFooter>
       </Card>
-    </div >
+    </div>
   );
 }
