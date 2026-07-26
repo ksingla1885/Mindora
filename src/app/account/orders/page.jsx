@@ -136,7 +136,7 @@ export default function OrderHistoryPage() {
                 : `No ${statusFilter} orders found.`}
             </p>
             <Button asChild>
-              <Link href="/marketplace">
+              <Link href="/tests/premium">
                 Browse Tests
               </Link>
             </Button>

@@ -122,9 +122,9 @@ export default function OrderFailurePage() {
           )}
           
           <Button variant="outline" size="lg" asChild className="w-full">
-            <Link href="/cart">
+            <Link href="/tests/premium">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Cart
+              Back to Premium Tests
             </Link>
           </Button>
         </div>

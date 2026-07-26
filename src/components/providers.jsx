@@ -36,3 +36,4 @@ export function Providers({ children, session }) {
         </SessionProvider>
     );
 }
+

@@ -15,7 +15,7 @@
     "test:coverage": "jest --coverage",
     "redis:start": "redis-server",
     "redis:cli": "redis-cli",
-    "test:redis": "node test-redis.js",
+    "test:redis": "node scripts/test-redis.js",
     "fix-admin": "node scripts/fix_admin.js"
   },
   "dependencies": {
