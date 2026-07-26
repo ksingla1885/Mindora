@@ -117,7 +117,7 @@ export default function TestsManagementPage() {
           startTime: data.data.startTime ? new Date(data.data.startTime) : undefined,
           endTime: data.data.endTime ? new Date(data.data.endTime) : undefined,
           duration: data.data.durationMinutes,
-          maxAttempts: data.data.allowMultipleAttempts ? 0 : 1,
+          maxAttempts: data.data.maxAttempts,
           isScheduled: !!data.data.startTime,
         };
         setEditingTest(testData);

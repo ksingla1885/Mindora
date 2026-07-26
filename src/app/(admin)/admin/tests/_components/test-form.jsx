@@ -130,6 +130,8 @@ export function TestForm({ test, onSuccess }) {
 
   // Defaults based on type
   useEffect(() => {
+    if (test) return; // Do not overwrite saved settings when editing an existing test
+    
     if (watchTestType === 'olympiad') {
       form.setValue('duration', 180);
       form.setValue('isScheduled', true);
@@ -140,7 +142,7 @@ export function TestForm({ test, onSuccess }) {
       form.setValue('duration', 30);
       form.setValue('isScheduled', false);
     }
-  }, [watchTestType, form]);
+  }, [watchTestType, form, test]);
 
   const addTag = (e) => {
     e.preventDefault();
@@ -167,7 +169,7 @@ export function TestForm({ test, onSuccess }) {
       const requestData = {
         ...rest,
         durationMinutes: duration,
-        maxAttempts: maxAttempts || 1,
+        maxAttempts: maxAttempts !== undefined ? Number(maxAttempts) : 1,
         startTime: isScheduled && startDateObj ? startDateObj.toISOString() : null,
         endTime: isScheduled && startDateObj && duration
           ? new Date(startDateObj.getTime() + duration * 60000).toISOString()

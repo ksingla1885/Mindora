@@ -80,6 +80,9 @@ export default function PaidTestsManagementPage() {
                     ...t,
                     startTime: t.startTime ? new Date(t.startTime) : undefined,
                     endTime: t.endTime ? new Date(t.endTime) : undefined,
+                    duration: t.durationMinutes,
+                    isScheduled: !!t.startTime,
+                    maxAttempts: t.maxAttempts,
                 });
                 setIsEditModalOpen(true);
             }

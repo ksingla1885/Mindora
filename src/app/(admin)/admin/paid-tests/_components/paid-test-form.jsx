@@ -151,11 +151,12 @@ export function PaidTestForm({ test, onSuccess }) {
             const requestData = {
                 ...rest,
                 durationMinutes: duration,
+                maxAttempts: maxAttempts !== undefined ? Number(maxAttempts) : 1,
                 startTime: isScheduled && data.startTime ? data.startTime.toISOString() : null,
                 endTime: isScheduled && data.startTime && duration
                     ? new Date(data.startTime.getTime() + duration * 60000).toISOString()
                     : null,
-                allowMultipleAttempts: maxAttempts > 1,
+                allowMultipleAttempts: maxAttempts === 0 || maxAttempts > 1,
                 isPaid: true, // Always true for this form
                 price: Number(data.price),
             };

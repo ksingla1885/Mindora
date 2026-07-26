@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import PaymentButton from '@/components/PaymentButton';
 import { TestTaker } from '@/components/tests/TestTaker';
+import { PaidTestTaker } from '@/components/paid-tests/PaidTestTaker';
 import { cn } from '@/lib/cn';
 
 export default function TestPage() {
@@ -145,11 +146,12 @@ export default function TestPage() {
   // Determine the current attempt if any (use the first in_progress one)
   const currentAttempt = userAttempts.find(a => a.status?.toLowerCase() === 'in_progress');
 
-  // If test is running, render TestTaker
+  // If test is running, render TestTaker or PaidTestTaker
   if (hasStarted && !needsPayment && processedTest) {
+    const TakerComponent = processedTest.isPaid ? PaidTestTaker : TestTaker;
     return (
       <div className="min-h-screen bg-background">
-        <TestTaker
+        <TakerComponent
           test={processedTest}
           questions={questions}
           onComplete={handleTestComplete}
