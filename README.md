@@ -38,12 +38,14 @@
 
 - 📝 **Advanced Question Bank & Formats**: Support for Multiple Choice (MCQ), True/False, and Subjective (Short/Long Answer) questions categorized by subject, topic, and difficulty.
 - ⚡ **Real-Time Test-Taking Engine**: Smooth, edge-optimized exam client with client-side timer synchronization, background progress auto-saving (via Redis), and auto-grading.
-- 🛡️ **Anti-Cheat & Proctoring Hook**: Browser focus tracking, full-screen enforcement, and tab-switch monitoring to ensure exam integrity.
-- 📅 **Daily Practice Problems (DPP)**: Personalized daily workouts based on user configuration, complete with XP progression and streaks.
-- 💳 **Razorpay Checkout Integration**: Secure checkout processing with webhook listeners, order status persistence, and fallback mock modes for testing.
+- 🔓 **Decoupled Paid Test Experience**: Dedicated paid exam runner page (`src/components/paid-tests/`) which relaxes proctoring overhead (bypassing webcam checks, active tab focus tracking, and fullscreen violations) for paid/scheduled tests while maintaining copy/paste, right-click, and keyboard shortcut blocks.
+- 🛡️ **Anti-Cheat & Proctoring Hook**: Focus tracking, full-screen enforcement, and tab-switch monitoring to ensure free exam integrity.
+- 📅 **Daily Practice Problems (DPP)**: Personalized daily workouts with real database-backed student habit streak tracking (`User.streak`) and pre-submission confirmation summaries (answered vs unanswered count checks).
+- 📥 **Bulk Question Imports**: Client-side parsing using SheetJS (`xlsx`) to support bulk CSV and Excel question uploads with flexible column headers during DPP creation.
+- 💳 **Razorpay Checkout Integration**: Secure checkout with webhook signature validation using dynamic `timingSafeEqual` length validation checks to prevent side-channel timing attacks, order status persistence, and mock testing modes.
 - 📊 **Analytics & Reports**: Visual charts highlighting weaknesses, performance over time, average completion time, and downloadable PDF reports (jsPDF integration).
-- 🏆 **Gamified Leaderboards & Certificates**: Ranks computed based on best scores, XP achievements, streaks, and PDF certificate generation.
-- 🤖 **AI Study Assistant**: Question explanations, performance analyses, and tailored 3-day study plans using OpenAI GPT-4.
+- 🏆 **Gamified Leaderboards & Certificates**: Ranks computed based on best scores, XP achievements, streaks, and dynamic PDF certificate generation and downloads.
+- 🤖 **AI Study Assistant**: Question explanations, performance analyses, and tailored study plans using OpenAI GPT-4.
 - ✉️ **Nodemailer Alerts**: Transporter setup for SMTP confirmation emails, test reports, and notifications.
 
 ---
@@ -64,6 +66,8 @@ Mindora follows a modern, decoupled monolithic structure built on Next.js App Ro
 
 - **Core Framework**: Next.js v16.1.6 (App Router)
 - **UI Runtime**: React v19.2.0
+- **Animations**: Framer Motion v12.23.26
+- **Spreadsheet Parsing**: SheetJS (xlsx) v0.18.5
 - **Database ORM**: Prisma Client v6.18.0 / CLI v6.19.0
 - **Database Engine**: PostgreSQL (Supabase)
 - **Cache / Storage**: Upstash Redis & AWS S3
@@ -89,7 +93,7 @@ Mindora follows a modern, decoupled monolithic structure built on Next.js App Ro
 │   │   ├── (auth)/            # Signin, registration, reset workflows
 │   │   ├── (dashboard)/       # Student analytics, DPP, weekly tests
 │   │   └── api/               # Serverless Next.js API endpoints
-│   ├── components/            # Shared UI components (ui, editor, graphs)
+│   ├── components/            # Shared UI components (ui, editor, graphs, paid-tests)
 │   ├── config/                # Platform configurations (Redis, AWS, S3)
 │   ├── contexts/              # React Context (Auth, theme, providers)
 │   ├── hooks/                 # Reusable utility hooks (proctoring, TTS)
@@ -97,7 +101,8 @@ Mindora follows a modern, decoupled monolithic structure built on Next.js App Ro
 │   ├── services/              # Domain-specific services (dpp, websocket)
 │   └── utils/                 # General helpers
 ├── server.js                  # Custom server integration (Next.js + Socket.IO)
-└── socket-server.js           # Standalone development Socket.IO server
+├── socket-server.js           # Standalone development Socket.IO server
+└── SECURITY.md                # Platform security policy and disclosure protocols
 ```
 
 ---
@@ -211,6 +216,10 @@ The application will be accessible at [http://localhost:3000](http://localhost:3
 - **OTP Verification**: Sign-ups require verifying an email OTP before the account is activated.
 - **CSRF & Security Headers**: Custom headers (CSP, Frame Options, XSS block, Referral-Policy) are appended to all requests.
 - **IP Rate Limiting**: Next.js middleware implements request rate limiting to defend against brute force and scraping.
+- **Websocket Authentication**: Dev (`server.js`) and production (`socket-server.js`) Socket.IO servers parse HTTP NextAuth session cookies and validate JWTs during handshakes.
+- **BOLA Protection & Data Stripping**: Restricts questions retrieval routes for paid exams. Client-facing questions payloads completely strip correct answers and explanations for student roles before submission.
+- **No Client Clock Dependencies**: Test expiry (`isExpired`) and availability (`isTooEarly`) are validated entirely on the server to prevent local system timezone adjustments or clock drift manipulation.
+- **Account Self-Deletion & Device Sign-Out**: Enables users to terminate all active sessions globally (`/api/user/logout-all`) or permanently delete their profiles and progress via sequential Prisma database transactions (`/api/user/profile`).
 
 ---
 
@@ -225,8 +234,11 @@ The application will be accessible at [http://localhost:3000](http://localhost:3
 | `POST` | `/api/tests/[testId]/attempts` | Initiates an exam attempt. |
 | `PATCH` | `/api/tests/[testId]/attempts/[attemptId]` | Auto-saves live question answers. |
 | `POST` | `/api/tests/[testId]/attempts/[attemptId]/submit` | Submits and grades the exam. |
+| `GET` | `/api/tests/[testId]/questions` | Secured endpoint to fetch test questions (BOLA-gated, strips answers/explanations for students). |
 | `GET` | `/api/dpp/today` | Fetches personalized daily practice problems. |
 | `POST` | `/api/ai/explain-question` | Fetches an AI breakdown of a specific question. |
+| `POST` | `/api/user/logout-all` | Terminates all active sessions for the authenticated user. |
+| `DELETE` | `/api/user/profile` | Sequentially deletes user profile, attempts, payments, and analytics. |
 
 ---
 
@@ -303,6 +315,10 @@ We welcome contributions to Mindora! Please ensure you adhere to the project sta
 - [x] **Database Constraint Fix**: Remove the `TestAttempt` composite unique constraint to allow multiple student test attempts safely.
 - [x] **Leaderboard Ranks Repair**: Fix the field names (`testsTaken` -> `testCount`) inside the admin leaderboard API route.
 - [x] **Upstash Rate Limiting**: Move middleware rate-limiting states into Redis to support distributed serverless instances.
+- [x] **OWASP Top 10 Hardening**: Implement server-side JWT verification, room subscription security, prompt injection defenses, and webhook signature validation.
+- [x] **Bulk Practice Uploads**: Added Excel/CSV file parsing with SheetJS for admin DPP batch creations.
+- [x] **Account Deletion & Session Eviction**: Secure user profile self-deletion transactions and multi-device signout.
+- [x] **Decoupled Paid Test Engine**: Isolated components for paid test sessions with relaxed proctoring checks.
 - [ ] **AI Recommendation Enhancements**: Feed real historical user performance data into the AI study plan prompt.
 - [ ] **Interactive Proctoring Monitor**: Admin interface for viewing live proctoring violations and tabs switches in real-time.
 
