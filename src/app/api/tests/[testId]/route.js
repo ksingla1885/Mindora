@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
+import slugify from 'slugify';
 
 // GET /api/tests/[testId] - Get a single test with questions
 export async function GET(request, { params }) {
@@ -63,8 +64,13 @@ export async function GET(request, { params }) {
       };
     }
 
-    const test = await prisma.test.findUnique({
-      where: { id: testId },
+    const test = await prisma.test.findFirst({
+      where: {
+        OR: [
+          { id: testId },
+          { slug: testId }
+        ]
+      },
       include: includeConfig,
     });
 
@@ -83,7 +89,7 @@ export async function GET(request, { params }) {
         const payment = await prisma.payment.findFirst({
           where: {
             userId: session.user.id,
-            testId: testId,
+            testId: test.id,
             status: { in: ['COMPLETED', 'CAPTURED'] },
           },
         });
@@ -113,7 +119,7 @@ export async function GET(request, { params }) {
 
     const recentPayments = await prisma.payment.findMany({
       where: {
-        testId: testId,
+        testId: test.id,
         status: 'COMPLETED',
         createdAt: {
           gte: sevenDaysAgo
@@ -147,7 +153,7 @@ export async function GET(request, { params }) {
     // Recent Buyers (Last 5)
     const recentBuyersRaw = await prisma.payment.findMany({
       where: {
-        testId: testId,
+        testId: test.id,
         status: 'COMPLETED'
       },
       orderBy: { createdAt: 'desc' },
@@ -227,8 +233,13 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
 
     // Check if test exists and is not yet started
-    const existingTest = await prisma.test.findUnique({
-      where: { id: testId },
+    const existingTest = await prisma.test.findFirst({
+      where: {
+        OR: [
+          { id: testId },
+          { slug: testId }
+        ]
+      },
       include: {
         _count: {
           select: { attempts: true },
@@ -257,6 +268,62 @@ export async function PATCH(request, { params }) {
     // Build update data
     const updateData = { ...body };
 
+    // Handle slug updates
+    if (body.slug !== undefined) {
+      let baseSlug = body.slug ? slugify(body.slug, { lower: true, strict: true }) : slugify(body.title || existingTest.title, { lower: true, strict: true });
+      if (!baseSlug) {
+        baseSlug = 'test';
+      }
+
+      let slug = baseSlug;
+      let isUnique = false;
+      let attemptCount = 0;
+
+      while (!isUnique) {
+        const potentialSlug = attemptCount === 0 ? slug : `${slug}-${attemptCount}`;
+        const existingTestWithSlug = await prisma.test.findFirst({
+          where: {
+            slug: potentialSlug,
+            id: { not: existingTest.id }
+          }
+        });
+        if (!existingTestWithSlug) {
+          slug = potentialSlug;
+          isUnique = true;
+        } else {
+          attemptCount++;
+        }
+      }
+      updateData.slug = slug;
+    } else if (body.title && body.title !== existingTest.title) {
+      // If title changed but slug was not passed, regenerate slug from title
+      let baseSlug = slugify(body.title, { lower: true, strict: true });
+      if (!baseSlug) {
+        baseSlug = 'test';
+      }
+
+      let slug = baseSlug;
+      let isUnique = false;
+      let attemptCount = 0;
+
+      while (!isUnique) {
+        const potentialSlug = attemptCount === 0 ? slug : `${slug}-${attemptCount}`;
+        const existingTestWithSlug = await prisma.test.findFirst({
+          where: {
+            slug: potentialSlug,
+            id: { not: existingTest.id }
+          }
+        });
+        if (!existingTestWithSlug) {
+          slug = potentialSlug;
+          isUnique = true;
+        } else {
+          attemptCount++;
+        }
+      }
+      updateData.slug = slug;
+    }
+
     // Handle date conversions
     if (body.startTime) updateData.startTime = new Date(body.startTime);
     if (body.endTime) updateData.endTime = new Date(body.endTime);
@@ -280,7 +347,7 @@ export async function PATCH(request, { params }) {
 
     // Update the test
     const updatedTest = await prisma.test.update({
-      where: { id: testId },
+      where: { id: existingTest.id },
       data: updateData,
     });
 
@@ -325,9 +392,14 @@ export async function DELETE(request, { params }) {
   }
 
   try {
-    // Check if test has attempts
-    const test = await prisma.test.findUnique({
-      where: { id: testId },
+    // Check if test exists
+    const test = await prisma.test.findFirst({
+      where: {
+        OR: [
+          { id: testId },
+          { slug: testId }
+        ]
+      },
       include: {
         _count: {
           select: { attempts: true },
@@ -344,17 +416,17 @@ export async function DELETE(request, { params }) {
 
     // Delete all attempts associated with the test
     await prisma.testAttempt.deleteMany({
-      where: { testId },
+      where: { testId: test.id },
     });
 
     // Delete test questions first (due to foreign key constraint)
     await prisma.testQuestion.deleteMany({
-      where: { testId },
+      where: { testId: test.id },
     });
 
     // Then delete the test
     await prisma.test.delete({
-      where: { id: testId },
+      where: { id: test.id },
     });
 
     return NextResponse.json({

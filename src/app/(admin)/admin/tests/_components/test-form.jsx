@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { format } from 'date-fns';
 import { CalendarIcon, Clock, Plus, X, Trash2, ChevronDown, Check, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import slugify from 'slugify';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -49,6 +50,7 @@ const CLASS_SUBJECTS = {
 const DEFAULT_SUBJECTS = ['Mathematics', 'Science'];
 
 const testFormSchema = z.object({
+  slug: z.string().optional().or(z.literal('')),
   title: z.string().min(5, { message: 'Title must be at least 5 characters.' }),
   description: z.string().optional(),
   class: z.string({ required_error: 'Please select a class.' }),
@@ -91,6 +93,7 @@ export function TestForm({ test, onSuccess }) {
   const form = useForm({
     resolver: zodResolver(testFormSchema),
     defaultValues: {
+      slug: test?.slug || '',
       title: test?.title || '',
       description: test?.description || '',
       class: test?.class || '',
@@ -118,12 +121,21 @@ export function TestForm({ test, onSuccess }) {
   });
 
   // Watchers
+  const watchTitle = form.watch('title');
   const watchClass = form.watch('class');
   const watchIsScheduled = form.watch('isScheduled');
   const watchIsPaid = form.watch('isPaid');
   const watchTestType = form.watch('testType');
   const watchStartTime = form.watch('startTime');
   const watchDuration = form.watch('duration');
+
+  // Auto-generate slug from title (only for new tests)
+  useEffect(() => {
+    if (!test && watchTitle) {
+      const generatedSlug = slugify(watchTitle, { lower: true, strict: true });
+      form.setValue('slug', generatedSlug, { shouldValidate: true });
+    }
+  }, [watchTitle, test, form]);
 
   // Dynamic Subjects based on Class
   const availableSubjects = watchClass ? CLASS_SUBJECTS[watchClass] : DEFAULT_SUBJECTS;
@@ -263,6 +275,23 @@ export function TestForm({ test, onSuccess }) {
                   <FormControl>
                     <Input placeholder="e.g. Weekly Physics - Kinematics" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Slug (URL Identifier)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g. weekly-physics-kinematics" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Unique URL-friendly name. Auto-generated from title if left blank.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

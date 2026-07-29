@@ -156,7 +156,7 @@ export default function TestPage() {
           questions={questions}
           onComplete={handleTestComplete}
           initialAttempt={currentAttempt}
-          apiBaseUrl={`/api/tests/${testId}/attempts`}
+          apiBaseUrl={`/api/tests/${test.id}/attempts`}
         />
       </div>
     );

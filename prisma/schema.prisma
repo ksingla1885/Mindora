@@ -537,6 +537,7 @@ model Question {
 
 model Test {
   id                     String              @id @default(cuid())
+  slug                   String?             @unique
   title                  String
   description            String?
   olympiadId             String?             @map("olympiad_id")
@@ -581,6 +582,7 @@ model Test {
   userTestAnalytics      UserTestAnalytics[]
   testAccess             TestAccess[]
 
+  @@index([slug])
   @@map("tests")
 }
 

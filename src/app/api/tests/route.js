@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { auth } from '@/auth';
+import slugify from 'slugify';
 
 const prisma = new PrismaClient();
 
@@ -205,8 +206,32 @@ export async function POST(request) {
       );
     }
 
+    // Generate unique slug
+    let baseSlug = body.slug ? slugify(body.slug, { lower: true, strict: true }) : slugify(body.title, { lower: true, strict: true });
+    if (!baseSlug) {
+      baseSlug = 'test';
+    }
+
+    let slug = baseSlug;
+    let isUnique = false;
+    let attemptCount = 0;
+
+    while (!isUnique) {
+      const potentialSlug = attemptCount === 0 ? slug : `${slug}-${attemptCount}`;
+      const existingTest = await prisma.test.findFirst({
+        where: { slug: potentialSlug }
+      });
+      if (!existingTest) {
+        slug = potentialSlug;
+        isUnique = true;
+      } else {
+        attemptCount++;
+      }
+    }
+
     // Create the test data object
     const testData = {
+      slug,
       title: body.title,
       description: body.description || null,
       isPaid: body.isPaid || false,
