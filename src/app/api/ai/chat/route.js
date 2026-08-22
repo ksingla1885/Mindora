@@ -36,23 +36,23 @@ export async function POST(req) {
         // Mock response if no keys exist
         if (!res) {
             await new Promise(r => setTimeout(r, 800)); // simulate latency
-            return NextResponse.json({ role: 'assistant', content: "This is a **mock response** — add a valid `GROQ_PRIMARY_API_KEY` to your `.env` file to get real AI answers." });
+            return NextResponse.json({ role: 'assistant', content: "This is a **mock response** — add a valid `OPENROUTER_API_KEY` to your `.env` file to get real AI answers." });
         }
 
         if (!res.ok) {
             const errBody = await res.json();
-            console.error('Groq API error:', errBody);
+            console.error('OpenRouter API error:', errBody);
             
             if (res.status === 429) {
                 const lastUserMsg = messages[messages.length - 1]?.content ?? 'your question';
                 return NextResponse.json({
                     role: 'assistant',
-                    content: `⚠️ **API quota exceeded** — Mindora AI is temporarily unavailable on both primary and fallback networks.\n\nYou asked: *"${lastUserMsg}"*`,
+                    content: `⚠️ **API quota exceeded** — Mindora AI is temporarily unavailable.\n\nYou asked: *"${lastUserMsg}"*`,
                 });
             }
 
             return NextResponse.json(
-                { error: errBody?.error?.message || 'Groq API request failed' },
+                { error: errBody?.error?.message || 'OpenRouter API request failed' },
                 { status: res.status }
             );
         }

@@ -26,7 +26,7 @@ async function downloadImageAsDataUrl(url) {
   }
 }
 
-// Helper: Generate structured mock replies when GROQ API key is missing or rate-limited
+// Helper: Generate structured mock replies when OpenRouter API key is missing or rate-limited
 function generateMockResponse(userQuery) {
   const query = userQuery.trim();
   const lowerQuery = query.toLowerCase();
@@ -63,7 +63,7 @@ An equilateral triangle is a triangle in which all three sides are equal.
 If the side length of the triangle is $$s = 4\\text{ cm}$$, the area is:
 $$\\text{Area} = \\frac{\\sqrt{3}}{4} \\cdot 4^2 = 4\\sqrt{3} \\approx 6.93\\text{ cm}^2$$
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('circle')) {
@@ -84,7 +84,7 @@ For a circle of radius $$r$$:
 If the radius of the circle is $$r = 7\\text{ cm}$$ and we use $$\\pi \\approx \\frac{22}{7}$$:
 $$\\text{Circumference} = 2 \\cdot \\frac{22}{7} \\cdot 7 = 44\\text{ cm}$$
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('quadratic') || lowerQuery.includes('roots')) {
@@ -102,7 +102,7 @@ $$ax^2 + bx + c = 0$$
   * If $$D = 0$$: One real root (repeated).
   * If $$D < 0$$: Two complex conjugate roots.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   // 2. SCIENCE SPECIFIC TRIGGERS
@@ -122,7 +122,7 @@ $$ax^2 + bx + c = 0$$
 - **Acceleration due to gravity ($$g$$):**
   On Earth's surface, $$g \\approx 9.8\\text{ m/s}^2$$.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   if (lowerQuery.includes('photosynthesis')) {
@@ -139,7 +139,7 @@ $$ax^2 + bx + c = 0$$
   3. **Light:** Captured by chlorophyll pigments in chloroplasts.
   4. **Glucose ($$\\text{C}_6\\text{H}_{12}\\text{O}_6$$):** Used by the plant as food/energy.
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   // 3. GENERIC MATH/FORMULA GENERATOR
@@ -166,7 +166,7 @@ Let's explore the mathematical formula or solution for **${cleanTopic}**:
 
 Would you like to try a specific practice question on **${cleanTopic}**? Let me know the exact parameters!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   // 4. GENERIC SCIENCE/CONCEPT GENERATOR
@@ -182,7 +182,7 @@ Let's understand **${cleanTopic}** clearly:
 
 If you have a specific numerical question or sub-topic related to **${cleanTopic}**, paste it here and we can solve it step-by-step!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
   }
 
   // 5. DEFAULT MOTIVATING FALLBACK
@@ -198,7 +198,7 @@ To help me give you a detailed walkthrough:
 
 Let me know what you'd like to work on next!
 
-*(Note: Mindora AI is in mock/sandbox mode because the Groq API key is not configured.)*`;
+*(Note: Mindora AI is in mock/sandbox mode because the OpenRouter API key is not configured.)*`;
 }
 
 // POST /api/ai/doubt/sessions/[sessionId]/messages - Send a doubt message
@@ -249,7 +249,7 @@ export async function POST(request, { params }) {
       },
     });
 
-    // 3. Prepare Groq API Messages
+    // 3. Prepare OpenRouter API Messages
     const messages = [
       { role: 'system', content: SYSTEM_INSTRUCTION },
       { role: 'assistant', content: 'Understood! I am Mindora AI, ready to tutor the student.' },
@@ -280,33 +280,33 @@ export async function POST(request, { params }) {
       });
     }
 
-    // Determine model (Groq requires specific vision models if using image_url)
-    const model = hasVision ? 'llama-3.2-90b-vision-preview' : 'llama-3.3-70b-versatile';
+    // Determine model (OpenRouter requires specific vision models if using image_url)
+    const model = hasVision ? 'meta-llama/llama-3.2-11b-vision-instruct:free' : 'nvidia/nemotron-3.5-lightning:free';
 
-    // 4. Query Groq API
-    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048, model });
+    // 4. Query OpenRouter API (via fetchGroq helper)
+    const openrouterRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048, model });
 
     let assistantText = '';
 
-    if (!groqRes) {
+    if (!openrouterRes) {
       // Mock Mode
       assistantText = generateMockResponse(content || '');
     } else {
-        if (!groqRes.ok) {
-          const errBody = await groqRes.json();
-          console.error('Groq API error in Doubt Solver:', errBody);
+        if (!openrouterRes.ok) {
+          const errBody = await openrouterRes.json();
+          console.error('OpenRouter API error in Doubt Solver:', errBody);
     
-          if (groqRes.status === 429) {
+          if (openrouterRes.status === 429) {
             assistantText = generateMockResponse(content || '') + 
-              `\n\n*(Note: Displayed above is a fallback solution because the Groq API rate limit was temporarily exceeded.)*`;
+              `\n\n*(Note: Displayed above is a fallback solution because the OpenRouter API rate limit was temporarily exceeded.)*`;
           } else {
             return NextResponse.json(
               { error: errBody?.error?.message || 'AI request failed' },
-              { status: groqRes.status }
+              { status: openrouterRes.status }
             );
           }
         } else {
-          const data = await groqRes.json();
+          const data = await openrouterRes.json();
           assistantText = data?.choices?.[0]?.message?.content ?? '';
           if (!assistantText) {
             assistantText = 'I am sorry, I was not able to generate a response. Please try again.';

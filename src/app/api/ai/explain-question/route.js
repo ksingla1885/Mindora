@@ -60,23 +60,23 @@ Provide a detailed, educational explanation suitable for a student.`;
       { role: 'user', content: userPrompt }
     ];
 
-    const groqRes = await fetchGroq(messages, { temperature: 0.5, maxOutputTokens: 500 });
+    const openrouterRes = await fetchGroq(messages, { temperature: 0.5, maxOutputTokens: 500 });
 
-    if (!groqRes) {
+    if (!openrouterRes) {
       explanation = `[Simulated Explanation]
        
-This is a mock explanation because the Groq API key is not configured.
+This is a mock explanation because the OpenRouter API key is not configured.
        
 The correct answer is correct because it matches the definition provided in the study materials.
        
 Concept: ${question.topic?.name || 'General Knowledge'}
 Key Point: Understanding this concept is crucial for solving similar problems.`;
     } else {
-      if (!groqRes.ok) {
-        throw new Error('Groq API request failed');
+      if (!openrouterRes.ok) {
+        throw new Error('OpenRouter API request failed');
       }
 
-      const data = await groqRes.json();
+      const data = await openrouterRes.json();
       explanation = data?.choices?.[0]?.message?.content ?? '';
     }
 

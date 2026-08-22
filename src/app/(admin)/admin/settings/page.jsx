@@ -39,9 +39,9 @@ export default function SettingsPage() {
                         <label className="block text-xs font-medium text-muted-foreground mb-1.5">Primary Model</label>
                         <div className="relative">
                             <select className="w-full bg-background border border-border text-foreground text-sm rounded-lg focus:ring-1 focus:ring-primary focus:border-primary block p-2.5 appearance-none">
-                                <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile (Recommended)</option>
-                                <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision</option>
-                                <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                                <option value="nvidia/nemotron-3.5-lightning:free">Nvidia Nemotron 3.5 Lightning (Recommended)</option>
+                                <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 11B Vision</option>
+                                <option value="openrouter/free">OpenRouter Free Auto-Router</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-2.5 text-muted-foreground pointer-events-none w-5 h-5" />
                         </div>
@@ -50,9 +50,9 @@ export default function SettingsPage() {
                         <label className="block text-xs font-medium text-muted-foreground mb-1.5">Fallback Model</label>
                         <div className="relative">
                             <select className="w-full bg-background border border-border text-foreground text-sm rounded-lg focus:ring-1 focus:ring-primary focus:border-primary block p-2.5 appearance-none">
-                                <option value="llama-3.3-70b-versatile">Llama 3.3 70B Versatile</option>
-                                <option value="llama-3.2-90b-vision-preview">Llama 3.2 90B Vision</option>
-                                <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                                <option value="nvidia/nemotron-3.5-lightning:free">Nvidia Nemotron 3.5 Lightning</option>
+                                <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Llama 3.2 11B Vision</option>
+                                <option value="openrouter/free">OpenRouter Free Auto-Router</option>
                                 <option value="none">None</option>
                             </select>
                             <ChevronDown className="absolute right-3 top-2.5 text-muted-foreground pointer-events-none w-5 h-5" />
@@ -61,14 +61,14 @@ export default function SettingsPage() {
                     
                     {/* API Keys */}
                     <div className="col-span-1">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Primary API Key (Groq)</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Primary API Key (OpenRouter)</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1">
                                 <input
                                     className="w-full bg-background border border-border text-muted-foreground text-sm rounded-lg focus:ring-1 focus:ring-primary focus:border-primary block p-2.5 font-mono"
                                     readOnly
                                     type="password"
-                                    value="gsk_********************************"
+                                    value="sk-or-v1-********************************"
                                 />
                                 <button className="absolute right-2 top-2 text-muted-foreground hover:text-foreground">
                                     <EyeOff className="w-5 h-5" />
@@ -78,14 +78,14 @@ export default function SettingsPage() {
                     </div>
 
                     <div className="col-span-1">
-                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Fallback API Key (Groq)</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1.5">Fallback API Key (OpenRouter)</label>
                         <div className="flex gap-2">
                             <div className="relative flex-1">
                                 <input
                                     className="w-full bg-background border border-border text-muted-foreground text-sm rounded-lg focus:ring-1 focus:ring-primary focus:border-primary block p-2.5 font-mono"
                                     readOnly
                                     type="password"
-                                    value="gsk_********************************"
+                                    value="sk-or-v1-********************************"
                                 />
                                 <button className="absolute right-2 top-2 text-muted-foreground hover:text-foreground">
                                     <EyeOff className="w-5 h-5" />

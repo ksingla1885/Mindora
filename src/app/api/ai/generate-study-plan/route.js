@@ -17,32 +17,32 @@ Structure the plan day by day with specific activities (e.g., "Read summary", "S
       { role: 'user', content: userPrompt }
     ];
 
-    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 400 });
+    const openrouterRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 400 });
 
-    if (!groqRes) {
+    if (!openrouterRes) {
       studyPlan = `[Simulated Study Plan]
       
 Based on your weak areas (${weakAreas.join(', ')}), here is a suggested study plan:
-
+ 
 Day 1: Review ${weakAreas[0] || 'Topic 1'}
 - Read the summary notes.
 - Watch the video lecture (if available).
 - Solve 15 easy questions.
-
+ 
 Day 2: Deep Dive into ${weakAreas[1] || 'Topic 2'}
 - Focus on sub-topics where you made mistakes.
 - Create flashcards for key formulas.
 - Solve 10 medium difficulty questions.
-
+ 
 Day 3: Mixed Practice
 - Take a mini-quiz covering both topics.
 - Analyze your errors immediately.`;
     } else {
-      if (!groqRes.ok) {
-        throw new Error('Groq API request failed');
+      if (!openrouterRes.ok) {
+        throw new Error('OpenRouter API request failed');
       }
 
-      const data = await groqRes.json();
+      const data = await openrouterRes.json();
       studyPlan = data?.choices?.[0]?.message?.content ?? '';
     }
 

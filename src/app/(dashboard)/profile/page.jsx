@@ -239,17 +239,14 @@ export default function ProfilePage() {
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium text-muted-foreground">Language</label>
                                         <div className="relative">
-                                            <select
-                                                className="w-full rounded-lg border border-input bg-background text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary px-4 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-foreground appearance-none transition-all"
-                                                value={formData.language}
-                                                disabled={!isEditing}
-                                                onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                                            <input
+                                                className="w-full rounded-lg border border-input bg-muted/20 text-sm px-4 py-2.5 disabled:opacity-60 disabled:cursor-not-allowed text-foreground transition-all"
+                                                type="text"
+                                                value="English"
+                                                disabled={true}
                                                 suppressHydrationWarning
-                                            >
-                                                <option value="English">English</option>
-                                                <option value="Hindi">Hindi</option>
-                                            </select>
-                                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground rotate-90 pointer-events-none" />
+                                            />
+                                            <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" />
                                         </div>
                                     </div>
                                 </div>

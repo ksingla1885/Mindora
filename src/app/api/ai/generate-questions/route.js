@@ -38,9 +38,9 @@ Ensure the JSON is valid.`;
       { role: 'user', content: userPrompt }
     ];
 
-    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048 });
+    const openrouterRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 2048 });
 
-    if (!groqRes) {
+    if (!openrouterRes) {
       // Mock response if no key
       await new Promise(resolve => setTimeout(resolve, 2000));
       return NextResponse.json({
@@ -50,11 +50,11 @@ Ensure the JSON is valid.`;
       });
     }
 
-    if (!groqRes.ok) {
-      throw new Error('Groq API request failed');
+    if (!openrouterRes.ok) {
+      throw new Error('OpenRouter API request failed');
     }
 
-    const data = await groqRes.json();
+    const data = await openrouterRes.json();
     const content = data?.choices?.[0]?.message?.content ?? '';
     let questionsData;
 

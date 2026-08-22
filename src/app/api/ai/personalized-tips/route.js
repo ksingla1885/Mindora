@@ -24,9 +24,9 @@ Focus on general study habits and test-taking strategies.`;
       { role: 'user', content: userPrompt }
     ];
 
-    const groqRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 300 });
+    const openrouterRes = await fetchGroq(messages, { temperature: 0.7, maxOutputTokens: 300 });
 
-    if (!groqRes) {
+    if (!openrouterRes) {
       // Mock tips if API key is missing
       tips = [
         "Review your incorrect answers to understand your mistakes.",
@@ -35,11 +35,11 @@ Focus on general study habits and test-taking strategies.`;
         "Practice with similar questions to reinforce your learning."
       ];
     } else {
-      if (!groqRes.ok) {
-        throw new Error('Groq API request failed');
+      if (!openrouterRes.ok) {
+        throw new Error('OpenRouter API request failed');
       }
 
-      const data = await groqRes.json();
+      const data = await openrouterRes.json();
       const content = data?.choices?.[0]?.message?.content ?? '';
       tips = content.split('\n').filter(line => line.trim().length > 0).map(line => line.replace(/^\d+[.)]\s*/, '').trim());
     }
