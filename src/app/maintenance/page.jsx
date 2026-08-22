@@ -7,6 +7,8 @@ export const metadata = {
   robots: 'noindex, nofollow',
 };
 
+export const dynamic = 'force-dynamic';
+
 async function getMaintenanceInfo() {
   try {
     const [siteName, tagline, supportEmail] = await Promise.all([
