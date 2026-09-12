@@ -1,8 +1,13 @@
+require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-    const email = "ketansingla3246@gmail.com";
+    const email = process.env.ADMIN_EMAIL;
+    if (!email) {
+        console.error('❌ ADMIN_EMAIL is not set in .env file.');
+        process.exit(1);
+    }
     console.log(`Checking for user: ${email}`);
     try {
         const user = await prisma.user.findUnique({
