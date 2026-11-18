@@ -28,11 +28,9 @@ export async function POST(request) {
 
         switch (action) {
             case 'activate':
-                // For our app, activate means setting emailVerified if it's null
                 result = await prisma.user.updateMany({
                     where: {
                         id: { in: userIds },
-                        emailVerified: null,
                     },
                     data: {
                         emailVerified: new Date(),
@@ -41,14 +39,19 @@ export async function POST(request) {
                 break;
 
             case 'deactivate':
-                // Deactivate means clearing emailVerified
+                // Deactivate means clearing emailVerified and removing any active verification tokens
+                await prisma.verificationToken.deleteMany({
+                    where: {
+                        userId: { in: userIds },
+                    },
+                });
+
                 result = await prisma.user.updateMany({
                     where: {
                         id: { in: userIds },
                     },
                     data: {
                         emailVerified: null,
-                        verificationToken: null,
                     },
                 });
                 break;
@@ -64,14 +67,31 @@ export async function POST(request) {
                     );
                 }
 
-                // We should ideally delete related records too, but updateMany/deleteMany doesn't support joins easily in Prisma
-                // For a true cleanup, we'd loop or use a transaction with multiple deleteManys
-
+                // Delete related records in dependency order
                 await prisma.$transaction([
+                    prisma.certificate.deleteMany({ where: { userId: { in: filteredIds } } }),
                     prisma.testAttempt.deleteMany({ where: { userId: { in: filteredIds } } }),
                     prisma.payment.deleteMany({ where: { userId: { in: filteredIds } } }),
                     prisma.contentComment.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.discussion.deleteMany({ where: { userId: { in: filteredIds } } }),
                     prisma.userBadge.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.leaderboardEntry.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.learningProgress.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.studySession.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.olympiadRegistration.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.dPPAssignment.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.dPPProgress.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.dPPConfig.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.analyticsEvent.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.userChallenge.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.userTestAnalytics.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.xPHistory.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.verificationToken.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.session.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.account.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.notification.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.aIDoubtSession.deleteMany({ where: { userId: { in: filteredIds } } }),
+                    prisma.testAccess.deleteMany({ where: { userId: { in: filteredIds } } }),
                     prisma.user.deleteMany({ where: { id: { in: filteredIds } } }),
                 ]);
 

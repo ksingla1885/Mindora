@@ -141,14 +141,18 @@ export default function UsersPage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to perform action');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to perform action');
+      }
 
       await loadUsers();
       setSelectedUsers([]); // Clear selection if any
-      toast.success(`Successfully performed ${action} on users`);
+      toast.success(data.message || `Successfully performed ${action} on users`);
     } catch (error) {
       console.error('Action error:', error);
-      toast.error(`Failed to perform ${action}`);
+      toast.error(error.message || `Failed to perform ${action}`);
     } finally {
       setIsBulkActionLoading(false);
     }
@@ -413,7 +417,7 @@ export default function UsersPage() {
                   </td>
                 </tr>
               ) : (
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {currentUsers.map((user, i) => (
                     <motion.tr
                       key={user.id}

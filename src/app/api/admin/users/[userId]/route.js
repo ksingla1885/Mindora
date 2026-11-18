@@ -131,19 +131,33 @@ export async function DELETE(request, { params }) {
       );
     }
 
-    // Delete related records first
+    // Delete related records first in dependency order
     await prisma.$transaction([
+      prisma.certificate.deleteMany({ where: { userId } }),
       prisma.testAttempt.deleteMany({ where: { userId } }),
       prisma.payment.deleteMany({ where: { userId } }),
       prisma.contentComment.deleteMany({ where: { userId } }),
+      prisma.discussion.deleteMany({ where: { userId } }),
       prisma.userBadge.deleteMany({ where: { userId } }),
-      // Add other related deletes as needed
+      prisma.leaderboardEntry.deleteMany({ where: { userId } }),
+      prisma.learningProgress.deleteMany({ where: { userId } }),
+      prisma.studySession.deleteMany({ where: { userId } }),
+      prisma.olympiadRegistration.deleteMany({ where: { userId } }),
+      prisma.dPPAssignment.deleteMany({ where: { userId } }),
+      prisma.dPPProgress.deleteMany({ where: { userId } }),
+      prisma.dPPConfig.deleteMany({ where: { userId } }),
+      prisma.analyticsEvent.deleteMany({ where: { userId } }),
+      prisma.userChallenge.deleteMany({ where: { userId } }),
+      prisma.userTestAnalytics.deleteMany({ where: { userId } }),
+      prisma.xPHistory.deleteMany({ where: { userId } }),
+      prisma.verificationToken.deleteMany({ where: { userId } }),
+      prisma.session.deleteMany({ where: { userId } }),
+      prisma.account.deleteMany({ where: { userId } }),
+      prisma.notification.deleteMany({ where: { userId } }),
+      prisma.aIDoubtSession.deleteMany({ where: { userId } }),
+      prisma.testAccess.deleteMany({ where: { userId } }),
+      prisma.user.delete({ where: { id: userId } }),
     ]);
-
-    // Then delete the user
-    await prisma.user.delete({
-      where: { id: userId }
-    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
